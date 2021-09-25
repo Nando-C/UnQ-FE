@@ -1,11 +1,19 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
+import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Register from './components/Register/Register';
+import Login from './components/Login/Login';
 
 function App() {
   return (
     <div className="App">
+      <Router>
+        <Route exact path="/" />
+        <Route exact path="/register" component={Register}/>
+        <Route exact path="/login" component={Login}/>
+      </Router>
+
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
@@ -20,7 +28,6 @@ function App() {
           Learn React
         </a>
       </header>
-      <Register/>
     </div>
   );
 }

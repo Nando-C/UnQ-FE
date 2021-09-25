@@ -1,5 +1,7 @@
-import { useState } from "react"
-import { Col, Container, Form, Row, Button, FloatingLabel, Image } from "react-bootstrap"
+import { FormEvent, useState } from "react"
+import { Col, Container, Form, Row, Button, FloatingLabel, Image, Alert } from "react-bootstrap"
+import { useHistory } from "react-router-dom"
+import backend from "../../backend/backend"
 import "./Register.css"
 
 const Register = () => {
@@ -12,6 +14,20 @@ const Register = () => {
     })
 
     const [verifyPassword, setVerifyPassword] = useState("")
+    const history = useHistory()
+    const [error, setError] = useState("")
+
+    const handleSingUp = async (e: FormEvent) => {
+        e.preventDefault()
+        
+        try {
+            await backend.post("/auth/register", credentials)
+            history.push("/")
+        } catch (error) {
+            console.log(error)
+            setError("Email already exists")
+        }
+    }
 
     return(
         <Container className="Register">
@@ -20,7 +36,7 @@ const Register = () => {
                     <Image src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png" rounded fluid/>
                 </Col>
                 <Col xs={12} sm={6}>
-                    <Form>
+                    <Form onSubmit={handleSingUp}>
                         <Row>
                             <Col>
                                 <Form.Group className="mb-3" controlId="formBasicEmail">
@@ -72,18 +88,23 @@ const Register = () => {
                         <Form.Group className="mb-3" controlId="formBasicPassword">
                             <FloatingLabel controlId="floatingPassword" label="Re-type Password">
                                 <Form.Control 
-                                type="password" 
-                                placeholder="Re-type Password"
-                                value={verifyPassword}
-                                onChange={e => setVerifyPassword( e.target.value )}
-                                isInvalid={verifyPassword === credentials.password ? false : true}
-                                isValid={verifyPassword === credentials.password && verifyPassword !==""}
+                                    type="password" 
+                                    placeholder="Re-type Password"
+                                    value={verifyPassword}
+                                    onChange={e => setVerifyPassword( e.target.value )}
+                                    isInvalid={verifyPassword === credentials.password ? false : true}
+                                    isValid={verifyPassword === credentials.password && verifyPassword !==""}
                                 />
                             </FloatingLabel>
                         </Form.Group>
                         <Button variant="primary" type="submit">
                             SignUp
                         </Button>
+                        {error && (
+                            <Alert className="my-3" variant="danger">
+                                {error}
+                            </Alert>
+                        )}
                     </Form>
                 </Col>
             </Row>
