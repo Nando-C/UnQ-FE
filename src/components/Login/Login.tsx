@@ -55,6 +55,14 @@ const Login = () => {
                         <Button variant="primary" type="submit">
                             Login
                         </Button>
+                        <Button className="mx-3" variant="info" as="a" href={`http://localhost:3000/register`}>
+                                Register
+                            </Button>
+                        <Form.Group className="my-3" controlId="formBasicPassword">
+                            <Button variant="secondary" as="a" href={`${process.env.REACT_APP_BE_URL}/auth/googleLogin`}>
+                                Login with Google
+                            </Button>
+                        </Form.Group>
                     </Form>
                 </Col>
             </Row>
