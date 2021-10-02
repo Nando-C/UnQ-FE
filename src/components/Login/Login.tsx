@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react"
 import { Col, Container, Form, Row, Button, FloatingLabel, Image } from "react-bootstrap"
 import { useHistory } from "react-router-dom"
 import backend from "../../backend/backend"
+import { FcGoogle } from "react-icons/fc"
 import "../Register/Register.css"
 
 const Login = () => {
@@ -52,14 +53,20 @@ const Login = () => {
                                 />
                             </FloatingLabel>
                         </Form.Group>
+                        <Form.Group className="my-3">
+                            <p>Don't have an account? 
+                                <a href={`http://localhost:3000/register`}> SignUp</a>
+                            </p>
+                            {/* <Button className="mx-3" variant="info" as="a" href={`http://localhost:3000/register`}>
+                                Register
+                            </Button> */}
+                        </Form.Group>
                         <Button variant="primary" type="submit">
                             Login
                         </Button>
-                        <Button className="mx-3" variant="info" as="a" href={`http://localhost:3000/register`}>
-                                Register
-                            </Button>
-                        <Form.Group className="my-3" controlId="formBasicPassword">
-                            <Button variant="secondary" as="a" href={`${process.env.REACT_APP_BE_URL}/auth/googleLogin`}>
+                        <Form.Group className="my-3">
+                            <Button className="border" variant="light" as="a" href={`${process.env.REACT_APP_BE_URL}/auth/googleLogin`}>
+                                <FcGoogle className="me-2" size={25}/>
                                 Login with Google
                             </Button>
                         </Form.Group>
