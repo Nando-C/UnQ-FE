@@ -4,6 +4,7 @@ import './App.css';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Register from './components/Register/Register';
 import Login from './components/Login/Login';
+import Item from './components/Shop/Item/Item';
 
 function App() {
   return (
@@ -13,6 +14,13 @@ function App() {
         <Route exact path="/register" component={Register}/>
         <Route exact path="/" />
       </Router>
+
+      <Item/>
+      <Item/>
+      <Item/>
+      <Item/>
+      <Item/>
+      
 
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />

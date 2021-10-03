@@ -1,0 +1,6 @@
+.Item img {
+    width: 200px;
+    height: 200px;
+    margin: 16px 0px;
+    object-fit: cover;
+}
