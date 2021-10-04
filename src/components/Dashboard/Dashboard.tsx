@@ -9,7 +9,8 @@ const Dashboard = () => {
 
     useEffect(() => {
         dispatch(fetchUserData())
-    }, [])
+    }, )
+
     return (
         <Container>
             <ItemList/>
