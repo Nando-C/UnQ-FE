@@ -2,7 +2,7 @@ import { useAppDispatch } from "../../redux/app/hooks"
 import { Container } from "react-bootstrap"
 import { useEffect } from "react"
 import { fetchUserData } from "../../redux/slices/userSlice"
-import ItemList from "../Shop/ItemList/ItemList"
+import ShopList from "../Shop/ShopList/ShopList"
 import { fetchShopList } from "../../redux/slices/shopSlice"
 
 const Dashboard = () => {
@@ -15,7 +15,7 @@ const Dashboard = () => {
 
     return (
         <Container>
-            <ItemList/>
+            <ShopList/>
         </Container>
     )
 }
