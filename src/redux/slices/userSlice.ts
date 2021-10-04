@@ -6,6 +6,7 @@ import { RootState } from "../app/store";
 
 const initialState: IUserStore = {
    data: {
+    _id: "",
     name: "",
     surname: "",
     email: "",
