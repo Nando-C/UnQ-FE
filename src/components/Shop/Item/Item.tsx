@@ -5,9 +5,9 @@ const Item = () => {
     return(
         <>
             <Card className="Item p-3">
-                        <Card.Title>
-                            Item Name
-                        </Card.Title>
+                <Card.Title>
+                    Item Name
+                </Card.Title>
                 <Row className="align-items-center">
                     <Col xs={12} md={3}>
                         <Image src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png" thumbnail fluid />
@@ -25,25 +25,25 @@ const Item = () => {
                             Full Description
                         </Card.Subtitle>
                         <Card.Body>
-                        The best Burger in town! and the rest of the world! bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla
+                            The best Burger in town! and the rest of the world! bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla bla
                         </Card.Body>
                     </Col>
                     <Col xs={12} md={3}>
                         <Row className="align-items-center">
-                        <Col xs={12} md={6}>
-                            <Card.Body>
-                                £ 12
-                            </Card.Body>
-                        </Col>
-                        <Col xs={12} md={6}>
-                            <Form>
-                                <Form.Check
-                                    type="switch"
-                                    id="custom-switch"
-                                // label="Available"
-                                />
-                            </Form>
-                        </Col>
+                            <Col xs={12} md={6}>
+                                <Card.Body>
+                                    £ 12
+                                </Card.Body>
+                            </Col>
+                            <Col xs={12} md={6}>
+                                <Form>
+                                    <Form.Check
+                                        type="switch"
+                                        id="custom-switch"
+                                    // label="Available"
+                                    />
+                                </Form>
+                            </Col>
                         </Row>
                     </Col>
                 </Row>

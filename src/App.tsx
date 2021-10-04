@@ -5,7 +5,8 @@ import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Register from './components/Register/Register';
 import Login from './components/Login/Login';
 // import Item from './components/Shop/Item/Item';
-import ItemList from './components/Shop/ItemList/ItemList';
+// import ItemList from './components/Shop/ItemList/ItemList';
+import Dashboard from "./components/Dashboard/Dashboard"
 
 function App() {
   return (
@@ -13,10 +14,10 @@ function App() {
       <Router>
         <Route exact path="/login" component={Login}/>
         <Route exact path="/register" component={Register}/>
-        <Route exact path="/" />
+        <Route exact path="/" component={Dashboard}/>
       </Router>
 
-      <ItemList/>
+      {/* <ItemList/> */}
 
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
