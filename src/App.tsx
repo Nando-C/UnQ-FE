@@ -4,7 +4,8 @@ import './App.css';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Register from './components/Register/Register';
 import Login from './components/Login/Login';
-import Item from './components/Shop/Item/Item';
+// import Item from './components/Shop/Item/Item';
+import ItemList from './components/Shop/ItemList/ItemList';
 
 function App() {
   return (
@@ -15,12 +16,7 @@ function App() {
         <Route exact path="/" />
       </Router>
 
-      <Item/>
-      <Item/>
-      <Item/>
-      <Item/>
-      <Item/>
-      
+      <ItemList/>
 
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />

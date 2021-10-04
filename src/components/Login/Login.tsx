@@ -57,9 +57,6 @@ const Login = () => {
                             <p>Don't have an account? 
                                 <a href={`http://localhost:3000/register`}> SignUp</a>
                             </p>
-                            {/* <Button className="mx-3" variant="info" as="a" href={`http://localhost:3000/register`}>
-                                Register
-                            </Button> */}
                         </Form.Group>
                         <Button variant="primary" type="submit">
                             Login
