@@ -6,6 +6,7 @@ import { FcClock, FcCellPhone, FcAddressBook } from "react-icons/fc"
 import "./ShopDetails.css"
 import { useState } from "react"
 import ShopModal from "../ShopModal/ShopModal"
+import ShopMenu from "../ShopMenu/ShopMenu"
 
 const ShopDetails = () => {
 
@@ -52,6 +53,8 @@ const ShopDetails = () => {
             </Row>
         </Card>
         <ShopModal show={show} handleClose={handleClose} shop={shop}/>
+
+        <ShopMenu/>
         </>
     )
 }
