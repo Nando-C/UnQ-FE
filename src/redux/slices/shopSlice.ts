@@ -13,6 +13,11 @@ export const fetchShopList = createAsyncThunk("shop/fetchShopList", async () => 
     return data
 })
 
+export const fetchSingleShop = createAsyncThunk("shop/fetchSingleShop", async (shopId) => {
+    const { data }: AxiosResponse<IShop> = await backend.get(`/shops/${shopId}`)
+    return data
+})
+
 export const shopsSlice = createSlice({
     name: "shops",
     initialState,

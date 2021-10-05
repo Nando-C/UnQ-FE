@@ -7,6 +7,7 @@ import Login from './components/Login/Login';
 // import Item from './components/Shop/Item/Item';
 // import ItemList from './components/Shop/ItemList/ItemList';
 import Dashboard from "./components/Dashboard/Dashboard"
+import ShopDetails from './components/Shops/ShopDetails/ShopDetails';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route exact path="/login" component={Login}/>
         <Route exact path="/register" component={Register}/>
         <Route exact path="/" component={Dashboard}/>
+        <Route exact path="/shop/:shopId" component={ShopDetails} />
       </Router>
 
       {/* <ItemList/> */}

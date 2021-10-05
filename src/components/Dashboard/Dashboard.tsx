@@ -2,7 +2,7 @@ import { useAppDispatch } from "../../redux/app/hooks"
 import { Container } from "react-bootstrap"
 import { useEffect } from "react"
 import { fetchUserData } from "../../redux/slices/userSlice"
-import ShopList from "../Shop/ShopList/ShopList"
+import ShopList from "../Shops/ShopList/ShopList"
 import { fetchShopList } from "../../redux/slices/shopSlice"
 
 const Dashboard = () => {

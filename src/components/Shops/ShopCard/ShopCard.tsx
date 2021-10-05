@@ -1,4 +1,4 @@
-import { Card, Row, Col, Form, Image } from "react-bootstrap"
+import { Card, Row, Col, Image } from "react-bootstrap"
 import "./ShopCard.css"
 
 interface ShopCardProps {
