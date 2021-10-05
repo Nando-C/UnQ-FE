@@ -27,29 +27,29 @@ const ShopDetails = () => {
                 <Col xs={12} md={6}>
                     <Image src={shop?.cover} fluid/>
                 </Col>
-                <Col xs={12} md={6}>
-                    <Card.Body className="ms-2">
-                        <Card.Title>{shop?.name}</Card.Title>
-                        <ListGroup className="align-items-start" variant="flush">
-                            <ListGroup.Item>
-                                <Card.Text>{shop?.bio}</Card.Text>
-                            </ListGroup.Item>
-                            <ListGroup.Item>
-                            <FcClock className="me-2" size={25}/>
-                            {shop?.open_times}
-                            </ListGroup.Item>
-                            <ListGroup.Item>
-                                <FcCellPhone className="me-2" size={25}/>
-                                {shop?.phone}
-                            </ListGroup.Item>
-                            <ListGroup.Item>
-                                <FcAddressBook className="me-2" size={25}/>
-                                <Card.Link href={shop?.web_URL}>{shop?.web_URL}</Card.Link>
-                            </ListGroup.Item>
-                        </ListGroup>
-                    </Card.Body>
-                    <Button onClick={handleShow} >Edit Details</Button>
-                </Col>
+                    <Col xs={12} md={6}>
+                        <Card.Body className="ms-2">
+                            <Card.Title>{shop?.name}</Card.Title>
+                            <ListGroup className="align-items-start" variant="flush">
+                                <ListGroup.Item>
+                                    <Card.Text>{shop?.bio}</Card.Text>
+                                </ListGroup.Item>
+                                <ListGroup.Item>
+                                    <FcClock className="me-2" size={25} />
+                                    {shop?.open_times}
+                                </ListGroup.Item>
+                                <ListGroup.Item>
+                                    <FcCellPhone className="me-2" size={25} />
+                                    {shop?.phone}
+                                </ListGroup.Item>
+                                <ListGroup.Item>
+                                    <FcAddressBook className="me-2" size={25} />
+                                    <Card.Link href={shop?.web_URL}>{shop?.web_URL}</Card.Link>
+                                </ListGroup.Item>
+                            </ListGroup>
+                        </Card.Body>
+                        <Button onClick={handleShow} >Edit Details</Button>
+                    </Col>
             </Row>
         </Card>
         <ShopModal show={show} handleClose={handleClose} shop={shop}/>

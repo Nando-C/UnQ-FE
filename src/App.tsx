@@ -19,8 +19,6 @@ function App() {
         <Route exact path="/shop/:shopId" component={ShopDetails} />
       </Router>
 
-      {/* <ItemList/> */}
-
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>

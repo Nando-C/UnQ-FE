@@ -1,5 +1,9 @@
 import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react"
 import { Modal, Button, Form, FloatingLabel, Image } from "react-bootstrap"
+import { useHistory } from "react-router-dom"
+import backend from "../../../backend/backend"
+import { useAppDispatch } from "../../../redux/app/hooks"
+import { fetchShopList } from "../../../redux/slices/shopSlice"
 import { IShop } from "../../../typings/shop"
 import "./ShopModal.css"
 
@@ -22,12 +26,14 @@ const ShopModal = (
         cover: "",
         bio: "",
         open_times: "",
-        phone: "",
+        phone: 0,
         web_URL: "",
         shopMg: [],
         tables: [],
         menu: []
     })
+    const dispatch = useAppDispatch()
+    const history = useHistory()
 
     const [imageFile, setImageFile] = useState<File | null>()
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -54,12 +60,30 @@ const ShopModal = (
         })
     }, [])
 
-    const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    const updateShop = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        console.log(editShop);
 
-        console.log("imageFile: ", imageFile);
+        const data = await backend.put(`/shops/${editShop._id}`, editShop)
+        console.log(data)
+        if(imageFile) {
+            const newShopCover = new FormData()
+            newShopCover.append("cover", imageFile)
+            const newCover = await backend.put(`/shops/${editShop._id}/cover`, newShopCover)
+            console.log(newCover)
+        }
+        dispatch(fetchShopList())
+        // setEditShop({
+        //     _id: "",name: "",cover: "",bio: "",open_times: "",phone: 0,web_URL: "",shopMg: [],tables: [],menu: []
+        // })
         handleClose()
+    }
 
+    const deleteShop = async () => {
+        const deleted = await backend.delete(`/shops/${editShop._id}`)
+        console.log("Deleted")
+        history.push("/")
+        handleClose()
     }
 
     return (
@@ -69,9 +93,7 @@ const ShopModal = (
                     <Modal.Title>Shop</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-
-                        
-                <Form onSubmit={(e) => handleEdit(e)}>
+                    <Form onSubmit={(e) => updateShop(e)}>
                         <Form.Group className="my-2">
                             <Form.Control
                                 type="file"
@@ -90,7 +112,7 @@ const ShopModal = (
                                 alt="cover"
                                 className="d-block mb-2"
                             />
-                            <Button variant="dark" className="me-2" onClick={()=> fileInputRef.current?.click()}>
+                            <Button variant="dark" className="me-2" onClick={() => fileInputRef.current?.click()}>
                                 Upload Image
                             </Button>
                             <Button variant="outline-dark" className="my-2" onClick={() => setImageFile(null)}>
@@ -99,7 +121,7 @@ const ShopModal = (
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="formBasicEmail">
                             <FloatingLabel controlId="floatingInput" label="Name">
-                                <Form.Control 
+                                <Form.Control
                                     placeholder="Name"
                                     value={editShop.name}
                                     onChange={e => setEditShop({ ...editShop, name: e.target.value })}
@@ -108,8 +130,8 @@ const ShopModal = (
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="formBasicPassword">
                             <FloatingLabel controlId="ffloatingTextarea" label="Bio">
-                                <Form.Control 
-                                    as="textarea" 
+                                <Form.Control
+                                    as="textarea"
                                     placeholder="Bio"
                                     value={editShop.bio}
                                     style={{ height: '200px' }}
@@ -119,7 +141,7 @@ const ShopModal = (
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="formBasicEmail">
                             <FloatingLabel controlId="floatingInput" label="Open Times">
-                                <Form.Control 
+                                <Form.Control
                                     placeholder="Open Times"
                                     value={editShop.open_times}
                                     onChange={e => setEditShop({ ...editShop, open_times: e.target.value })}
@@ -128,36 +150,32 @@ const ShopModal = (
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="formBasicEmail">
                             <FloatingLabel controlId="floatingInput" label="Phone Number">
-                                <Form.Control 
+                                <Form.Control
                                     placeholder="Phone Number"
                                     value={editShop.phone}
-                                    onChange={e => setEditShop({ ...editShop, phone: e.target.value })}
+                                    onChange={e => setEditShop({ ...editShop, phone: parseInt(e.target.value) })}
                                 />
                             </FloatingLabel>
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="formBasicEmail">
                             <FloatingLabel controlId="floatingInput" label="Web URL">
-                                <Form.Control 
+                                <Form.Control
                                     placeholder="Web URL"
                                     value={editShop.web_URL}
                                     onChange={e => setEditShop({ ...editShop, web_URL: e.target.value })}
                                 />
                             </FloatingLabel>
                         </Form.Group>
-
-                <Form.Group className="d-flex justify-content-end">
-                    <Button className="mb-2" variant="primary" type="submit">
-                        Save Changes
-                    </Button>
-                </Form.Group>
-
+                        <Form.Group className="d-flex justify-content-end">
+                        <Button variant="outline-danger" className="my-2" onClick={deleteShop}>
+                                Delete Shop
+                            </Button>
+                            <Button className="my-2" variant="primary" type="submit">
+                                Save Changes
+                            </Button>
+                        </Form.Group>
                     </Form>
                 </Modal.Body>
-                {/* <Modal.Footer>
-                    <Button variant="secondary" onClick={handleClose}>
-                        Close
-                    </Button>
-                </Modal.Footer> */}
             </Modal>
         </>
     )
