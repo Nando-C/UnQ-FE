@@ -26,7 +26,7 @@ const ShopModal = (
         
     
     const [editShop, setEditShop] = useState<IShop>({
-        _id: shop ? shop._id : "",
+        _id: "",
         name: "",
         cover: "",
         bio: "",
@@ -64,6 +64,27 @@ const ShopModal = (
             menu: shop ? shop.menu : []
         })
     }, [shop])
+
+    const createShop = async () => {
+        const newShop = {
+            name: editShop.name,
+            bio: editShop.bio,
+            open_times: editShop.open_times,
+            phone: editShop.phone,
+            web_URL: editShop.web_URL,
+        }
+        const created = await backend.post(`/shops`, newShop)
+        console.log("newShop: ", created)
+        
+        if(imageFile) {
+            const newShopCover = new FormData()
+            newShopCover.append("cover", imageFile)
+            const newCover = await backend.put(`/shops/${created.data._id}/cover`, newShopCover)
+            console.log(newCover)
+        }
+        dispatch(fetchShopList())
+        handleClose()
+    }
 
     const updateShop = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -171,14 +192,22 @@ const ShopModal = (
                                 />
                             </FloatingLabel>
                         </Form.Group>
-                        <Form.Group className="d-flex justify-content-end">
-                        <Button variant="outline-danger" className="my-2" onClick={deleteShop}>
-                                Delete Shop
-                            </Button>
-                            <Button className="my-2" variant="primary" type="submit">
-                                Save Changes
-                            </Button>
+                        {(shopId !== "new")
+                            ? <Form.Group className="d-flex justify-content-end">
+                                <Button variant="outline-danger" className="my-2" onClick={deleteShop}>
+                                    Delete Shop
+                                </Button>
+                                <Button className="my-2" variant="primary" type="submit">
+                                    Save Changes
+                                </Button>
+                            </Form.Group>
+                            : <Form.Group className="d-flex justify-content-end">
+                                <Button className="my-2" variant="primary" onClick={createShop}>
+                                    Create Shop
+                                </Button>
                         </Form.Group>
+                        }
+                        
                     </Form>
                 </Modal.Body>
             </Modal>
