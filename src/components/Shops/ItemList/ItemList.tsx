@@ -6,7 +6,7 @@ const ItemList = () => {
     return (
         <>
         <ListGroup className="px-3" variant="flush">
-            <ListGroup.Item>
+            {/* <ListGroup.Item>
                 <Item/>
             </ListGroup.Item>
             <ListGroup.Item>
@@ -20,7 +20,7 @@ const ItemList = () => {
             </ListGroup.Item>
             <ListGroup.Item>
                 <Item/>
-            </ListGroup.Item>
+            </ListGroup.Item> */}
         </ListGroup>
         </>
     )

@@ -2,26 +2,31 @@ import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from "reac
 import { Modal, Button, Form, FloatingLabel, Image } from "react-bootstrap"
 import { useHistory } from "react-router-dom"
 import backend from "../../../backend/backend"
-import { useAppDispatch } from "../../../redux/app/hooks"
+import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
 import { fetchShopList } from "../../../redux/slices/shopSlice"
+import { fetchUserData } from "../../../redux/slices/userSlice"
 import { IShop } from "../../../typings/shop"
 import "./ShopModal.css"
 
 interface ShopModalProps {
     show: boolean
     handleClose: ()=> void
-    shop: IShop | undefined
+    // shop: IShop | undefined
+    shopId: string
 }
 
 const ShopModal = (
     {
         show,
         handleClose,
-        shop 
+        shopId,
     }: ShopModalProps ) => {
+        const shop = useAppSelector(state => state.shops.data.find(shop => shop._id === shopId))
+        // console.log("shop: ", shop)
+        
     
     const [editShop, setEditShop] = useState<IShop>({
-        _id: "",
+        _id: shop ? shop._id : "",
         name: "",
         cover: "",
         bio: "",
@@ -47,18 +52,18 @@ const ShopModal = (
 
     useEffect(() => {
         setEditShop({
-            _id: shop!._id,
-            name: shop!.name,
-            cover: shop!.cover,
-            bio: shop!.bio,
-            open_times: shop!.open_times,
-            phone: shop!.phone,
-            web_URL: shop!.web_URL,
-            shopMg: shop!.shopMg,
-            tables: shop!.tables,
-            menu: shop!.menu
+            _id: shop ? shop._id: "",
+            name: shop ? shop.name : "",
+            cover: shop ? shop.cover : "",
+            bio: shop ? shop.bio : "",
+            open_times: shop ? shop.open_times : "",
+            phone: shop ? shop.phone : 0,
+            web_URL: shop ? shop.web_URL : "",
+            shopMg: shop ? shop.shopMg : [],
+            tables: shop ? shop.tables : [],
+            menu: shop ? shop.menu : []
         })
-    }, [])
+    }, [shop])
 
     const updateShop = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()

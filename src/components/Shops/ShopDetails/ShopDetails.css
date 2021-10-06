@@ -1,3 +1,7 @@
-.list-group-item {
+.ShopDetails .list-group-item {
+    border: none;
+}
+
+.ShopDetails .menu-item {
     border: none;
 }

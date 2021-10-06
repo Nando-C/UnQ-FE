@@ -1,3 +1,5 @@
+import { IMenu } from "./menu";
+
 export interface IShop {
     _id: string
     name: string
@@ -8,7 +10,7 @@ export interface IShop {
     web_URL: string
     shopMg: string[]
     tables: ITable[]
-    menu: string[]
+    menu: IMenu[]
 }
 
 export interface ITable {

@@ -1,32 +1,37 @@
 import { useParams } from "react-router-dom"
-import { useAppSelector } from "../../../redux/app/hooks"
-import { selectShopsData } from "../../../redux/slices/shopSlice"
-import { Card, Row, Col, Button, Image, ListGroup } from "react-bootstrap"
+import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
+import { fetchShopList, selectShopsData } from "../../../redux/slices/shopSlice"
+import { Card, Row, Col, Button, Image, ListGroup, Container } from "react-bootstrap"
 import { FcClock, FcCellPhone, FcAddressBook } from "react-icons/fc"
 import "./ShopDetails.css"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import ShopModal from "../ShopModal/ShopModal"
 import ShopMenu from "../ShopMenu/ShopMenu"
+import Item from "../Item/Item"
+// import { fetchUserData } from "../../../redux/slices/userSlice"
+// import { IShop } from "../../../typings/shop"
 
 const ShopDetails = () => {
 
-    const shopListStore = useAppSelector(selectShopsData)
-
+    // const shopListStore = useAppSelector(selectShopsData)
     const params = useParams<{ shopId: string }>()
     const shopId  = params.shopId
-    const shop = shopListStore.find(shop => shop._id === shopId)
+    const shop = useAppSelector(state => state.shops.data.find(shop => shop._id === shopId))
+    // const shop = shopListStore.find(shop => shop._id === shopId)
 
     const [show, setShow] = useState(false);
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
     return(
-        <>
-        <Card>
-            <Row className="align-items-center">
-                <Col xs={12} md={6}>
-                    <Image src={shop?.cover} fluid/>
-                </Col>
+        <Container>
+            <Card className="ShopDetails">
+                <Row className="align-items-center">
+                    <Col xs={12} md={6}>
+                        <Container className="p-3">
+                            <Image src={shop?.cover} fluid />
+                        </Container>
+                    </Col>
                     <Col xs={12} md={6}>
                         <Card.Body className="ms-2">
                             <Card.Title>{shop?.name}</Card.Title>
@@ -50,12 +55,23 @@ const ShopDetails = () => {
                         </Card.Body>
                         <Button onClick={handleShow} >Edit Details</Button>
                     </Col>
-            </Row>
-        </Card>
-        <ShopModal show={show} handleClose={handleClose} shop={shop}/>
+                </Row>
+            </Card>
+            <ShopModal show={show} handleClose={handleClose} shopId={shopId}/>
+            {/* <hr /> */}
+            {/* <Card> */}
+                <Card.Title className="m-5"> MENU </Card.Title>
+                <ListGroup className="px-0" variant="flush">
+                    {shop?.menu.map(menuItem => (
+                        <ListGroup.Item className="px-0 menu-item">
+                            <Item itemId={menuItem._id} shopId={shopId}/>
+                        </ListGroup.Item>
+                    ))}
+                </ListGroup>
+            {/* </Card> */}
 
-        <ShopMenu/>
-        </>
+            {/* <ShopMenu /> */}
+        </Container>
     )
 }
 

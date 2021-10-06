@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
@@ -8,8 +8,17 @@ import Login from './components/Login/Login';
 // import ItemList from './components/Shop/ItemList/ItemList';
 import Dashboard from "./components/Dashboard/Dashboard"
 import ShopDetails from './components/Shops/ShopDetails/ShopDetails';
+import { useAppDispatch } from './redux/app/hooks';
+import { fetchUserData } from './redux/slices/userSlice';
+import { fetchShopList } from './redux/slices/shopSlice';
 
 function App() {
+  const dispatch = useAppDispatch()
+
+  useEffect(() => {
+      dispatch(fetchUserData())
+      dispatch(fetchShopList())
+  }, )
   return (
     <div className="App">
       <Router>
