@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Card, Button, ListGroup, Row, Col, Form, FloatingLabel,  } from "react-bootstrap"
 import { useAppSelector } from "../../../redux/app/hooks"
-import { IMenu } from "../../../typings/menu"
 import Item from "../Item/Item"
-import ItemList from "../ItemList/ItemList"
 import ItemModal from "../ItemModal/ItemModal"
 
 interface ShopMenuProps {
@@ -22,6 +20,7 @@ const ShopMenu = ({shopId}:ShopMenuProps) => {
     
     return (
         <>
+            <hr />
             <Card.Title className="m-5"> MENU </Card.Title>
             <Row>
                 <Col>
@@ -40,10 +39,15 @@ const ShopMenu = ({shopId}:ShopMenuProps) => {
                 <Button onClick={handleShow}>Add Menu Item</Button>
             </div>
             <ListGroup className="px-0" variant="flush">
-                {shop?.menu.filter(menu => (menu.category.toLowerCase().includes(query.toLowerCase()) || menu.name.toLowerCase().includes(query.toLowerCase()) || menu.description.toLowerCase().includes(query.toLowerCase()))).map(menuItem => (
-                    <ListGroup.Item className="px-0 menu-item">
-                        <Item itemId={menuItem._id} shopId={shopId} />
-                    </ListGroup.Item>
+                {shop?.menu.filter(menu => (
+                            menu.category.toLowerCase().includes(query.toLowerCase()) 
+                            || menu.name.toLowerCase().includes(query.toLowerCase()) 
+                            || menu.description.toLowerCase().includes(query.toLowerCase())
+                        )
+                    ).map(menuItem => (
+                        <ListGroup.Item key={menuItem._id} className="px-0 menu-item">
+                            <Item itemId={menuItem._id} shopId={shopId} />
+                        </ListGroup.Item>
                 ))}
             </ListGroup>
             <ItemModal shopId={shopId} show={show} handleClose={handleClose} itemId={"new"}/>

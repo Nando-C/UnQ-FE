@@ -40,6 +40,8 @@ const TableModal = ({ shopId, tableId, show, handleClose }: TableModalProps) => 
         }
 
         const created = await backend.post(`/shops/${shopId}/tables`, newTable)
+        console.log("createdTable: ", created) //<========================================== LOG
+        
 
         dispatch(fetchShopList())
         handleClose()
@@ -48,14 +50,16 @@ const TableModal = ({ shopId, tableId, show, handleClose }: TableModalProps) => 
     const updateTable = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
 
-        const created = await backend.put(`/shops/${shopId}/tables/${table._id}`, table)
+        const updated = await backend.put(`/shops/${shopId}/tables/${table._id}`, table)
+        console.log("updatedTable: ", updated) //<========================================== LOG
 
         dispatch(fetchShopList())
         handleClose()
     }
 
     const deleteTable = async () => {
-        const created = await backend.delete(`/shops/${shopId}/tables/${table._id}`)
+        const deleted = await backend.delete(`/shops/${shopId}/tables/${table._id}`)
+        console.log("deletedTable: ", deleted) //<========================================== LOG
 
         dispatch(fetchShopList())
         handleClose()

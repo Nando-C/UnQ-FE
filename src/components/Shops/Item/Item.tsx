@@ -1,10 +1,8 @@
-import { ChangeEvent, useState } from "react"
+import { useState } from "react"
 import { Card, Row, Col, Form, Image, Button } from "react-bootstrap"
-import { useParams } from "react-router"
 import backend from "../../../backend/backend"
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
 import { fetchShopList } from "../../../redux/slices/shopSlice"
-import { IMenu } from "../../../typings/menu"
 import ItemModal from "../ItemModal/ItemModal"
 import "./Item.css"
 
@@ -29,7 +27,7 @@ const Item = ({itemId, shopId}: ItemProps) => {
     const updateAvailable = async () => {
         const updatedItem = {...menuItem, available :!available}
         const data = await backend.put(`/shops/${shopId}/menu/${itemId}`, updatedItem)
-        // console.log("updatedItem: ", updatedItem)
+        console.log("updatedAvailable: ", data) //<=========================================== LOG
         dispatch(fetchShopList())
     }
     
@@ -76,7 +74,6 @@ const Item = ({itemId, shopId}: ItemProps) => {
                                         onChange={(e) => {setAvailable(e.target.checked ? true : false)
                                                             updateAvailable()}
                                         }
-                                                
                                     // label="Available"
                                     />
                                 </Form>

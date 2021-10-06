@@ -1,6 +1,5 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react"
 import { Modal, Button, Form, FloatingLabel, Image } from "react-bootstrap"
-import { useHistory } from "react-router"
 import backend from "../../../backend/backend"
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
 import { fetchShopList } from "../../../redux/slices/shopSlice"
@@ -51,7 +50,6 @@ const ItemModal = (
     }, [menuItem])
 
     const dispatch = useAppDispatch()
-    const history = useHistory()
 
     const [imageFile, setImageFile] = useState<File | null>()
     const fileInputRef = useRef<HTMLInputElement>(null)
@@ -89,6 +87,8 @@ const ItemModal = (
         e.preventDefault()
 
         const data = await backend.put(`/shops/${shopId}/menu/${item._id}`, item)
+        console.log("updateItem: ", data) //<=========================================== LOG
+        
         if(imageFile) {
             const newItemImg = new FormData()
             newItemImg.append("image", imageFile)
@@ -101,7 +101,8 @@ const ItemModal = (
 
     const deleteItem = async () => {
         const deleted = await backend.delete(`/shops/${shopId}/menu/${item._id}`)
-        console.log("Deleted")
+        console.log("updateItem: ", deleted) //<=========================================== LOG
+        // console.log("Deleted")
         // history.push("/")
         dispatch(fetchShopList())
         handleClose()

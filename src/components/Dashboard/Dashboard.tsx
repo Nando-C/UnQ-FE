@@ -1,5 +1,5 @@
 import { useAppDispatch } from "../../redux/app/hooks"
-import { Container, Row, Button } from "react-bootstrap"
+import { Container, Button } from "react-bootstrap"
 import { useEffect, useState } from "react"
 import { fetchUserData } from "../../redux/slices/userSlice"
 import ShopList from "../Shops/ShopList/ShopList"

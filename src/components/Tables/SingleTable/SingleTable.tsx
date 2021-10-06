@@ -21,7 +21,7 @@ const SingleTable = ({tableId, shopId}: TableProps) => {
     return(
         <>
             <Card>
-                <Card.Title>{table?.name}</Card.Title>
+                <Card.Title className="mt-3">{table?.name}</Card.Title>
                 <Card.Body>{table?.Qr_Url}</Card.Body>
                 <Button onClick={handleShow} >Edit Table</Button>
             </Card>

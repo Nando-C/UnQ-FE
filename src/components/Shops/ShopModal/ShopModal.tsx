@@ -1,10 +1,9 @@
-import React, { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react"
+import React, { ChangeEvent, useEffect, useRef, useState } from "react"
 import { Modal, Button, Form, FloatingLabel, Image } from "react-bootstrap"
 import { useHistory } from "react-router-dom"
 import backend from "../../../backend/backend"
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
 import { fetchShopList } from "../../../redux/slices/shopSlice"
-import { fetchUserData } from "../../../redux/slices/userSlice"
 import { IShop } from "../../../typings/shop"
 import "./ShopModal.css"
 
@@ -107,7 +106,7 @@ const ShopModal = (
 
     const deleteShop = async () => {
         const deleted = await backend.delete(`/shops/${editShop._id}`)
-        console.log("Deleted")
+        console.log("Deleted Shop: ", deleted) //<========================================== LOG
         history.push("/")
         handleClose()
     }

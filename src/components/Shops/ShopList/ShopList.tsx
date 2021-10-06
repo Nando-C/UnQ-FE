@@ -13,10 +13,9 @@ const ShopList = () => {
         <>
         <ListGroup className="ShopList px-3" variant="flush">
             {shopListStore.map((shop) => (
-                <ListGroup.Item>
+                <ListGroup.Item key={shop._id}>
                     <Link to={`/shop/${shop._id}`}>
                         <ShopCard
-                            key={shop._id}
                             // _id={shop._id}
                             name={shop.name}
                             cover={shop.cover}
