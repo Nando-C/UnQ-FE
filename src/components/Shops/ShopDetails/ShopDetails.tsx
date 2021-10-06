@@ -58,19 +58,7 @@ const ShopDetails = () => {
                 </Row>
             </Card>
             <ShopModal show={show} handleClose={handleClose} shopId={shopId}/>
-            {/* <hr /> */}
-            {/* <Card> */}
-                <Card.Title className="m-5"> MENU </Card.Title>
-                <ListGroup className="px-0" variant="flush">
-                    {shop?.menu.map(menuItem => (
-                        <ListGroup.Item className="px-0 menu-item">
-                            <Item itemId={menuItem._id} shopId={shopId}/>
-                        </ListGroup.Item>
-                    ))}
-                </ListGroup>
-            {/* </Card> */}
-
-            {/* <ShopMenu /> */}
+            <ShopMenu shopId={shopId}/> 
         </Container>
     )
 }

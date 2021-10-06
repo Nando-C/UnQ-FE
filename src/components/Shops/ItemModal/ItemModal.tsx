@@ -39,16 +39,16 @@ const ItemModal = (
 
     useEffect(() => {
         setItem({
-        _id: menuItem!._id,
-        name: menuItem!.name,
-        image: menuItem!.image,
-        short_description: menuItem!.short_description,
-        description: menuItem!.description,
-        price: menuItem!.price,
-        available: menuItem!.available,
-        category: menuItem!.category,
+        _id: menuItem ? menuItem._id : "",
+        name: menuItem ? menuItem.name : "",
+        image: menuItem ? menuItem.image : "",
+        short_description: menuItem ? menuItem.short_description : "",
+        description: menuItem ? menuItem.description : "",
+        price: menuItem ? menuItem.price : 0,
+        available: menuItem ? menuItem.available : false,
+        category: menuItem ? menuItem.category : "",
         })
-    }, [])
+    }, [menuItem])
 
     const dispatch = useAppDispatch()
     const history = useHistory()
@@ -64,6 +64,26 @@ const ItemModal = (
         setImageFile(files[0])
         // console.log("imageFile: ", imageFile)
       }
+
+    const createItem = async () => {
+        const newItem = {
+            name: item.name,
+            short_description: item.short_description,
+            description: item.description,
+            price: item.price,
+            available: item.available,
+            category: item.category,
+        }
+        const created = await backend.post(`/shops/${shopId}/menu`, newItem)
+        if(imageFile) {
+            const newItemImg = new FormData()
+            newItemImg.append("image", imageFile)
+            const newImage = await backend.put(`/shops/${shopId}/menu/${created.data._id}/img`, newItemImg)
+            console.log(newImage)
+        }
+        dispatch(fetchShopList())
+        handleClose()
+    }
 
     const updateItem = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -171,7 +191,6 @@ const ItemModal = (
                                     />
                             {/* </FloatingLabel> */}
                         </Form.Group>
-
                         <Form.Group className="mb-3" controlId="formBasicEmail">
                             <FloatingLabel controlId="floatingInput" label="Category">
                                 <Form.Control
@@ -181,20 +200,27 @@ const ItemModal = (
                                 />
                             </FloatingLabel>
                         </Form.Group>
-                        <Form.Group className="d-flex justify-content-end">
-                        <Button variant="outline-danger" className="my-2" onClick={deleteItem}>
-                                Delete Item
-                            </Button>
-                            <Button className="my-2" variant="primary" type="submit">
-                                Save Changes
-                            </Button>
-                        </Form.Group>
+                        {(itemId !== "new")
+                            ? <Form.Group className="d-flex justify-content-end">
+                            <Button variant="outline-danger" className="my-2" onClick={deleteItem}>
+                                    Delete Item
+                                </Button>
+                                <Button className="my-2" variant="primary" type="submit">
+                                    Save Changes
+                                </Button>
+                            </Form.Group>
+                            : <Form.Group className="d-flex justify-content-end">
+                                <Button className="my-2" variant="primary" onClick={createItem}>
+                                    Create Item
+                                </Button>
+                            </Form.Group>
+                        }
+                        
                     </Form>
                 </Modal.Body>
             </Modal>
         </>
     )
-
 }
 
 export default ItemModal

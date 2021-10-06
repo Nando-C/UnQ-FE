@@ -18,7 +18,7 @@ function App() {
   useEffect(() => {
       dispatch(fetchUserData())
       dispatch(fetchShopList())
-  }, )
+  },)
   return (
     <div className="App">
       <Router>

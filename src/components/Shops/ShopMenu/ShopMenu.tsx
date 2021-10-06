@@ -1,29 +1,37 @@
 import { useEffect, useState } from "react"
-import { Card } from "react-bootstrap"
+import { Card, Button, ListGroup,  } from "react-bootstrap"
+import { useAppSelector } from "../../../redux/app/hooks"
 import { IMenu } from "../../../typings/menu"
+import Item from "../Item/Item"
 import ItemList from "../ItemList/ItemList"
+import ItemModal from "../ItemModal/ItemModal"
 
-// interface ShopMenuProps {
-//     menu: IMenu[]
-// }
-const ShopMenu = (menu: IMenu[]) => {
-    const [menuList, setMenu] = useState([])
-    
-    useEffect(()=> {
-        // setMenu(menu)
-    }, [menu])
+interface ShopMenuProps {
+    shopId: string
+}
+const ShopMenu = ({shopId}:ShopMenuProps) => {
+
+    const shop = useAppSelector(state => state.shops.data.find(shop => shop._id === shopId))
+   
+    const [show, setShow] = useState(false);
+    const handleClose = () => setShow(false);
+    const handleShow = () => setShow(true);
 
     
     return (
         <>
-            <Card>
-                <Card.Body>
-                    <Card.Title>Category</Card.Title>
-                    {/* {menu.map((item) => (
-                        <ItemList item={item}/>
-                    ))} */}
-                </Card.Body>
-            </Card>
+            <Card.Title className="m-5"> MENU </Card.Title>
+            <div className="my-3 text-align-end">
+                <Button onClick={handleShow}>Add Menu Item</Button>
+            </div>
+            <ListGroup className="px-0" variant="flush">
+                {shop?.menu.map(menuItem => (
+                    <ListGroup.Item className="px-0 menu-item">
+                        <Item itemId={menuItem._id} shopId={shopId} />
+                    </ListGroup.Item>
+                ))}
+            </ListGroup>
+            <ItemModal shopId={shopId} show={show} handleClose={handleClose} itemId={"new"}/>
         </>
     )
 }
