@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import ShopModal from "../ShopModal/ShopModal"
 import ShopMenu from "../ShopMenu/ShopMenu"
 import Item from "../Item/Item"
+import TableList from "../../Tables/TableList/TableList"
 // import { fetchUserData } from "../../../redux/slices/userSlice"
 // import { IShop } from "../../../typings/shop"
 
@@ -59,6 +60,7 @@ const ShopDetails = () => {
             </Card>
             <ShopModal show={show} handleClose={handleClose} shopId={shopId}/>
             <ShopMenu shopId={shopId}/> 
+            <TableList shopId={shopId}/>
         </Container>
     )
 }
