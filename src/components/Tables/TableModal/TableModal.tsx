@@ -41,7 +41,6 @@ const TableModal = ({ shopId, tableId, show, handleClose }: TableModalProps) => 
 
         const created = await backend.post(`/shops/${shopId}/tables`, newTable)
         console.log("createdTable: ", created) //<========================================== LOG
-        
 
         dispatch(fetchShopList())
         handleClose()
