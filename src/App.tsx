@@ -18,7 +18,7 @@ function App() {
   useEffect(() => {
       dispatch(fetchUserData())
       dispatch(fetchShopList())
-  },)
+  },[])
   return (
     <div className="App">
       <Router>
@@ -26,6 +26,7 @@ function App() {
         <Route exact path="/register" component={Register}/>
         <Route exact path="/" component={Dashboard}/>
         <Route exact path="/shop/:shopId" component={ShopDetails} />
+        <Route exact path="/shops/:shopId/tables/:tableId" component={Dashboard}/>
       </Router>
 
       <header className="App-header">

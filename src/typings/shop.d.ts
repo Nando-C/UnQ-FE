@@ -21,4 +21,6 @@ export interface ITable {
 
 export interface IShopStore {
     data: IShop[]
+    selected: IShop | null
+    selectedMenu: IMenu | null
 }
