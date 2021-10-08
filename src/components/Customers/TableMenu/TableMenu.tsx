@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Card, Col, FloatingLabel, Form, ListGroup, Row } from "react-bootstrap"
+import { Card, Col, Container, FloatingLabel, Form, Image, ListGroup, Row } from "react-bootstrap"
 import { useDispatch } from "react-redux"
 import { useParams } from "react-router"
 import { useAppSelector } from "../../../redux/app/hooks"
@@ -25,7 +25,11 @@ const TableMenu = () => {
     return(
         <>
          <hr />
-            <Card.Title className="m-5"> MENU </Card.Title>
+            {/* <Container className="p-3"> */}
+                <Image src={shop?.cover} fluid />
+            {/* </Container> */}
+            <Card.Title className="my-3">{shop?.name}</Card.Title>
+            <Card.Subtitle className="m-2"> MENU </Card.Subtitle>
             <Row>
                 <Col>
                     <Form.Group className="mb-3" controlId="formBasicEmail">
