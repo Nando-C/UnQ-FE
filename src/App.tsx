@@ -11,6 +11,7 @@ import ShopDetails from './components/Shops/ShopDetails/ShopDetails';
 import { useAppDispatch } from './redux/app/hooks';
 import { fetchUserData } from './redux/slices/userSlice';
 import { fetchShopList } from './redux/slices/shopSlice';
+import Cart from './components/Customers/Cart/Cart';
 
 function App() {
   const dispatch = useAppDispatch()
@@ -27,6 +28,7 @@ function App() {
         <Route exact path="/" component={Dashboard}/>
         <Route exact path="/shop/:shopId" component={ShopDetails} />
         <Route exact path="/shops/:shopId/tables/:tableId" component={Dashboard}/>
+        <Route exact path="/shops/:shopId/tables/:tableId/cart" component={Cart}/>
       </Router>
 
       <header className="App-header">
