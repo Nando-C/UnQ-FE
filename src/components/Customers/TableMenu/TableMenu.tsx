@@ -47,7 +47,7 @@ const TableMenu = () => {
                 {shop?.menu.filter(menu => (
                             menu.category.toLowerCase().includes(query.toLowerCase()) 
                             || menu.name.toLowerCase().includes(query.toLowerCase()) 
-                            || menu.description.toLowerCase().includes(query.toLowerCase())
+                            || menu.short_description.toLowerCase().includes(query.toLowerCase())
                         )
                     ).map(menuItem => (
                         <ListGroup.Item key={menuItem._id} className="px-0 menu-item">

@@ -10,7 +10,7 @@ export interface IItem {
 export interface ISplitItem {
     _id: string
     userId: string
-    menuId: string
+    menuId: string | null | undedfined
     qty: number
     splitStatus: string
     // total_price_items: number
