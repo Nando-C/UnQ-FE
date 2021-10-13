@@ -20,7 +20,15 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
 
     const cart = useAppSelector(selectCartsData)
     const cartItem = cart.items.find(item => item._id === itemId)
-    const splitItem = cart.split.find(item => item._id === itemId)
+    const splitItem = cart.split.find(item => (item._id === itemId && item.splitStatus === "open"))
+    const payed = cartItem!.qtyPayed
+    const itemQty = cartItem!.qty-payed!
+    
+   console.log(itemQty)
+   
+    
+
+    // const qtysLeft = itemQty - splitItem?.qty
     
 
     // const cartItem = useAppSelector(state => state.carts.data.items.find(item => item._id === itemId))
@@ -38,10 +46,11 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
     const [item, setItem] = useState<IItem | undefined>({
         _id: "",
         menuId: null,
-        qty: 1
+        qty: 1,
+        qtyPayed: 0,
     })
 
-    const [qtyLeft, setQtyLeft] = useState(item?.qty)
+    // const [qtyLeft, setQtyLeft] = useState(item?.qty)
     
 
     // setQtyLeft(left)
@@ -56,7 +65,7 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
         setItem(cartItem)
         setSplit(splitItem)
         // setSelected(selectedAll)
-        console.log(qtyLeft);
+        // console.log(qtyLeft);
         
     }, [cartItem, splitItem])
 
@@ -110,7 +119,10 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
     }
 
     const increment = () => {   //<====================   adds item to SPLIT Cart
-        const plusItem = item!
+        const plusItem = {
+            ...item!,
+            qty: 1
+        }
 
        dispatch(addToSplit({
         shopId: shopId,
@@ -172,7 +184,7 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
                                     </Col>
                                     <Col>
                                     <Card.Text>
-                                       <small> Cart Qty: {item?.qty}</small>
+                                       <small> Cart Qty: {splitItem?.qty ? itemQty-splitItem.qty : itemQty}</small>
                                     </Card.Text>
                                     </Col>
                                 </Row>
@@ -188,8 +200,8 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
                                         <Row className="text-center align-items-center">
                                             <Col className="px-0">
                                                 {selected
-                                                    ? <Button active size="sm" onClick={increment} ><strong>+</strong></Button>
-                                                    : <Button disabled size="sm" onClick={increment} ><strong>+</strong></Button>
+                                                    ? <Button active size="sm" onClick={decrement} ><strong>-</strong></Button>
+                                                    : <Button disabled size="sm" onClick={decrement} ><strong>-</strong></Button>
                                                 }
                                             </Col>
                                             <Col className="px-0">
@@ -199,8 +211,8 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
                                             </Col>
                                             <Col className="px-0">
                                                 {selected
-                                                    ? <Button active size="sm" onClick={decrement} ><strong>-</strong></Button>
-                                                    : <Button disabled size="sm" onClick={decrement} ><strong>-</strong></Button>
+                                                    ? <Button active size="sm" onClick={increment} ><strong>+</strong></Button>
+                                                    : <Button disabled size="sm" onClick={increment} ><strong>+</strong></Button>
                                                 }
                                                 {/* <Button size="sm" onClick={decrement} ><strong>-</strong></Button> */}
                                             </Col>

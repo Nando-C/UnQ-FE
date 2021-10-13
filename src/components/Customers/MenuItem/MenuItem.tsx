@@ -80,7 +80,7 @@ const MenuItem = ({shopId, itemId}: MenuItemProps) => {
                         <Col xs={5}>
                             <Row className="text-center align-items-center">
                                 <Col className="px-0">
-                                    <Button  size="sm" onClick={increment} ><strong>+</strong></Button>
+                                    <Button  size="sm" onClick={decrement} ><strong>-</strong></Button>
                                 </Col>
                                 <Col className="px-0">
                                     <Card.Body className="p-0">
@@ -88,7 +88,7 @@ const MenuItem = ({shopId, itemId}: MenuItemProps) => {
                                     </Card.Body>
                                 </Col>
                                 <Col className="px-0">
-                                    <Button  size="sm" onClick={decrement} ><strong>-</strong></Button>
+                                    <Button  size="sm" onClick={increment} ><strong>+</strong></Button>
                                 </Col>
                             </Row>
                         </Col>

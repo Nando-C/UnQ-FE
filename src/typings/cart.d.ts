@@ -4,6 +4,7 @@ export interface IItem {
     _id?: string
     menuId: IMenu | null | undedfined
     qty: number
+    qtyPayed?: number
     // totalPriceItems: number
 }
 

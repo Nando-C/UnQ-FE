@@ -6,6 +6,7 @@ import ShopList from "../Shops/ShopList/ShopList"
 import TableMenu from "../Customers/TableMenu/TableMenu"
 import { fetchShopList } from "../../redux/slices/shopSlice"
 import ShopModal from "../Shops/ShopModal/ShopModal"
+// import NavigationBar from "../Customers/NavigationBar/NavigationBar"
 
 const Dashboard = () => {
     const dispatch = useAppDispatch()
@@ -40,6 +41,7 @@ const Dashboard = () => {
                 <Container>
                     <h2>User Dashboard</h2>
                     <TableMenu/>
+                    {/* <NavigationBar /> */}
                 </Container>
         }
         </>
