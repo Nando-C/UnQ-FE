@@ -29,4 +29,8 @@ export interface ICart {
 
 export interface ICartStore {
     data: ICart
+    pointers: {
+        shopId: string
+        tableId: string
+    }
 }

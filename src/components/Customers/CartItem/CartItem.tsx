@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react"
-import { Card, Col, Row, Button, Image, Form } from "react-bootstrap"
+import { Card, Col, Row, Button, Image, Form, Badge } from "react-bootstrap"
 import { useParams } from "react-router"
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
-import { addToCart, addToSplit, decreaseSplit, getTableCart, removeFromCart, removeFromSplit, selectCartsData } from "../../../redux/slices/cartSlice"
+import { addToCart, addToSplit, decreaseSplit, deleteFromCart, getTableCart, removeFromCart, removeFromSplit, selectCartsData } from "../../../redux/slices/cartSlice"
 import { IItem, ISplitItem } from "../../../typings/cart"
 import { IMenu } from "../../../typings/menu"
+import { RiDeleteBinLine } from "react-icons/ri"
 import "./CartItem.css"
 
 interface CartItemProps {
     cartId: string
     itemId: string | undefined
     selectedAll: boolean
+    setSelectedAll: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
+const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) => {
     const params = useParams<{ shopId: string, tableId: string }>()
     const shopId  = params.shopId
     const tableId  = params.tableId
@@ -105,6 +107,9 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
     // }
     const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSelected(!selected)
+        if (!selected) {
+            setSelectedAll(false)
+        }
         const splitExists = item?.menuId._id === split?.menuId._id
         
         // console.log(!selected);
@@ -121,7 +126,7 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
     const increment = () => {   //<====================   adds item to SPLIT Cart
         const plusItem = {
             ...item!,
-            qty: 1
+            qty: selectedAll ? item!.qty : 1
         }
 
        dispatch(addToSplit({
@@ -154,6 +159,14 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
            }))
     }
 
+    const deleteItemFromCart = () => {
+        dispatch(deleteFromCart({
+            shopId: shopId,
+            tableId: tableId,
+            item: item!,
+        }))
+    }
+
     return(
         <>
             <Row className="align-items-center">
@@ -168,8 +181,11 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
                 </Col>
                 <Col xs={11}>
                     <Card className="CartItem">
+                    <Badge  bg={splitItem?.qty === itemQty ? "success" : "warning"} text="dark">
+                            <small> Cart Qty: {splitItem?.qty ? itemQty - splitItem.qty : itemQty}</small>
+                        </Badge>
                         <Row className="align-items-center">
-                            <Col className="image-col pe-0" xs={4}>
+                            <Col className="image-col pe-0 " xs={4}>
                                 <Image src={item?.menuId?.image} rounded fluid />
                             </Col>
                             <Col xs={8} className="text-start ps-2">
@@ -182,26 +198,30 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
                                     <small>{item?.menuId?.short_description}</small>
                                 </Card.Body> */}
                                     </Col>
-                                    <Col>
-                                    <Card.Text>
-                                       <small> Cart Qty: {splitItem?.qty ? itemQty-splitItem.qty : itemQty}</small>
-                                    </Card.Text>
-                                    </Col>
+                                    {/* <Col>
+                                        <Badge pill bg="warning" text="dark">
+                                            <small> Cart Qty: {splitItem?.qty ? itemQty - splitItem.qty : itemQty}</small>
+                                        </Badge>
+                                        <Card.Text>
+                                            <small> Cart Qty: {splitItem?.qty ? itemQty - splitItem.qty : itemQty}</small>
+                                        </Card.Text>
+                                    </Col> */}
                                 </Row>
-                                <Row className="pb-2 align-items-center">
-                                    <Col xs={5}>
+                                <Row className="pb-1 align-items-center">
+                                    <Col className="p-0" xs={4}>
                                         <Card.Body className="p-0 ms-3">
-                                            <small><strong>
+                                            <strong>
                                                 £ {item?.menuId?.price}
-                                            </strong></small>
+                                            </strong>
                                         </Card.Body>
                                     </Col>
                                     <Col xs={6}>
                                         <Row className="text-center align-items-center">
                                             <Col className="px-0">
-                                                {selected
+                                                {selected || selectedAll
                                                     ? <Button active size="sm" onClick={decrement} ><strong>-</strong></Button>
-                                                    : <Button disabled size="sm" onClick={decrement} ><strong>-</strong></Button>
+                                                    : <></>
+                                                    // <Button disabled size="sm" onClick={decrement} ><strong>-</strong></Button>
                                                 }
                                             </Col>
                                             <Col className="px-0">
@@ -210,18 +230,27 @@ const CartItem = ({cartId, itemId, selectedAll}: CartItemProps) => {
                                                 </Card.Body>
                                             </Col>
                                             <Col className="px-0">
-                                                {selected
+                                                {selected || selectedAll
                                                     ? <Button active size="sm" onClick={increment} ><strong>+</strong></Button>
-                                                    : <Button disabled size="sm" onClick={increment} ><strong>+</strong></Button>
+                                                    : <Button size="sm" variant="danger" onClick={deleteItemFromCart}><RiDeleteBinLine/></Button>
                                                 }
                                                 {/* <Button size="sm" onClick={decrement} ><strong>-</strong></Button> */}
                                             </Col>
                                         </Row>
                                     </Col>
-                                    {/* <Col xs={2}></Col> */}
+                                    {/* <Col className="p-0" xs={1}>
+                                        {selected
+                                            ? <Button disabled size="sm" variant="danger" onClick={deleteItemFromCart}><RiDeleteBinLine/></Button>
+                                            : <Button active size="sm" variant="danger" onClick={deleteItemFromCart}><RiDeleteBinLine/></Button>
+                                        } */}
+                                        {/* <Button size="sm" variant="danger" onClick={deleteItemFromCart}><RiDeleteBinLine/></Button> */}
+                                    {/* </Col> */}
                                 </Row>
                             </Col>
                         </Row>
+                        {/* <Badge  bg="warning" text="dark">
+                            <small> Cart Qty: {splitItem?.qty ? itemQty - splitItem.qty : itemQty}</small>
+                        </Badge> */}
                     </Card>
                 </Col>
             </Row>

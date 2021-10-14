@@ -47,14 +47,14 @@ const CartListItems = () => {
             <ListGroup className="px-0" variant="flush">
                 {cart.items.filter(i => i.qtyPayed! < i.qty).map(item => (
                     <ListGroup.Item key={item._id} className="px-0 menu-item">
-                        <CartItem selectedAll={selectedAll} cartId={cart._id} itemId={item._id} />
+                        <CartItem selectedAll={selectedAll} cartId={cart._id} itemId={item._id} setSelectedAll={setSelectedAll}/>
                     </ListGroup.Item>
                 ))}
             </ListGroup>
             <Row>
-                <Card.Body>
+                {/* <Card.Body>
                     You Pay <strong> £ {totalSplit}</strong>
-                </Card.Body>
+                </Card.Body> */}
                 {remainingCartTotal !== totalCart 
                 ? 
                     <Card.Body>
@@ -65,17 +65,17 @@ const CartListItems = () => {
                     Cart Total <strong> £ {totalCart}</strong>
                 </Card.Body>
                 }
-                <Card.Body>
+                {/* <Card.Body>
                     Cart Total <strong> £ {totalCart}</strong>
-                </Card.Body>
+                </Card.Body> */}
                 <Card.Body>
                     Total Payed <strong> £ {totalSplitPayed}</strong>
                 </Card.Body>
             </Row>
-            <Row className="mx-1">
-                <Button onClick={handleShow} className="mb-1" >CheckOut £{totalSplit} </Button>
+            <Row className="mx-1 pb-5">
+                <Button onClick={handleShow} className="mb-1" >CheckOut <strong>£{totalSplit}</strong> </Button>
             </Row>
-            <CheckOut show={show} handleClose={handleClose} total={totalSplit}/>
+            <CheckOut show={show} handleClose={handleClose} total={totalSplit} />
         </>
     )
 }

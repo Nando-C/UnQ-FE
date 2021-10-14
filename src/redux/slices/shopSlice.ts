@@ -12,8 +12,13 @@ const initialState: IShopStore = {
     selectedMenu: null,
 }
 
+export const fetchAllShops = createAsyncThunk("shop/fetchAllShops", async () => {
+    const { data }: AxiosResponse<IShop[]> = await backend.get("/shops/")
+    return data
+})
+
 export const fetchShopList = createAsyncThunk("shop/fetchShopList", async () => {
-    const { data }: AxiosResponse<IShop[]> = await backend.get("/shops")
+    const { data }: AxiosResponse<IShop[]> = await backend.get("/shops/me")
     return data
 })
 
@@ -36,6 +41,9 @@ export const shopsSlice = createSlice({
     initialState,
     reducers: {},
     extraReducers: (builder) => {
+        builder.addCase(fetchAllShops.fulfilled, (state, action) => {
+            state.data = action.payload
+        })
         builder.addCase(fetchShopList.fulfilled, (state, action) => {
             state.data = action.payload
         })

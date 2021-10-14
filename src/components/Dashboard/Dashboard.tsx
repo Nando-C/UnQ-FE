@@ -6,6 +6,7 @@ import ShopList from "../Shops/ShopList/ShopList"
 import TableMenu from "../Customers/TableMenu/TableMenu"
 import { fetchShopList } from "../../redux/slices/shopSlice"
 import ShopModal from "../Shops/ShopModal/ShopModal"
+import AllShopsList from "../Customers/AllShopsList/AllShopsList"
 // import NavigationBar from "../Customers/NavigationBar/NavigationBar"
 
 const Dashboard = () => {
@@ -40,7 +41,8 @@ const Dashboard = () => {
             :
                 <Container>
                     <h2>User Dashboard</h2>
-                    <TableMenu/>
+                    <AllShopsList/>
+                    {/* <TableMenu/> */}
                     {/* <NavigationBar /> */}
                 </Container>
         }

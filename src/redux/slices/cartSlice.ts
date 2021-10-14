@@ -12,7 +12,12 @@ const initialState: ICartStore = {
         status: "",
         items: [],
         split: [],
+    },
+    pointers: {
+        shopId: "",
+        tableId: "",
     }
+   
 }
 
 interface AddToCartProps {
@@ -26,6 +31,10 @@ interface AddToSplitProps {
     cartId: string
     item: IItem
 }
+export const getMyOpenCart = createAsyncThunk("cart/getMyOpenCart", async () => {
+    const { data }: AxiosResponse<ICart> = await backend.get(`carts/`)
+    return data
+})
 export const addToCart = createAsyncThunk("cart/addToCart", async ({shopId, tableId, item}: AddToCartProps) => {
     const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/addItem`, item)
     return data
@@ -41,6 +50,10 @@ export const decreaseSplit = createAsyncThunk("cart/ decreaseSplit", async ({sho
 
 export const removeFromCart = createAsyncThunk("cart/removeFromCart", async ({shopId, tableId, item}: AddToCartProps) => {
     const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/removeItem`, item)
+    return data
+})
+export const deleteFromCart = createAsyncThunk("cart/deleteFromCart", async ({shopId, tableId, item}: AddToCartProps) => {
+    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/deleteItem`, item)
     return data
 })
 
@@ -61,8 +74,17 @@ export const checkOutItem = createAsyncThunk("cart/checkOutItem", async ({shopId
 export const cartsSlice = createSlice({
     name: "carts",
     initialState,
-    reducers: {},
+    reducers: {
+        storeCartPointers(state, action) {
+            const { shopId, tableId } = action.payload
+            state.pointers.shopId = shopId
+            state.pointers.tableId = tableId
+        }
+    },
     extraReducers: (builder) => {
+        builder.addCase(getMyOpenCart.fulfilled, (state, action) => {
+            state.data = action.payload
+        })
         builder.addCase(addToCart.fulfilled, (state, action) => {
             state.data = action.payload
         })
@@ -70,6 +92,9 @@ export const cartsSlice = createSlice({
             state.data = action.payload
         })
         builder.addCase(removeFromCart.fulfilled, (state, action) => {
+            state.data = action.payload
+        })
+        builder.addCase(deleteFromCart.fulfilled, (state, action) => {
             state.data = action.payload
         })
         builder.addCase(decreaseSplit.fulfilled, (state, action) => {
@@ -87,7 +112,9 @@ export const cartsSlice = createSlice({
     }
 })
 
+export const { storeCartPointers } = cartsSlice.actions
 export const selectCartsData = (state: RootState) => state.carts.data
+export const selectCartPointers = (state: RootState) => state.carts.pointers
 // export const selectCartItem = (id: string | undefined, state: RootState) => state.carts.data.items.find(item => item._id === id)
 
 export default cartsSlice.reducer

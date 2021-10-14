@@ -3,18 +3,24 @@ import { Card, Col, Container, FloatingLabel, Form, Image, ListGroup, Row } from
 import { useDispatch } from "react-redux"
 import { useParams } from "react-router"
 import { useAppSelector } from "../../../redux/app/hooks"
+import { storeCartPointers } from "../../../redux/slices/cartSlice"
 import { fetchSingleShop, selectSelectedShop } from "../../../redux/slices/shopSlice"
 import MenuItem from "../MenuItem/MenuItem"
 import "./TableMenu.css"
 
 const TableMenu = () => {
 
-    const params = useParams<{ shopId: string }>()
+    const params = useParams<{ shopId: string, tableId: string }>()
     const shopId  = params.shopId
-
+    const tableId  = params.tableId
+    console.log("shopId: ", shopId)
+    console.log("tableId: ", tableId)
+    
+    
     const [query, setQuery] = useState("")
-
+    
     const dispatch = useDispatch()
+    dispatch(storeCartPointers(params))
     useEffect(() => {
         dispatch(fetchSingleShop(shopId))
     }, [])

@@ -49,11 +49,11 @@ const MenuItem = ({shopId, itemId}: MenuItemProps) => {
     }
     
     const addItemToCart = async () => {
-        dispatch(addToCart({
-            shopId: shopId,
-            tableId: tableId,
-            item: item
-        }))
+            dispatch(addToCart({
+                shopId: shopId,
+                tableId: tableId,
+                item: item
+            }))
     }
 
     return(
@@ -78,7 +78,7 @@ const MenuItem = ({shopId, itemId}: MenuItemProps) => {
                             </Card.Body>
                         </Col>
                         <Col xs={5}>
-                            <Row className="text-center align-items-center">
+                            {tableId && <Row className="text-center align-items-center">
                                 <Col className="px-0">
                                     <Button  size="sm" onClick={decrement} ><strong>-</strong></Button>
                                 </Col>
@@ -90,7 +90,7 @@ const MenuItem = ({shopId, itemId}: MenuItemProps) => {
                                 <Col className="px-0">
                                     <Button  size="sm" onClick={increment} ><strong>+</strong></Button>
                                 </Col>
-                            </Row>
+                            </Row>}
                         </Col>
                         <Col xs={2}></Col>
                     </Row>
@@ -98,14 +98,14 @@ const MenuItem = ({shopId, itemId}: MenuItemProps) => {
                  <Col className="image-col ps-0" xs={4}>
                         <Image src={menuItem?.image} rounded fluid />
                         <div className="image-overlayer"></div>
-                        <Button 
+                        {tableId && <Button 
                             className="add-button"
                             // variant="outline-primary" 
                             size="sm"
                             onClick={addItemToCart}
                         >
                             <strong>Add</strong>
-                        </Button>
+                        </Button>}
                  </Col>
              </Row>
             </Card>

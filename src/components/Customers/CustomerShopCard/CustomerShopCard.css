@@ -1,0 +1,7 @@
+.CustomerShopCard .card-body {
+    width: 95%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: rgba(0, 0, 0, 0.605)
+}

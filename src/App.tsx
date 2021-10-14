@@ -13,6 +13,7 @@ import { fetchUserData } from './redux/slices/userSlice';
 import { fetchShopList } from './redux/slices/shopSlice';
 import Cart from './components/Customers/Cart/Cart';
 import NavigationBar from './components/Customers/NavigationBar/NavigationBar';
+import TableMenu from './components/Customers/TableMenu/TableMenu';
 
 function App() {
   const dispatch = useAppDispatch()
@@ -21,15 +22,18 @@ function App() {
       dispatch(fetchUserData())
       dispatch(fetchShopList())
   },[])
+  
   return (
     <div className="App">
       <Router>
         <Route exact path="/login" component={Login}/>
         <Route exact path="/register" component={Register}/>
         <Route exact path="/" component={Dashboard}/>
+        <Route exact path="/customer/shop/:shopId" component={TableMenu} />
         <Route exact path="/shop/:shopId" component={ShopDetails} />
-        <Route exact path="/shops/:shopId/tables/:tableId" component={Dashboard}/>
+        <Route exact path="/shops/:shopId/tables/:tableId" component={TableMenu}/>
         <Route exact path="/shops/:shopId/tables/:tableId/cart" component={Cart}/>
+        <Route exact path="/cart" component={Cart}/>
         <NavigationBar/>
       </Router>
 

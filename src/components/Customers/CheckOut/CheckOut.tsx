@@ -24,9 +24,9 @@ const CheckOut = ({show, handleClose, total }: CheckOutProps) => {
         <>
             <Modal show={show} onHide={handleClose}>
                 <Modal.Header closeButton>
-                    {/* <Modal.Title>Modal heading</Modal.Title> */}
+                    <Modal.Title>Select Payment Type</Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body >
                     <PayPalButton 
                         amount={totalPayment}
                         // currency="GBP"
@@ -39,7 +39,8 @@ const CheckOut = ({show, handleClose, total }: CheckOutProps) => {
                                     item: item
                                 }))
                             )}
-                            alert("Transaction completed by " + details.payer.name.given_name)
+                            // alert("Transaction completed by " + details.payer.name.given_name)
+                            
                             handleClose()
                             return
                         }}
