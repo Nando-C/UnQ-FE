@@ -31,8 +31,8 @@ const CartListItems = () => {
 
     return (
         <>
-            {/* <Button onClick={setSelectedAll(true)}>Select All</Button> */}
-            <Row>
+           
+            <Row className="justify-content-between align-items-center">
                 <Col xs={4}>
                     <Form.Group className="ms-2 text-center" controlId="formBasicCheckbox">
                         <Form.Check
@@ -43,6 +43,26 @@ const CartListItems = () => {
                         />
                     </Form.Group>
                 </Col>
+                <Col xs={6}>
+                    <Row className="text-end">
+                        {remainingCartTotal !== totalCart
+                            ?
+                            <Card.Body className="pb-1">
+                                Remaining Cart Total <strong> £ {remainingCartTotal}</strong>
+                            </Card.Body>
+                            :
+                            <Card.Body className="pb-1">
+                                Cart Total <strong> £ {totalCart}</strong>
+                            </Card.Body>
+                        }
+                        {/* <Card.Body>
+                    Cart Total <strong> £ {totalCart}</strong>
+                </Card.Body> */}
+                        <Card.Body className="pt-1">
+                            Total Payed <strong> £ {totalSplitPayed}</strong>
+                        </Card.Body>
+                    </Row>
+                </Col>
             </Row>
             <ListGroup className="px-0" variant="flush">
                 {cart.items.filter(i => i.qtyPayed! < i.qty).map(item => (
@@ -51,29 +71,9 @@ const CartListItems = () => {
                     </ListGroup.Item>
                 ))}
             </ListGroup>
-            <Row>
-                {/* <Card.Body>
-                    You Pay <strong> £ {totalSplit}</strong>
-                </Card.Body> */}
-                {remainingCartTotal !== totalCart 
-                ? 
-                    <Card.Body>
-                        Remaining Cart Total <strong> £ {remainingCartTotal}</strong>
-                    </Card.Body>
-                :
-                <Card.Body>
-                    Cart Total <strong> £ {totalCart}</strong>
-                </Card.Body>
-                }
-                {/* <Card.Body>
-                    Cart Total <strong> £ {totalCart}</strong>
-                </Card.Body> */}
-                <Card.Body>
-                    Total Payed <strong> £ {totalSplitPayed}</strong>
-                </Card.Body>
-            </Row>
-            <Row className="mx-1 pb-5">
-                <Button onClick={handleShow} className="mb-1" >CheckOut <strong>£{totalSplit}</strong> </Button>
+            
+            <Row className="mx-1 py-5">
+                <Button onClick={handleShow} className="mb-3" >CheckOut <strong>£{totalSplit}</strong> </Button>
             </Row>
             <CheckOut show={show} handleClose={handleClose} total={totalSplit} />
         </>

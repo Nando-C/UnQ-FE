@@ -28,7 +28,7 @@ const AllShopsList = () => {
                     </Form.Group>
                 </Col>
             </Row>
-        <ListGroup className="ShopList" variant="flush">
+        <ListGroup className="ShopList mb-5" variant="flush">
             {shopList.filter(shop => (
                         shop.name.toLowerCase().includes(query.toLowerCase())
                         || shop.bio.toLowerCase().includes(query.toLowerCase())

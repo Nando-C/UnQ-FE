@@ -49,7 +49,7 @@ const TableMenu = () => {
                         </Form.Group>
                 </Col>
             </Row>
-            <ListGroup className="px-0" variant="flush">
+            <ListGroup className="px-0 mb-5" variant="flush">
                 {shop?.menu.filter(menu => (
                             menu.category.toLowerCase().includes(query.toLowerCase()) 
                             || menu.name.toLowerCase().includes(query.toLowerCase()) 

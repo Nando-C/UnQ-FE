@@ -81,34 +81,12 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
 
     const dispatch = useAppDispatch()
 
-    // const increment = () => {  //<====================   adds item to Cart
-    //     const plusItem = {
-    //         menuId: item!.menuId,
-    //         qty: 1
-    //     }
-
-    //    dispatch(addToCart({
-    //     shopId: shopId,
-    //     tableId: tableId,
-    //     item: plusItem
-    //    }))
-    // }
-    // const decrement = () => {  ////<====================   removes item from Cart
-    //   const minusItem = {
-    //         menuId: item!.menuId,
-    //         qty: 1
-    //     }
-        
-    //    dispatch(removeFromCart({
-    //     shopId: shopId,
-    //     tableId: tableId,
-    //     item: minusItem
-    //    }))
-    // }
     const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelected(!selected)
-        if (!selected) {
+        if(selectedAll) {
             setSelectedAll(false)
+            setSelected(false)
+        } else {
+            setSelected(!selected)
         }
         const splitExists = item?.menuId._id === split?.menuId._id
         
