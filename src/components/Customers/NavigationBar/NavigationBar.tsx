@@ -38,17 +38,17 @@ const NavigationBar = () => {
                     <Container>
                         {/* <Navbar.Brand href="#home">Navbar</Navbar.Brand> */}
                         <Nav className="mx-auto">
-                            <Nav.Link href="/">
+                            <Nav.Link className="me-4" href="/">
                                 <AiOutlineHome size={35}/>
                                 {/* <AiFillHome/> */}
                             </Nav.Link>
                             {/* <Nav.Link href={`/shops/${shopId}/tables/${tableId}/cart`}> */}
-                                <Link className="nav-link" to={`/shops/${shopId}/tables/${tableId}/cart`}>
+                                <Link className="nav-link mx-5" to={`/shops/${shopId}/tables/${tableId}/cart`}>
                                     <IoCartOutline size={35}/>
                                     {/* <IoCart/> */}
                                 </Link>
                             {/* </Nav.Link> */}
-                            <Nav.Link href="#pricing">
+                            <Nav.Link className="ms-4" href="#pricing">
                                 <FaRegUserCircle size={30}/>
                                 {/* <FaUserCircle/> */}
                             </Nav.Link>
