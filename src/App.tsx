@@ -14,6 +14,7 @@ import { fetchShopList } from './redux/slices/shopSlice';
 import Cart from './components/Customers/Cart/Cart';
 import NavigationBar from './components/Customers/NavigationBar/NavigationBar';
 import TableMenu from './components/Customers/TableMenu/TableMenu';
+import Account from './components/Customers/Account/Account';
 
 function App() {
   const dispatch = useAppDispatch()
@@ -34,6 +35,7 @@ function App() {
         <Route exact path="/shops/:shopId/tables/:tableId" component={TableMenu}/>
         <Route exact path="/shops/:shopId/tables/:tableId/cart" component={Cart}/>
         <Route exact path="/cart" component={Cart}/>
+        <Route exact path="/myAccount" component={Account}/>
         <NavigationBar/>
       </Router>
 

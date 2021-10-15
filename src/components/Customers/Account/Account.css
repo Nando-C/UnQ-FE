@@ -1,0 +1,11 @@
+.Account>.card {
+    position: relative;
+}
+
+.Account>.card .btn {
+    background-color: rgba(255, 255, 255, 0);
+    border: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+}

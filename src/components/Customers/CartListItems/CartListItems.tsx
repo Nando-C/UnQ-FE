@@ -43,7 +43,7 @@ const CartListItems = () => {
                         />
                     </Form.Group>
                 </Col>
-                <Col xs={6}>
+                <Col xs={7}>
                     <Row className="text-end">
                         {remainingCartTotal !== totalCart
                             ?

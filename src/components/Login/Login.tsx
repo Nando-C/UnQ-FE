@@ -26,7 +26,7 @@ const Login = () => {
     }
 
     return(
-        <Container className="Register">
+        <Container className="Register mb-5">
             <Row className="align-items-center">
                 <Col xs={12} sm={6}>
                     <Image src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png" rounded fluid/>

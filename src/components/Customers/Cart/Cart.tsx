@@ -1,6 +1,7 @@
 import { useEffect } from "react"
-import { Card, Container } from "react-bootstrap"
-import { useParams } from "react-router"
+import { Card, Col, Container, Image, Row, Button } from "react-bootstrap"
+import { IoArrowBack} from "react-icons/io5"
+import { useHistory, useParams } from "react-router"
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
 import { getMyOpenCart, getTableCart, selectCartPointers, selectCartsData } from "../../../redux/slices/cartSlice"
 import CartListItems from "../CartListItems/CartListItems"
@@ -18,21 +19,37 @@ const Cart = () => {
 
     const cart = useAppSelector(selectCartsData)
     console.log(cart)
-    
+
+    const history = useHistory()
+    const goBack = () => {
+        history.goBack()
+    }
     
     return (
         <>
-            <Container>
+            <Container className="Cart">
+                <Row>
+                    <Col xs={2}>
+                        <Button onClick={goBack}>
+                            <IoArrowBack size={25} />
+                        </Button>
+                    </Col>
+                </Row>
                 { cart.items.length > 0  
                     ? <CartListItems />
                     : 
                     <Card>
                         <Card.Body>
-                    <Card.Title>
-                        Looks like you don't have any open orders!!
-                    </Card.Title>
-                    </Card.Body>
-                </Card>
+                            <Row className="align-items-center">
+                                <Col className="image-col pe-0 ">
+                                    <Image src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png" rounded fluid />
+                                </Col>
+                                <Card.Title>
+                                    Looks like you don't have any open orders!!
+                                </Card.Title>
+                            </Row>
+                        </Card.Body>
+                    </Card>
                 }
             </Container>
         </>
