@@ -14,14 +14,13 @@ const Cart = () => {
     const { shopId, tableId } = useAppSelector(selectCartPointers)
     const [tableName, setTableName] = useState('')
 
-    const tables = useAppSelector(selectSelectedShop)?.tables
+    const shop = useAppSelector(selectSelectedShop)
    
-
     useEffect(()=> {
         // dispatch(getMyOpenCart())
         dispatch(getTableCart(tableId))
         if (tableId) {
-            const tName = tables!.filter(table => table._id === tableId)[0].name
+            const tName = shop!.tables.filter(table => table._id === tableId)[0].name
             setTableName(tName)
             console.log(tName)
         }
@@ -52,21 +51,22 @@ const Cart = () => {
                         </Col>
                     }
                 </Row>
-                { cart.items.length > 0  
+                { 
+                cart.items.length > 0 
                     ? <CartListItems />
                     : 
-                    <Card>
-                        <Card.Body>
-                            <Row className="align-items-center">
-                                <Col className="image-col pe-0 ">
-                                    <Image src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png" rounded fluid />
-                                </Col>
-                                <Card.Title>
-                                    Looks like you don't have any open orders!!
-                                </Card.Title>
-                            </Row>
-                        </Card.Body>
-                    </Card>
+                        <Card>
+                            <Card.Body>
+                                <Row className="align-items-center">
+                                    <Col className="image-col pe-0 ">
+                                        <Image src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png" rounded fluid />
+                                    </Col>
+                                    <Card.Title>
+                                        Looks like you don't have any open orders!!
+                                    </Card.Title>
+                                </Row>
+                            </Card.Body>
+                        </Card>
                 }
             </Container>
         </>

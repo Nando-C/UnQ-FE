@@ -104,7 +104,7 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
     const increment = () => {   //<====================   adds item to SPLIT Cart
         const plusItem = {
             ...item!,
-            qty: selectedAll ? item!.qty : 1
+            qty: selectedAll ? item!.qty - item!.qtyPayed! : 1
         }
 
        dispatch(addToSplit({
