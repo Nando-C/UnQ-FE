@@ -1,0 +1,4 @@
+.ShopTablesOffCanvas .list-group-item>a {
+    text-decoration: none;
+    color: inherit;
+}

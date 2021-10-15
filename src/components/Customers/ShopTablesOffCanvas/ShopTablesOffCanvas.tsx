@@ -15,7 +15,7 @@ const ShopTablesOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
 
     return (
         <>
-            <Offcanvas show={show} onHide={handleClose}>
+            <Offcanvas className="ShopTablesOffCanvas" show={show} onHide={handleClose}>
                 <Offcanvas.Header closeButton>
                     <Offcanvas.Title>Select Table</Offcanvas.Title>
                 </Offcanvas.Header>
@@ -25,7 +25,9 @@ const ShopTablesOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                             <ListGroup.Item>
                                 <Link to={`/shops/${shop._id}/tables/${table._id}`}>
                                     <Card>
-                                        {table.name}
+                                        <Card.Title className="m-0 p-2">
+                                            {table.name}
+                                        </Card.Title>
                                     </Card>
                                 </Link>
                             </ListGroup.Item>

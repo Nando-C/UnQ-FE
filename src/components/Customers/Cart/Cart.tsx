@@ -1,9 +1,10 @@
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Card, Col, Container, Image, Row, Button } from "react-bootstrap"
 import { IoArrowBack} from "react-icons/io5"
 import { useHistory, useParams } from "react-router"
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
 import { getMyOpenCart, getTableCart, selectCartPointers, selectCartsData } from "../../../redux/slices/cartSlice"
+import { selectSelectedShop } from "../../../redux/slices/shopSlice"
 import CartListItems from "../CartListItems/CartListItems"
 import "./Cart.css"
 
@@ -11,10 +12,19 @@ const Cart = () => {
 
     const dispatch = useAppDispatch()
     const { shopId, tableId } = useAppSelector(selectCartPointers)
+    const [tableName, setTableName] = useState('')
+
+    const tables = useAppSelector(selectSelectedShop)?.tables
+   
 
     useEffect(()=> {
         // dispatch(getMyOpenCart())
         dispatch(getTableCart(tableId))
+        if (tableId) {
+            const tName = tables!.filter(table => table._id === tableId)[0].name
+            setTableName(tName)
+            console.log(tName)
+        }
     }, [])
 
     const cart = useAppSelector(selectCartsData)
@@ -28,12 +38,19 @@ const Cart = () => {
     return (
         <>
             <Container className="Cart">
-                <Row>
+                <Row className="align-items-center">
                     <Col xs={2}>
                         <Button onClick={goBack}>
                             <IoArrowBack size={25} />
                         </Button>
                     </Col>
+                    {tableId &&
+                        <Col xs={8}>
+                            <Card.Subtitle>
+                                Table: {tableName}
+                            </Card.Subtitle>
+                        </Col>
+                    }
                 </Row>
                 { cart.items.length > 0  
                     ? <CartListItems />
