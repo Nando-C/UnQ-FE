@@ -27,7 +27,7 @@ const Cart = () => {
     }, [])
 
     const cart = useAppSelector(selectCartsData)
-    console.log(cart)
+    // console.log(cart)
 
     const history = useHistory()
     const goBack = () => {

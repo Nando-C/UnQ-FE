@@ -15,8 +15,8 @@ const TableMenu = () => {
     const params = useParams<{ shopId: string, tableId: string }>()
     const shopId  = params.shopId
     const tableId  = params.tableId
-    console.log("shopId: ", shopId)
-    console.log("tableId: ", tableId)
+    // console.log("shopId: ", shopId)
+    // console.log("tableId: ", tableId)
 
     const [show, setShow] = useState(false);
     const handleClose = () => setShow(false);

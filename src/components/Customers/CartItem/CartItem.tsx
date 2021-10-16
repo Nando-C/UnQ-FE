@@ -16,6 +16,7 @@ interface CartItemProps {
 }
 
 const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) => {
+
     const params = useParams<{ shopId: string, tableId: string }>()
     const shopId  = params.shopId
     const tableId  = params.tableId
@@ -25,15 +26,6 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
     const splitItem = cart.split.find(item => (item._id === itemId && item.splitStatus === "open"))
     const payed = cartItem!.qtyPayed
     const itemQty = cartItem!.qty-payed!
-    
-   console.log(itemQty)
-   
-    
-
-    // const qtysLeft = itemQty - splitItem?.qty
-    
-
-    // const cartItem = useAppSelector(state => state.carts.data.items.find(item => item._id === itemId))
 
     const [selected, setSelected] = useState(false)
 
@@ -61,20 +53,17 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
     useEffect(() => {
         setItem(cartItem)
         setSplit(splitItem)
-        // if(item?.menuId._id === split?.menuId._id){
-        //     setSelected(true)
-        // }
-        // setSelected(selectedAll)
-        // console.log(qtyLeft);
-        
+        if (splitItem) {
+            setSelected(true)
+        } else {
+            setSelected(false)
+        }
     }, [cartItem, splitItem])
 
     useEffect(()=> {
         if(selectedAll) {
-            setSelected(true)
             increment()
         } else {
-            setSelected(false)
             removeItemFromSplit()
         }
     }, [selectedAll])
@@ -90,8 +79,8 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
         }
         const splitExists = item?.menuId._id === split?.menuId._id
         
-        // console.log(!selected);
-        // console.log("splitExists: ", splitExists)
+        console.log("splitExists: ", splitExists)
+        
         if(!selected && !splitExists) {
             console.log("add to split")
             increment()
@@ -155,6 +144,7 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
                             checked={selected} 
                             onChange={(e) => handleSelect(e)} 
                         />
+                        {console.log("selected: ",selected)}
                     </Form.Group>
                 </Col>
                 <Col xs={11}>
