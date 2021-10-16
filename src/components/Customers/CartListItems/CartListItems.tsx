@@ -7,6 +7,7 @@ import { getTableCart, selectCartsData } from "../../../redux/slices/cartSlice"
 import Item from "../../Shops/Item/Item"
 import CartItem from "../CartItem/CartItem"
 import CheckOut from "../CheckOut/CheckOut"
+import PaymentFeedback from "../PaymentFeedback/PaymentFeedback"
 import "./CartListItems.css"
 
 const CartListItems = () => {
@@ -29,6 +30,10 @@ const CartListItems = () => {
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
+    const [showFbk, setShowFbk] = useState(false);
+    const handleCloseFbk = () => setShowFbk(false);
+    const handleShowFbk = () => setShowFbk(true);
+
     return (
         <>
            
@@ -43,7 +48,7 @@ const CartListItems = () => {
                         />
                     </Form.Group>
                 </Col>
-                <Col xs={7}>
+                <Col xs={8}>
                     <Row className="text-end">
                         {remainingCartTotal !== totalCart
                             ?
@@ -75,7 +80,9 @@ const CartListItems = () => {
             <Row className="mx-1 py-5">
                 <Button onClick={handleShow} className="mb-3" >CheckOut <strong>£{totalSplit}</strong> </Button>
             </Row>
-            <CheckOut show={show} handleClose={handleClose} total={totalSplit} />
+            <CheckOut show={show} handleClose={handleClose} total={totalSplit} handleShowFbk={handleShowFbk}/>
+            <PaymentFeedback showFbk={showFbk} handleCloseFbk={handleCloseFbk}/>
+
         </>
     )
 }

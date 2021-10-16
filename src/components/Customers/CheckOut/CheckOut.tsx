@@ -1,17 +1,19 @@
-import { Modal, Button, Offcanvas } from "react-bootstrap"
+import { Modal, Button, Offcanvas, Alert } from "react-bootstrap"
 import "./CheckOut.css"
 import { PayPalButton } from "react-paypal-button-v2"
 import { useEffect, useState } from "react"
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
 import { checkOutItem, selectCartsData } from "../../../redux/slices/cartSlice"
+import { AiOutlineCheckCircle } from "react-icons/ai"
 
 interface CheckOutProps {
     show: boolean
     handleClose: ()=> void
     total: number
+    handleShowFbk: ()=> void
 }
 
-const CheckOut = ({show, handleClose, total }: CheckOutProps) => {
+const CheckOut = ({show, handleClose, total, handleShowFbk }: CheckOutProps) => {
     const cart = useAppSelector(selectCartsData)
     const dispatch = useAppDispatch()
 
@@ -28,6 +30,7 @@ const CheckOut = ({show, handleClose, total }: CheckOutProps) => {
                     <Offcanvas.Title>Select Payment Type</Offcanvas.Title>
                 </Offcanvas.Header>
                 <Offcanvas.Body >
+                {/* <AiOutlineCheckCircle size={100}/> */}
                     <PayPalButton 
                         amount={totalPayment}
                         // currency="GBP"
@@ -40,6 +43,7 @@ const CheckOut = ({show, handleClose, total }: CheckOutProps) => {
                                     item: item
                                 }))
                             )}
+                            handleShowFbk()
                             // alert("Transaction completed by " + details.payer.name.given_name)
                             
                             handleClose()

@@ -52,11 +52,6 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
         qtyPayed: 0,
     })
 
-    // const [qtyLeft, setQtyLeft] = useState(item?.qty)
-    
-
-    // setQtyLeft(left)
-
     useEffect(() => {
         dispatch(getTableCart(tableId))
         setItem(cartItem)
@@ -66,6 +61,9 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
     useEffect(() => {
         setItem(cartItem)
         setSplit(splitItem)
+        // if(item?.menuId._id === split?.menuId._id){
+        //     setSelected(true)
+        // }
         // setSelected(selectedAll)
         // console.log(qtyLeft);
         
@@ -73,8 +71,10 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
 
     useEffect(()=> {
         if(selectedAll) {
+            setSelected(true)
             increment()
         } else {
+            setSelected(false)
             removeItemFromSplit()
         }
     }, [selectedAll])
@@ -152,7 +152,7 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
                     <Form.Group className="ms-3 text-center" controlId="formBasicCheckbox">
                         <Form.Check 
                             type="checkbox" 
-                            checked={selectedAll ? true : selected} 
+                            checked={selected} 
                             onChange={(e) => handleSelect(e)} 
                         />
                     </Form.Group>
