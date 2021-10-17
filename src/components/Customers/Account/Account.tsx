@@ -5,13 +5,25 @@ import { GrEdit } from "react-icons/gr"
 import "./Account.css"
 import { useState } from "react"
 import AccountOffCanvas from "../AccountOffCanvas/AccountOffCanvas"
+import backend from "../../../backend/backend"
+import { useHistory } from "react-router"
 
 const Account = () => {
     const user = useAppSelector(selectUserData)
+    const history = useHistory()
 
     const [show, setShow] = useState(false);
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
+
+    const logOut = async() => {
+        try {
+            await backend.get("/auth/logout")
+            history.push("/login")
+        } catch (error) {
+            console.log(error)
+        }
+    }
 
     return (
         <>
@@ -33,7 +45,7 @@ const Account = () => {
                         <GrEdit/>
                     </Button>
                 </Card>
-                <Button className="my-5">LogOut</Button>
+                <Button className="my-5" onClick={logOut}>LogOut</Button>
             </Container>
             <AccountOffCanvas show={show} handleClose={handleClose}/>
         </>
