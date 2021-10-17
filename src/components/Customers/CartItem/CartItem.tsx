@@ -91,9 +91,24 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
     }
 
     const increment = () => {   //<====================   adds item to SPLIT Cart
+        let quantity = 0
+
+        if (selectedAll){
+            if(split) {
+                quantity =item!.qty - item!.qtyPayed! - split.qty 
+                console.log("split -> quantity: ", quantity)
+            } else {
+                quantity = item!.qty - item!.qtyPayed! 
+                console.log("selectedAll -> quantity: ", quantity)
+            }
+        } else {
+            quantity = 1
+            console.log("quantity: ", quantity)
+        }
+        
         const plusItem = {
             ...item!,
-            qty: selectedAll ? item!.qty - item!.qtyPayed! : 1
+            qty: quantity
         }
 
        dispatch(addToSplit({
@@ -144,7 +159,7 @@ const CartItem = ({cartId, itemId, selectedAll, setSelectedAll}: CartItemProps) 
                             checked={selected} 
                             onChange={(e) => handleSelect(e)} 
                         />
-                        {console.log("selected: ",selected)}
+                        {/* {console.log("selected: ",selected)} */}
                     </Form.Group>
                 </Col>
                 <Col xs={11}>
