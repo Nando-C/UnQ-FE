@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, Col, Image, Row, Button } from "react-bootstrap";
 import { useDispatch } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useParams, useHistory } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { addToCart } from "../../../redux/slices/cartSlice";
 import {
@@ -10,6 +10,7 @@ import {
   selectSelectedMenu,
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
+import { selectUserData } from "../../../redux/slices/userSlice";
 import { IItem } from "../../../typings/cart";
 import "./MenuItem.css";
 
@@ -53,14 +54,21 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
     }
   };
 
+  const user = useAppSelector(selectUserData);
+  const history = useHistory();
+
   const addItemToCart = async () => {
-    dispatch(
-      addToCart({
-        shopId: shopId,
-        tableId: tableId,
-        item: item,
-      })
-    );
+    if (user._id) {
+      dispatch(
+        addToCart({
+          shopId: shopId,
+          tableId: tableId,
+          item: item,
+        })
+      );
+    } else {
+      history.push("/login");
+    }
   };
 
   return (

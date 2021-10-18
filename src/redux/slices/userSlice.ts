@@ -22,6 +22,10 @@ export const fetchUserData = createAsyncThunk("user/fetchUserData", async () => 
     const { data }: AxiosResponse<IUser> = await backend.get("users/me")
     return data
 })
+export const logOut = createAsyncThunk("user/logOut", async () => {
+    const { data } = await backend.get("/auth/logout")
+    return data
+})
 
 export const userSlice = createSlice({
     name: "user",
@@ -30,6 +34,19 @@ export const userSlice = createSlice({
     extraReducers: (builder) => {
         builder.addCase(fetchUserData.fulfilled, (state, action) => {
             state.data = action.payload
+        })
+        builder.addCase(logOut.fulfilled, (state, action) => {
+            state.data = {
+                _id: "",
+                name: "",
+                surname: "",
+                email: "",
+                password: "",
+                avatar: "",
+                role: "",
+                refreshToken: "",
+                googleId: "",
+               }
         })
     }
 })

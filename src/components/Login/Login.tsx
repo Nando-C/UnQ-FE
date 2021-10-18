@@ -12,21 +12,31 @@ import { useHistory } from "react-router-dom";
 import backend from "../../backend/backend";
 import { FcGoogle } from "react-icons/fc";
 import "../Register/Register.css";
+import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
+import { selectCartPointers } from "../../redux/slices/cartSlice";
+import { fetchUserData, selectUserData } from "../../redux/slices/userSlice";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
   });
+  const { shopId, tableId } = useAppSelector(selectCartPointers);
 
   const history = useHistory();
+  const dispatch = useAppDispatch();
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
 
     try {
       await backend.post("/auth/login", credentials);
-      history.push("/");
+      dispatch(fetchUserData());
+      if (tableId) {
+        history.push(`/shops/${shopId}/tables/${tableId}`);
+      } else {
+        history.push("/");
+      }
     } catch (error) {
       console.log(error);
     }

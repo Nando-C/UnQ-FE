@@ -1,6 +1,6 @@
 import { Card, Container, Image, Button } from "react-bootstrap";
-import { useAppSelector } from "../../../redux/app/hooks";
-import { selectUserData } from "../../../redux/slices/userSlice";
+import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
+import { logOut, selectUserData } from "../../../redux/slices/userSlice";
 import { GrEdit } from "react-icons/gr";
 import "./Account.css";
 import { useState } from "react";
@@ -12,18 +12,15 @@ import Login from "../../Login/Login";
 const Account = () => {
   const user = useAppSelector(selectUserData);
   const history = useHistory();
+  const dispatch = useAppDispatch();
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  const logOut = async () => {
-    try {
-      await backend.get("/auth/logout");
-      history.push("/login");
-    } catch (error) {
-      console.log(error);
-    }
+  const logMeOut = () => {
+    dispatch(logOut());
+    history.push("/login");
   };
 
   // const logIn = () => {
@@ -47,7 +44,7 @@ const Account = () => {
               <GrEdit />
             </Button>
           </Card>
-          <Button className="my-5" onClick={logOut}>
+          <Button className="my-5" onClick={logMeOut}>
             LogOut
           </Button>
         </Container>
