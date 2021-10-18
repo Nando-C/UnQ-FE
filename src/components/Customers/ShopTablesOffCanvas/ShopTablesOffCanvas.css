@@ -1,4 +1,14 @@
-.ShopTablesOffCanvas .list-group-item>a {
-    text-decoration: none;
-    color: inherit;
+.ShopTablesOffCanvas .list-group-item > a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.ShopTablesOffCanvas .card {
+  padding: 0.75rem 0.5rem;
+  box-shadow: 0 6px 6px -4px #5c5c5c38;
+  transition: box-shadow 0.1s ease-out;
+}
+
+.ShopTablesOffCanvas .card:hover {
+  box-shadow: 0 5px 20px #5c5c5c44;
 }
