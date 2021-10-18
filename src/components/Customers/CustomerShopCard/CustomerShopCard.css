@@ -1,7 +1,33 @@
+.CustomerShopCard {
+  padding: 0.75rem 0.5rem;
+  box-shadow: 0 6px 6px -4px #5c5c5c38;
+  transition: box-shadow 0.1s ease-out;
+}
+
+.CustomerShopCard:hover {
+  box-shadow: 0 5px 20px #5c5c5c44;
+}
+
+.CustomerShopCard .image-col {
+  position: relative;
+  min-height: 100px;
+  max-height: 100px;
+}
+
+.CustomerShopCard .image-col img {
+  object-fit: cover;
+}
+
+.CustomerShopCard .card-subtitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
 .CustomerShopCard .card-body {
-    width: 95%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: rgba(0, 0, 0, 0.605)
+  width: 95%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(0, 0, 0, 0.605);
 }
