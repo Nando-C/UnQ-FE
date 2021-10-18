@@ -7,6 +7,7 @@ import { useState } from "react";
 import AccountOffCanvas from "../AccountOffCanvas/AccountOffCanvas";
 import backend from "../../../backend/backend";
 import { useHistory } from "react-router";
+import Login from "../../Login/Login";
 
 const Account = () => {
   const user = useAppSelector(selectUserData);
@@ -25,26 +26,34 @@ const Account = () => {
     }
   };
 
+  // const logIn = () => {
+  //   history.push("/login");
+  // };
+
   return (
     <>
-      <Container className="Account p-2 text-center">
-        <Card className="p-2">
-          <Image className="p-5" src={user.avatar} fluid roundedCircle />
-          <Card.Title className="mt-3">
-            {user.name} {user.surname}
-          </Card.Title>
-          <Card.Body>
-            <Card.Text>email: {user.email}</Card.Text>
-            <Card.Text>Role: {user.role}</Card.Text>
-          </Card.Body>
-          <Button size={"lg"} onClick={handleShow}>
-            <GrEdit />
+      {user._id ? (
+        <Container className="Account p-2 text-center">
+          <Card className="p-2">
+            <Image className="p-5" src={user.avatar} fluid roundedCircle />
+            <Card.Title className="mt-3">
+              {user.name} {user.surname}
+            </Card.Title>
+            <Card.Body>
+              <Card.Text>email: {user.email}</Card.Text>
+              <Card.Text>Role: {user.role}</Card.Text>
+            </Card.Body>
+            <Button size={"lg"} onClick={handleShow}>
+              <GrEdit />
+            </Button>
+          </Card>
+          <Button className="my-5" onClick={logOut}>
+            LogOut
           </Button>
-        </Card>
-        <Button className="my-5" onClick={logOut}>
-          LogOut
-        </Button>
-      </Container>
+        </Container>
+      ) : (
+        <Login />
+      )}
       <AccountOffCanvas show={show} handleClose={handleClose} />
     </>
   );
