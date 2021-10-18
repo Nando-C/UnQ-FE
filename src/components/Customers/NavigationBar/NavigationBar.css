@@ -1,0 +1,10 @@
+.NavigationBar .cart-link {
+  position: relative;
+}
+
+.NavigationBar .cart-link .qty-indicator {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  font-weight: 600;
+}
