@@ -1,26 +1,61 @@
 .MenuItem {
-    box-shadow: 10px 5px 10px rgb(201, 201, 201);
+  padding: 0.75rem 0.5rem;
+  box-shadow: 0 6px 6px -4px #5c5c5c38;
+  transition: box-shadow 0.1s ease-out;
 }
+
 .MenuItem:hover {
-    box-shadow: 10px 5px 20px #5c5c5c;
+  box-shadow: 0 5px 20px #5c5c5c44;
 }
 
 .MenuItem .image-col {
-    position: relative;
+  position: relative;
+  min-height: 120px;
+  max-height: 120px;
 }
 
-.MenuItem .image-col>.image-overlayer::after {
+.MenuItem .image-col img {
+  object-fit: cover;
+}
+
+.MenuItem .quantity-wrapper .btn.btn-primary {
+  min-width: 31px;
+}
+
+.MenuItem .card-subtitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.MenuItem .price {
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -1.5px;
+}
+
+/* .MenuItem .image-col>.image-overlayer::after {
     position: absolute;
     width: 20px;
     height: 20px;
     color: tomato;
     z-index: 2;
+} */
+
+.MenuItem .image-col > .add-button {
+  padding-left: 2rem;
+  padding-right: 2rem;
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translate(-50%);
+  box-shadow: 0px 0px 20px #000000;
+  opacity: 0;
+  pointer-events: none;
 }
 
-.MenuItem .image-col>.add-button {
-    position: absolute;
-    left: 50%;
-    bottom: 8px;
-    transform: translate(-50%);
-    box-shadow: 0px 0px 20px #000000;
+.MenuItem:hover .image-col > .add-button {
+  opacity: 1;
+  pointer-events: initial;
+  transition: opacity 0.15s ease;
 }

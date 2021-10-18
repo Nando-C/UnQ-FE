@@ -1,0 +1,11 @@
+.SingleTable>.card {
+    position: relative;
+}
+
+.SingleTable>.card .btn {
+    background-color: rgba(255, 255, 255, 0);
+    border: none;
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}

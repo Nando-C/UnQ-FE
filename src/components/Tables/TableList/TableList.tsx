@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ListGroup, Button, Card } from "react-bootstrap";
+import { ListGroup, Button, Card, Row, Col } from "react-bootstrap";
 import { useAppSelector } from "../../../redux/app/hooks";
 import SingleTable from "../SingleTable/SingleTable";
 import TableModal from "../TableModal/TableModal";
@@ -25,13 +25,17 @@ const TableList = ({shopId}:ShopMenuProps) => {
             <div className="my-3 text-align-end">
                 <Button onClick={handleShow}>Add Table</Button>
             </div>
-            <ListGroup className="px-0" variant="flush">
+            <Row>
+            {/* <ListGroup className="px-0" variant="flush"> */}
                 {shop?.tables.map(table => (
-                    <ListGroup.Item key={table._id} className="px-0 menu-item">
+                    <Col key={table._id} className="mb-4" sm={12} md={6} lg={4} xl={3}> 
+                    {/* <ListGroup.Item key={table._id} className="px-0 menu-item"> */}
                         <SingleTable shopId={shopId} tableId={table._id}/>
-                    </ListGroup.Item>
+                    {/* </ListGroup.Item> */}
+                    </Col>
                 ))}
-            </ListGroup>
+            {/* </ListGroup> */}
+            </Row>
             <TableModal shopId={shopId} show={show} handleClose={handleClose} tableId={"new"}/>
         </>
     )

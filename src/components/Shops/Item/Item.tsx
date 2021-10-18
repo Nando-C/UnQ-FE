@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Card, Row, Col, Form, Image, Button } from "react-bootstrap"
+import { GrEdit } from "react-icons/gr"
 import backend from "../../../backend/backend"
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks"
 import { fetchShopList } from "../../../redux/slices/shopSlice"
@@ -33,7 +34,8 @@ const Item = ({itemId, shopId}: ItemProps) => {
     
     return(
         <>
-            <Card className="Item p-3">
+        <div className="Item">
+            <Card className="p-3">
                 <Card.Title>
                     {menuItem?.name}
                 </Card.Title>
@@ -80,10 +82,14 @@ const Item = ({itemId, shopId}: ItemProps) => {
                             </Col>
                         </Row>
                     </Col>
-                    <Button className="" onClick={handleShow} >Edit Item</Button>
+                    {/* <Button className="" onClick={handleShow} >Edit Item</Button> */}
                 </Row>
+                <Button size={"lg"} onClick={handleShow}>
+                    <GrEdit/>
+                </Button>
             </Card>
             <ItemModal shopId={shopId} show={show} handleClose={handleClose} itemId={menuItem!._id}/>
+            </div>
         </>
     )
 }

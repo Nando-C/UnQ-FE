@@ -1,6 +1,7 @@
 import QRCodeStyling from "qr-code-styling"
 import { createRef, useEffect, useRef, useState } from "react"
 import { Card, Button } from "react-bootstrap"
+import { GrEdit } from "react-icons/gr"
 import { useAppSelector } from "../../../redux/app/hooks"
 import TableModal from "../TableModal/TableModal"
 import "./SingleTable.css"
@@ -19,8 +20,8 @@ const SingleTable = ({tableId, shopId}: TableProps) => {
 
     const qrCode = new QRCodeStyling(
         {
-            width: 300,
-            height: 300,
+            width: 250,
+            height: 250,
             image: shop?.cover !== defaultCover ? shop?.cover : "",
             dotsOptions: {
                 color: "#4267b2",
@@ -47,13 +48,18 @@ const SingleTable = ({tableId, shopId}: TableProps) => {
 
     return(
         <>
+        <div className="SingleTable">
             <Card>
                 <Card.Title className="mt-3">{table?.name}</Card.Title>
                 {/* <Card.Body>{table?.Qr_Url}</Card.Body> */}
                 <div ref={qrRef}/>
-                <Button onClick={handleShow} >Edit Table</Button>
+                {/* <Button onClick={handleShow} >Edit Table</Button> */}
+                <Button size={"lg"} onClick={handleShow}>
+                        <GrEdit/>
+                    </Button>
             </Card>
             <TableModal shopId={shopId} show={show} handleClose={handleClose} tableId={tableId}/>
+            </div>
         </>
     )
 } 

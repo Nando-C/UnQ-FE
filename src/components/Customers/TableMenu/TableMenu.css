@@ -1,4 +1,10 @@
-.list-group>.menu-item {
-    border: none;
-    background-color: rgba(255, 255, 255, 0);
+.list-group > .menu-item {
+  border: none;
+  background-color: rgba(255, 255, 255, 0);
+}
+
+.Shop-Page .card-title {
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -0.5px;
 }

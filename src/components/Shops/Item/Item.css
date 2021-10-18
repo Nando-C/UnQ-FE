@@ -1,6 +1,17 @@
-.Item img {
+.Item>.card {
+    position: relative;
+}
+
+.Item>.card img {
     width: 200px;
     height: 200px;
     margin: 16px 0px;
     object-fit: cover;
+}
+.Item>.card .btn {
+    background-color: rgba(255, 255, 255, 0);
+    border: none;
+    position: absolute;
+    top: 10px;
+    right: 10px;
 }
