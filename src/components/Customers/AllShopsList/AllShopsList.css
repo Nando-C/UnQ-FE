@@ -1,4 +1,7 @@
-.list-group>.list-group-item {
-    border: none;
-    background-color: rgba(255, 255, 255, 0);
+.AllShopsList .search-bar .form-control {
+  border: 1px solid rgba(10, 88, 205, 0.226);
+}
+.list-group > .list-group-item {
+  border: none;
+  background-color: rgba(255, 255, 255, 0);
 }

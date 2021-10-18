@@ -66,7 +66,7 @@ const TableMenu = () => {
         </div>
         <Row>
           <Col>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
+            <Form.Group className="search-bar mb-3" controlId="formBasicEmail">
               <FloatingLabel controlId="floatingInput" label="Search Menu">
                 <Form.Control
                   placeholder="Search Menu"
