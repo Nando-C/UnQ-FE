@@ -1,12 +1,44 @@
 .CartItem {
-    box-shadow: 10px 5px 10px rgb(201, 201, 201);
+  position: relative;
+  padding: 0.75rem 0.5rem;
+  box-shadow: 0 6px 6px -4px #5c5c5c38;
+  transition: box-shadow 0.1s ease-out;
 }
+
 .CartItem:hover {
-    box-shadow: 10px 5px 20px #5c5c5c;
+  box-shadow: 0 5px 20px #5c5c5c44;
+}
+
+.CartItem > span {
+  position: absolute;
+  top: 6px;
+  right: 8px;
 }
 
 .CartItem .image-col {
-    position: relative;
+  position: relative;
+  min-height: 100px;
+  max-height: 100px;
+}
+
+.CartItem .image-col img {
+  object-fit: cover;
+}
+
+.CartItem .quantity-wrapper .btn.btn-primary {
+  min-width: 31px;
+}
+
+.CartItem .card-subtitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.CartItem .price {
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -1.5px;
 }
 
 /* .CartItem .image-col>.image-overlayer::after {
@@ -17,10 +49,10 @@
     z-index: 2;
 } */
 
-.CartItem .image-col>.add-button {
-    position: absolute;
-    left: 50%;
-    bottom: 8px;
-    transform: translate(-50%);
-    box-shadow: 0px 0px 20px #000000;
-}
+/* .CartItem .image-col > .add-button {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translate(-50%);
+  box-shadow: 0px 0px 20px #000000;
+} */
