@@ -31,7 +31,10 @@ const NavigationBar = () => {
   const items = useAppSelector(selectCartsData).items.filter(
     (item) => item.qty > item.qtyPayed!
   );
-  const itemsQty = items.reduce((total, item) => total + item.qty, 0);
+  const itemsQty = items.reduce(
+    (total, item) => total + item.qty - item.qtyPayed!,
+    0
+  );
 
   console.log("items: ", items);
   console.log("itemsQty: ", itemsQty);

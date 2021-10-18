@@ -44,7 +44,13 @@ const CartListItems = () => {
   const history = useHistory();
 
   const [showFbk, setShowFbk] = useState(false);
-  const handleShowFbk = () => setShowFbk(true);
+  const handleShowFbk = () => {
+    setShowFbk(true);
+    const timer = setTimeout(() => {
+      handleCloseFbk();
+    }, 3000);
+    return () => clearTimeout(timer);
+  };
   const handleCloseFbk = () => {
     history.goBack();
     setShowFbk(false);

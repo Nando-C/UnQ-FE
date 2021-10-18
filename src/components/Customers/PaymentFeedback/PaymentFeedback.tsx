@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Card, Offcanvas, Row } from "react-bootstrap";
 import { AiOutlineCheckCircle } from "react-icons/ai";
 import "./PaymentFeedback.css";
