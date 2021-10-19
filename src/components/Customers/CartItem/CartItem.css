@@ -9,11 +9,11 @@
   box-shadow: 0 5px 20px #5c5c5c44;
 }
 
-.CartItem > span {
+/* .CartItem > span {
   position: absolute;
   top: 6px;
   right: 8px;
-}
+} */
 
 .CartItem .image-col {
   position: relative;

@@ -8,8 +8,8 @@ import Login from "./components/Login/Login";
 // import ItemList from './components/Shop/ItemList/ItemList';
 import Dashboard from "./components/Dashboard/Dashboard";
 import ShopDetails from "./components/Shops/ShopDetails/ShopDetails";
-import { useAppDispatch } from "./redux/app/hooks";
-import { fetchUserData } from "./redux/slices/userSlice";
+import { useAppDispatch, useAppSelector } from "./redux/app/hooks";
+import { fetchUserData, selectUserData } from "./redux/slices/userSlice";
 import { fetchShopList } from "./redux/slices/shopSlice";
 import Cart from "./components/Customers/Cart/Cart";
 import NavigationBar from "./components/Customers/NavigationBar/NavigationBar";
@@ -25,9 +25,13 @@ function App() {
     dispatch(fetchShopList());
   }, []);
 
+  const userDataStore = useAppSelector(selectUserData);
+  const isManager = userDataStore.role === "shopMg" ? true : false;
+
   return (
-    <div className="App">
+    <div className="App bg-light">
       <Router>
+        {isManager ? <ShopNavbar /> : <NavigationBar />}
         {/* <ShopNavbar /> */}
         <Route exact path="/login" component={Login} />
         <Route exact path="/register" component={Register} />
@@ -44,8 +48,9 @@ function App() {
           path="/shops/:shopId/tables/:tableId/cart"
           component={Cart}
         />
+        <Route exact path="/shops//tables//cart" component={Cart} />
         <Route exact path="/myAccount" component={Account} />
-        <NavigationBar />
+        {/* <NavigationBar /> */}
       </Router>
 
       {/* <header className="App-header">

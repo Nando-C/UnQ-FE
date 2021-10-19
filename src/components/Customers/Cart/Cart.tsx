@@ -16,6 +16,9 @@ import "./Cart.css";
 const Cart = () => {
   const dispatch = useAppDispatch();
   const { shopId, tableId } = useAppSelector(selectCartPointers);
+  console.log("shopId: ", shopId);
+  console.log("tableId: ", tableId);
+
   const [tableName, setTableName] = useState("");
 
   const shop = useAppSelector(selectSelectedShop);
@@ -42,7 +45,7 @@ const Cart = () => {
   return (
     <>
       <Container className="Cart bg-light">
-        <Row className="align-items-center">
+        <Row className="align-items-center pt-3">
           <Col xs={2}>
             <Button onClick={goBack}>
               <IoArrowBack size={25} />

@@ -43,7 +43,7 @@ const NavigationBar = () => {
     <>
       <Container className="NavigationBar" fluid>
         <Navbar className="p-0" fixed="bottom" bg="light" variant="light">
-          <Container>
+          <Container fluid className="px-0 bg-white border-top">
             {/* <Navbar.Brand href="#home">Navbar</Navbar.Brand> */}
             <Nav className="mx-auto align-items-center">
               {/* <Nav.Link className="me-4" href="/"> */}

@@ -13,7 +13,7 @@ const AllShopsList = () => {
   const [query, setQuery] = useState("");
 
   return (
-    <div className="AllShopsList bg-light mt-5 pb-5">
+    <div className="AllShopsList bg-light pt-5 pb-5">
       <Row>
         <Col>
           <Form.Group className="search-bar mb-3" controlId="formBasicEmail">

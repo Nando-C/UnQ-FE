@@ -1,12 +1,12 @@
 .ShopList a {
-    text-decoration: none;
-    color: inherit;
+  text-decoration: none;
+  color: inherit;
 }
 
 .ShopList a:hover {
-    color: inherit;
+  color: inherit;
 }
 
 .ShopList .card:hover {
-    box-shadow: 10px 5px 20px #888888;
+  box-shadow: 0 5px 20px #5c5c5c44;
 }

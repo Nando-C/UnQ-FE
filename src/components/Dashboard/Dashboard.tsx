@@ -30,9 +30,11 @@ const Dashboard = () => {
   return (
     <>
       {isManager ? (
-        <Container>
-          <div className="my-3 text-align-end">
-            <Button onClick={handleShow}>Add Shop</Button>
+        <Container className="pt-5">
+          <div className="my-4 px-3 d-flex justify-content-end">
+            <Button className="me-3" onClick={handleShow}>
+              Add Shop
+            </Button>
           </div>
           <ShopList />
           <ShopModal show={show} handleClose={handleClose} shopId={"new"} />

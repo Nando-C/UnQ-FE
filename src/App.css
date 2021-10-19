@@ -4,9 +4,9 @@ body {
     "Helvetica Neue", sans-serif;
 }
 
-/* .App {
-  text-align: center;
-} */
+.App {
+  min-height: 100vh;
+}
 
 .App-logo {
   height: 40vmin;

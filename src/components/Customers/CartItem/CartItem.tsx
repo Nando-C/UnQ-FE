@@ -190,11 +190,6 @@ const CartItem = ({
         </Col>
         <Col xs={11}>
           <Card className="CartItem">
-            <span className="cart-qty-span">
-              <small>
-                in cart: {splitItem?.qty ? itemQty - splitItem.qty : itemQty}
-              </small>
-            </span>
             {/* <Badge
               bg={splitItem?.qty === itemQty ? "success" : "warning"}
               text="dark"
@@ -222,6 +217,14 @@ const CartItem = ({
                     {/* <Card.Body className="ms-3 p-0">
                         <small>{item?.menuId?.short_description}</small>
                     </Card.Body> */}
+                  </Col>
+                  <Col xs="auto">
+                    <span className="cart-qty-span">
+                      <small>
+                        in cart:{" "}
+                        {splitItem?.qty ? itemQty - splitItem.qty : itemQty}
+                      </small>
+                    </span>
                   </Col>
                   {/* <Col>
                     <Badge pill bg="warning" text="dark">
