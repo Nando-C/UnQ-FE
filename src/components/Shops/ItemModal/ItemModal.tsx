@@ -126,7 +126,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                   imageFile
                     ? URL.createObjectURL(imageFile)
                     : item.image ||
-                      "https://via.placeholder.com/600x600?text=Blog+Image"
+                      "https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png"
                 }
                 height="200px"
                 // width="400px"

@@ -133,7 +133,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                   imageFile
                     ? URL.createObjectURL(imageFile)
                     : editShop.cover ||
-                      "https://via.placeholder.com/600x600?text=Blog+Image"
+                      "https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png"
                 }
                 height="200px"
                 // width="400px"

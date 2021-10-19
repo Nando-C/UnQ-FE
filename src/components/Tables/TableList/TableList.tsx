@@ -22,7 +22,6 @@ const TableList = ({ shopId }: ShopMenuProps) => {
     <div id="tableList" className="py-4">
       <hr />
       <Card.Title className="m-5">TABLES</Card.Title>
-      {/* <h2>Table List</h2> */}
       <div className="pb-5">
         <Button onClick={handleShow}>Add Table</Button>
       </div>

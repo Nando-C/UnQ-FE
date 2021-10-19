@@ -29,7 +29,7 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
   return (
     <div id="shopMenu" className="ShopMenu pt-4">
       <hr />
-      <Card.Title className="m-5"> MENU </Card.Title>
+      <Card.Title className="m-5">MENU</Card.Title>
       <Row>
         <Col>
           <Form.Group className="mb-3" controlId="formBasicEmail">

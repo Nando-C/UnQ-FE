@@ -1,7 +1,18 @@
 .ShopDetails .list-group-item {
-    border: none;
+  border: none;
 }
 
 .ShopDetails .menu-item {
-    border: none;
+  border: none;
 }
+
+.ShopDetails .card .card-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* #shopDetails > .card-title {
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: -1.5px;
+} */

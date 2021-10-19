@@ -41,27 +41,39 @@ const Item = ({ itemId, shopId }: ItemProps) => {
       <div className="Item text-center">
         <Card className="p-3">
           <Card.Title>{menuItem?.name}</Card.Title>
-          <Row className="align-items-center">
-            <Col xs={12} md={3}>
-              <Image src={menuItem?.image} thumbnail fluid />
+          <Row className="align-items-start">
+            <Col className="image-col" xs={12} md={3}>
+              <Image
+                src={menuItem?.image}
+                rounded
+                fluid
+                className="w-100 h-100"
+              />
             </Col>
             <Col xs={12} md={3}>
               <Card.Subtitle>Short Description</Card.Subtitle>
-              <Card.Body>{menuItem?.short_description}</Card.Body>
+              <Card.Body className="px-0">
+                {menuItem?.short_description}
+              </Card.Body>
             </Col>
             <Col xs={12} md={3}>
               <Card.Subtitle>Full Description</Card.Subtitle>
-              <Card.Body>{menuItem?.description}</Card.Body>
+              <Card.Body className="px-0">{menuItem?.description}</Card.Body>
             </Col>
-            <Col xs={12} md={3}>
-              <Row className="align-items-center">
+            <Col className="d-flex flex-column" xs={12} md={3}>
+              <Row className="">
                 <Col xs={12} md={6}>
-                  <Card.Body>£ {menuItem?.price}</Card.Body>
+                  <Card.Subtitle>Price</Card.Subtitle>
+                  <Card.Body>
+                    <span className="price text-primary">
+                      £ {menuItem?.price}
+                    </span>
+                  </Card.Body>
                 </Col>
                 <Col xs={12} md={6}>
-                  <Form>
+                  <Card.Subtitle>Available</Card.Subtitle>
+                  <Form className="py-4">
                     <Form.Check
-                      className="mb-3"
                       type="switch"
                       id="custom-switch"
                       checked={available}

@@ -1,11 +1,12 @@
-.SingleTable>.card {
-    position: relative;
+.SingleTable > .card {
+  position: relative;
+  box-shadow: 0 6px 6px -4px #5c5c5c38;
 }
 
-.SingleTable>.card .btn {
-    background-color: rgba(255, 255, 255, 0);
-    border: none;
-    position: absolute;
-    top: 5px;
-    right: 5px;
+.SingleTable > .card .btn {
+  background-color: rgba(255, 255, 255, 0);
+  border: none;
+  position: absolute;
+  top: 5px;
+  right: 5px;
 }

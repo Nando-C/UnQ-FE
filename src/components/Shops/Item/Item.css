@@ -1,17 +1,45 @@
-.Item>.card {
-    position: relative;
+.Item {
+  position: relative;
+}
+.Item > .card {
+  padding: 0.75rem 0.5rem;
+  min-height: 150px;
+  box-shadow: 0 6px 6px -4px #5c5c5c38;
 }
 
-.Item>.card img {
-    width: 200px;
-    height: 200px;
-    margin: 16px 0px;
-    object-fit: cover;
+.Item > .card .image-col {
+  /* min-height: 100px;
+  max-height: 100px; */
 }
-.Item>.card .btn {
-    background-color: rgba(255, 255, 255, 0);
-    border: none;
-    position: absolute;
-    top: 10px;
-    right: 10px;
+
+.Item > .card .image-col img {
+  object-fit: cover;
+}
+
+.Item > .card .card-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.Item > .card .price {
+  font-weight: 600;
+  font-size: 1.5rem;
+  letter-spacing: -1.5px;
+}
+
+.Item > .card .card-subtitle {
+  /* font-size: 1.1rem; */
+  /* font-style: italic; */
+  color: rgba(0, 0, 0, 0.65);
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.Item > .card .btn {
+  background-color: rgba(255, 255, 255, 0);
+  border: none;
+  position: absolute;
+  top: 10px;
+  right: 10px;
 }
