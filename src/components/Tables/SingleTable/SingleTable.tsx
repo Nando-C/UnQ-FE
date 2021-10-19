@@ -29,7 +29,7 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
     },
     imageOptions: {
       crossOrigin: "anonymous",
-      margin: 2,
+      margin: 5,
     },
   });
   const qrRef = createRef<any>();
