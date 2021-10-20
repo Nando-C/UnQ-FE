@@ -3,7 +3,6 @@ import { Col, FloatingLabel, Form, ListGroup, Row } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useAppSelector } from "../../../redux/app/hooks";
 import { selectShopsData } from "../../../redux/slices/shopSlice";
-import ShopCard from "../../Shops/ShopCard/ShopCard";
 import CustomerShopCard from "../CustomerShopCard/CustomerShopCard";
 import "./AllShopsList.css";
 

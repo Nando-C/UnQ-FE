@@ -2,12 +2,10 @@ import { useEffect, useState } from "react";
 import { Card, Col, Image, Row, Button } from "react-bootstrap";
 import { useDispatch } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
+import { useAppSelector } from "../../../redux/app/hooks";
 import { addToCart } from "../../../redux/slices/cartSlice";
 import {
-  fetchMenuItem,
   fetchSingleShop,
-  selectSelectedMenu,
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";

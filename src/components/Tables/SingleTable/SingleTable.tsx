@@ -1,5 +1,5 @@
 import QRCodeStyling from "qr-code-styling";
-import { createRef, useEffect, useRef, useState } from "react";
+import { createRef, useEffect, useState } from "react";
 import { Card, Button } from "react-bootstrap";
 import { GrEdit } from "react-icons/gr";
 import { useAppSelector } from "../../../redux/app/hooks";

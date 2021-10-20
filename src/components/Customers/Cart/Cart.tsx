@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Card, Col, Container, Image, Row, Button } from "react-bootstrap";
 import { IoArrowBack } from "react-icons/io5";
-import { useHistory, useParams } from "react-router";
+import { useHistory } from "react-router";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
-  getMyOpenCart,
   getTableCart,
   selectCartPointers,
   selectCartsData,

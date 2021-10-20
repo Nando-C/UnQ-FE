@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { Container, Nav, Navbar } from "react-bootstrap";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { fetchAllShops, fetchShopList } from "../../../redux/slices/shopSlice";
+import { fetchAllShops } from "../../../redux/slices/shopSlice";
 import { fetchUserData } from "../../../redux/slices/userSlice";
-import { AiFillHome, AiOutlineHome } from "react-icons/ai";
-import { IoCart, IoCartOutline } from "react-icons/io5";
-import { FaRegUserCircle, FaUserCircle } from "react-icons/fa";
+import { AiOutlineHome } from "react-icons/ai";
+import { IoCartOutline } from "react-icons/io5";
+import { FaRegUserCircle } from "react-icons/fa";
 import "./NavigationBar.css";
 import {
   getTableCart,

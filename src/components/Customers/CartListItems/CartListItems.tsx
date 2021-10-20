@@ -4,7 +4,6 @@ import { useDispatch } from "react-redux";
 import { useHistory, useParams } from "react-router";
 import { useAppSelector } from "../../../redux/app/hooks";
 import { getTableCart, selectCartsData } from "../../../redux/slices/cartSlice";
-import Item from "../../Shops/Item/Item";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
 import PaymentFeedback from "../PaymentFeedback/PaymentFeedback";

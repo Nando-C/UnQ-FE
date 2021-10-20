@@ -1,6 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
 import { AxiosResponse } from "axios"
-import { access } from "fs";
 import backend from "../../backend/backend"
 import { IMenu } from "../../typings/menu";
 import { IShop, IShopStore } from "../../typings/shop"

@@ -12,7 +12,6 @@ import {
 } from "react-bootstrap";
 import { useDispatch } from "react-redux";
 import { useParams } from "react-router";
-import { Link } from "react-router-dom";
 import { useAppSelector } from "../../../redux/app/hooks";
 import { storeCartPointers } from "../../../redux/slices/cartSlice";
 import {

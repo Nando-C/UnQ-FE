@@ -1,12 +1,8 @@
-import { useEffect } from "react";
 import { Container, Nav, Navbar } from "react-bootstrap";
 import { FaRegUserCircle } from "react-icons/fa";
 import { Link } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import {
-  fetchSingleShop,
-  selectSelectedShop,
-} from "../../../redux/slices/shopSlice";
+import { useAppSelector } from "../../../redux/app/hooks";
+import { selectSelectedShop } from "../../../redux/slices/shopSlice";
 import "./ShopNavbar.css";
 
 const ShopNavbar = () => {

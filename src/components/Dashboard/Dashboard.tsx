@@ -3,7 +3,6 @@ import { Container, Button } from "react-bootstrap";
 import { useEffect, useState } from "react";
 import { fetchUserData, selectUserData } from "../../redux/slices/userSlice";
 import ShopList from "../Shops/ShopList/ShopList";
-import TableMenu from "../Customers/TableMenu/TableMenu";
 import { fetchShopList } from "../../redux/slices/shopSlice";
 import ShopModal from "../Shops/ShopModal/ShopModal";
 import AllShopsList from "../Customers/AllShopsList/AllShopsList";

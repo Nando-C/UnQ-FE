@@ -14,7 +14,7 @@ import { FcGoogle } from "react-icons/fc";
 import "../Register/Register.css";
 import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
 import { selectCartPointers } from "../../redux/slices/cartSlice";
-import { fetchUserData, selectUserData } from "../../redux/slices/userSlice";
+import { fetchUserData } from "../../redux/slices/userSlice";
 
 const Login = () => {
   const [credentials, setCredentials] = useState({

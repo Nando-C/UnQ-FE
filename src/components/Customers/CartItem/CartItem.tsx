@@ -1,19 +1,16 @@
 import { useEffect, useState } from "react";
-import { Card, Col, Row, Button, Image, Form, Badge } from "react-bootstrap";
+import { Card, Col, Row, Button, Image, Form } from "react-bootstrap";
 import { useParams } from "react-router";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
-  addToCart,
   addToSplit,
   decreaseSplit,
   deleteFromCart,
   getTableCart,
-  removeFromCart,
   removeFromSplit,
   selectCartsData,
 } from "../../../redux/slices/cartSlice";
 import { IItem, ISplitItem } from "../../../typings/cart";
-import { IMenu } from "../../../typings/menu";
 import { RiDeleteBinLine } from "react-icons/ri";
 import "./CartItem.css";
 
