@@ -17,7 +17,7 @@ const CartListItems = () => {
 
   useEffect(() => {
     dispatch(getTableCart(tableId));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cart = useAppSelector(selectCartsData);
   const [selectedAll, setSelectedAll] = useState(false);

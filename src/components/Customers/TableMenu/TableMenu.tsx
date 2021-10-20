@@ -39,7 +39,7 @@ const TableMenu = () => {
   dispatch(storeCartPointers(params));
   useEffect(() => {
     dispatch(fetchSingleShop(shopId));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const shop = useAppSelector(selectSelectedShop);
   // console.log("This Shop: ", shop)

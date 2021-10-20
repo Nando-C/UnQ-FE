@@ -60,7 +60,7 @@ const CartItem = ({
     dispatch(getTableCart(tableId));
     setItem(cartItem);
     setSplit(splitItem);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setItem(cartItem);
@@ -78,7 +78,7 @@ const CartItem = ({
     } else {
       removeItemFromSplit();
     }
-  }, [selectedAll]);
+  }, [selectedAll]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dispatch = useAppDispatch();
 

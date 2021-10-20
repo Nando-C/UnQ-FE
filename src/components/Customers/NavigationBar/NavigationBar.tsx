@@ -22,11 +22,11 @@ const NavigationBar = () => {
     dispatch(fetchUserData());
     dispatch(fetchAllShops());
     // dispatch(fetchShopList())
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     dispatch(getTableCart(tableId));
-  }, [tableId]);
+  }, [tableId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const items = useAppSelector(selectCartsData).items.filter(
     (item) => item.qty > item.qtyPayed!

@@ -23,7 +23,7 @@ function App() {
   useEffect(() => {
     dispatch(fetchUserData());
     dispatch(fetchShopList());
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const userDataStore = useAppSelector(selectUserData);
   const isManager = userDataStore.role === "shopMg" ? true : false;

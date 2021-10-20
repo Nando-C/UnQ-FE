@@ -36,7 +36,7 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
 
   useEffect(() => {
     qrCode.append(qrRef.current);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   qrCode.update({ data: table?.Qr_Url });
 

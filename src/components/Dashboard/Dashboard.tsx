@@ -13,7 +13,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     dispatch(fetchUserData());
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const userDataStore = useAppSelector(selectUserData);
   const isManager = userDataStore.role === "shopMg" ? true : false;

@@ -31,7 +31,7 @@ const Cart = () => {
       setTableName(tName);
       console.log(tName);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cart = useAppSelector(selectCartsData);
   // console.log(cart)
