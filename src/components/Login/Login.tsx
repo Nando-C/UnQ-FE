@@ -81,7 +81,7 @@ const Login = () => {
             <Form.Group className="my-3">
               <p>
                 Don't have an account?
-                <a href={`http://localhost:3000/register`}> SignUp</a>
+                <a href={`/register`}> SignUp</a>
               </p>
             </Form.Group>
             <Button variant="primary" type="submit">
