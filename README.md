@@ -115,6 +115,28 @@ So for this purpose, the app has two user interfaces:
 
 ### Venue Interface
 
+- When a user login with a venue's manager account, a list of your venues/shops will be displayed (in case you have many branches) and a button to create a new one if you are expanding or participating on a pop-up market.
+
+    <img src="public/venue.gif" alt="venue-list">
+
+- Once a particular venue has been selected, you have access its details, menu and available tables sections.
+
+    <img src="public/venue-sections.gif" alt="venue-sections">
+
+- On the details section, you will be able to update the venues information and hre is where you can delete it (i.e if the pop-up market has finished)
+
+    <img src="public/venue-details.gif" alt="venue-details">
+
+- On the Menu section, you have a search bar to quickly fin a specif item, a button to add a new item and the list of items on your menu.
+
+- Also, on each item you have a toggle button to quickly change the availability of that item in case you run out of stock.
+
+    <img src="public/venue-menu.gif" alt="venue-menu">
+
+- On the tables section, you can create a new table by giving it a name, and the app will automatically generate a unique QR-code, customised with the image/ of the venue. This QR-code then can be saved and printed to place it in the respective location.
+
+    <img src="public/venue-tables.gif" alt="venue-tables">
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- CONTACT -->
