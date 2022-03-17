@@ -137,7 +137,7 @@ So for this purpose, the app has two user interfaces:
 
 - The best way is to access the app through the following QR-code, by scaning it with your mobile's phone camera. This simulates that you are scanning a QR-code on the Fire Place 🔥 table of the Rocketlit venue (fictional place).
 
-  <a href="https://un-q.vercel.app/shops/6158a19282eaef10787cd6f3/tables/61702525cc1ec6af70a92f35"><img src="public/test-QRcode.png" alt="test-qrcode" height="300"></a>
+  <a href="https://un-q.vercel.app/shops/6158a19282eaef10787cd6f3/tables/61702525cc1ec6af70a92f35" target="_blank"><img src="public/test-QRcode.png" alt="test-qrcode" height="300"></a>
 
 - When you try to add an item to the cart, you will be prompted to login/sign up. You can create an account if you wish, or you can use the following details.
 
