@@ -196,6 +196,30 @@ So for this purpose, the app has two user interfaces:
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+#### Try Venue Interface
+
+- To try the venue interface, you can open the app on the following link
+
+  [UnQ](https://un-q.vercel.app/)
+
+- Login with the the following details:
+
+        Email address: manager@mail.com
+        Password: test
+
+  ### Note:
+
+  If your are using Safari, you will have to disable cross site tracking while trying this app. Unfortunately this is an issue with authentication that I still yet to solve, but I assure you there is nothing dodgy behind.
+  On Chrome it works perfectly fine. 😉
+
+        On a laptop:
+        Safari -> Preferences -> Privacy -> Website Tracking: Un-Check Prevent cross-site tracking
+
+        On an iPhone:
+        Settings -> Safari -> Prevent Cross-Site Tracking
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 <!-- CONTACT -->
 
 ## Contact
