@@ -35,7 +35,7 @@
             <ul>
                 <li><a href="#cart">Cart</a>
                 <li><a href="#payment">Payment</a>
-                <li><a href="#try-it">Try It</a>
+                <li><a href="#try-customer-interface">Try Customer Interface</a>
             </ul>
         </li>
         <li><a href="#venue-interface">Venue Interface</a>
@@ -43,7 +43,7 @@
                 <li><a href="#details">Details</a>
                 <li><a href="#menu">Menu</a>
                 <li><a href="#tables">Tables</a>
-                <li><a href="#try-it">Try It</a>
+                <li><a href="#try-venue-interface">Try Venue Interface</a>
             </ul>
         </li>
       </ul>
@@ -129,7 +129,29 @@ So for this purpose, the app has two user interfaces:
 
     <img src="public/payment.gif" alt="payment-options">
 
-  You can test payments using the following paypal demo account details:
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+#### Try Customer Interface
+
+- As mentioned before, this interface has been designed to be mobile only.
+
+- The best way is to access the app through the following QR-code, by scaning it with your mobile's phone camera. This simulates that you are scanning a QR-code on the Fire Place 🔥 table of the Rocketlit venue (fictional place).
+
+    <img src="public/test-QRcode.png" alt="test-qrcode">
+
+- When you try to add an item to the cart, you will be prompted to login/sign up. You can create an account if you wish, or you can use the following details.
+
+  Email address: frank@mail.com
+  Password: 1234
+
+  ## Note:
+
+  If your are using Safari, you will have to disable cross site tracking while trying this app. Unfortunately this is an issue with authentication that I still yet to solve, but I assure you there is nothing dodgy behind.
+  On Chrome it works perfectly fine. 😉
+
+        Settings -> Safari -> Prevent Cross-Site Tracking
+
+- You can test payments using the following paypal demo account details:
 
         user: sb-earpx8110921@personal.example.com
         password: 7--vsMqt
