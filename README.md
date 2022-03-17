@@ -31,8 +31,21 @@
     </li>
     <li><a href="#app-use">App Use</a>
      <ul>
-        <li><a href="#customer-interface">Customer Interface</a></li>
-        <li><a href="#venue-interface">Venue Interface</a></li>
+        <li><a href="#customer-interface">Customer Interface</a>
+            <ul>
+                <li><a href="#cart">Cart</a>
+                <li><a href="#payment">Payment</a>
+                <li><a href="#try-it">Try It</a>
+            </ul>
+        </li>
+        <li><a href="#venue-interface">Venue Interface</a>
+        <ul>
+                <li><a href="#details">Details</a>
+                <li><a href="#menu">Menu</a>
+                <li><a href="#tables">Tables</a>
+                <li><a href="#try-it">Try It</a>
+            </ul>
+        </li>
       </ul>
     </li>
     <li><a href="#contact">Contact</a></li>
@@ -90,17 +103,27 @@ So for this purpose, the app has two user interfaces:
 
 ### Customer Interface
 
-- Ideally you will land here by having scaned a venue's QR-code on your mobile, which places you right in the specific table/POS your are within the venue/shop. You will see the venue's availble menu and can start adding items to the cart.
+- Ideally you will land here by having scaned a venue's QR-code on your mobile, which places you right in the specific table/POS your are sitting within the venue/shop.
+
+- You will see the venue's availble menu and can start adding items to the cart.
 
     <img src="public/UnQ-Customer.png" alt="UnQ-customer">
 
-- In case you land here on a different route, you will have a list of venues to choose from. Then you'll have to first select the table/POS you are sitting, before being able to add items to the cart.
+- In case you land here following different route, you will have a list of venues to choose from. Then you'll have to first select the table/POS you are sitting, before being able to add items to the cart.
 
     <img src="public/customer-no-qrcode.gif" alt="customer-no-qrcode">
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+#### Cart
 
 - On the cart, you have the option to select all items and pay for the full bill or select the quantities of the ones you want to pay for, to share the bill with your friends. In the second case, your friends can scan the QRcode with their phones to select the remaining items, or use the same phone to do so and pay with their own card.
 
     <img src="public/cart-selection.gif" alt="cart-items-selection">
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+#### Payment
 
 - As for payment options, you can use your paypal account or your prefered Debit or Credit Card.
 
@@ -123,15 +146,27 @@ So for this purpose, the app has two user interfaces:
 
     <img src="public/venue-sections.gif" alt="venue-sections">
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+#### Details
+
 - On the details section, you will be able to update the venues information and hre is where you can delete it (i.e if the pop-up market has finished)
 
     <img src="public/venue-details.gif" alt="venue-details">
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+#### Menu
 
 - On the Menu section, you have a search bar to quickly fin a specif item, a button to add a new item and the list of items on your menu.
 
 - Also, on each item you have a toggle button to quickly change the availability of that item in case you run out of stock.
 
     <img src="public/venue-menu.gif" alt="venue-menu">
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+#### Tables
 
 - On the tables section, you can create a new table by giving it a name, and the app will automatically generate a unique QR-code, customised with the image/ of the venue. This QR-code then can be saved and printed to place it in the respective location.
 
