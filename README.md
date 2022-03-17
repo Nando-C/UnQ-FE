@@ -29,11 +29,10 @@
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
-    <li><a href="#usage">Usage</a>
+    <li><a href="#app-use">App Use</a>
      <ul>
-        <li><a href="#posts">Posts</a></li>
-        <li><a href="#profile">Profile</a></li>
-        <li><a href="#downloads">Downloads</a></li>
+        <li><a href="#customer-interface">Customer Interface</a></li>
+        <li><a href="#venue-interface">Venue Interface</a></li>
       </ul>
     </li>
     <li><a href="#contact">Contact</a></li>
@@ -71,7 +70,7 @@ You can find the Back-End repo of this project in the following link: [UnQ's Bac
 
 ## App Use
 
-The main idea behind this application is to provide the venue with a unique QR-code per table or Point Of Service/POS (which is generated automagically by the app), So when the customer wants to place an order, simply scan the QR code selct the items and pay.
+The main idea behind this application is to provide the venue with a unique QR-code per table or Point Of Service/POS (which is generated automagically by the app), so when the customer wants to place an order, simply scan the QR code select the items and pay.
 
 So for this purpose, the app has two user interfaces:
 
@@ -89,13 +88,13 @@ So for this purpose, the app has two user interfaces:
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Customer
+### Customer Interface
 
 - Ideally you will land here by having scaned a venue's QR-code on your mobile, which places you right in the specific table/POS your are within the venue/shop. You will see the venue's availble menu and can start adding items to the cart.
 
     <img src="public/UnQ-Customer.png" alt="UnQ-customer">
 
-- In case you land here on a different route, you will have a list of venues to choose from. Then you'll have to first select the table/POS you are, before being able to add items to the cart.
+- In case you land here on a different route, you will have a list of venues to choose from. Then you'll have to first select the table/POS you are sitting, before being able to add items to the cart.
 
     <img src="public/customer-no-qrcode.gif" alt="customer-no-qrcode">
 
@@ -114,7 +113,7 @@ So for this purpose, the app has two user interfaces:
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Venue
+### Venue Interface
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -125,50 +124,3 @@ So for this purpose, the app has two user interfaces:
 [@Nando](https://hernando-crespo.vercel.app/) - Get in touch and let me know what do you think of this project! 😉
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
-# Getting Started with Create React App
-
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
-
-## Available Scripts
-
-In the project directory, you can run:
-
-### `npm start`
-
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
-
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
-
-### `npm test`
-
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
-
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
