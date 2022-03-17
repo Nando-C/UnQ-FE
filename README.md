@@ -137,7 +137,7 @@ So for this purpose, the app has two user interfaces:
 
 - The best way is to access the app through the following QR-code, by scaning it with your mobile's phone camera. This simulates that you are scanning a QR-code on the Fire Place 🔥 table of the Rocketlit venue (fictional place).
 
-    <img src="public/test-QRcode.png" alt="test-qrcode">
+    <img src="public/test-QRcode.png" alt="test-qrcode" height="300">
 
 - When you try to add an item to the cart, you will be prompted to login/sign up. You can create an account if you wish, or you can use the following details.
 
