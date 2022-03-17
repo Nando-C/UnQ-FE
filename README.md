@@ -141,10 +141,10 @@ So for this purpose, the app has two user interfaces:
 
 - When you try to add an item to the cart, you will be prompted to login/sign up. You can create an account if you wish, or you can use the following details.
 
-  Email address: frank@mail.com
-  Password: 1234
+        Email address: frank@mail.com
+        Password: 1234
 
-  ## Note:
+  ### Note:
 
   If your are using Safari, you will have to disable cross site tracking while trying this app. Unfortunately this is an issue with authentication that I still yet to solve, but I assure you there is nothing dodgy behind.
   On Chrome it works perfectly fine. 😉
