@@ -43,6 +43,7 @@
                 <li><a href="#details">Details</a>
                 <li><a href="#menu">Menu</a>
                 <li><a href="#tables">Tables</a>
+                <li><a href="#sales-analysis">Sales Analysis</a>
                 <li><a href="#try-venue-interface">Try Venue Interface</a>
             </ul>
         </li>
@@ -95,7 +96,7 @@ So for this purpose, the app has two user interfaces:
 
 - Venue / Shop
 
-  Used by the venue's/shop's staff to create and edit the place profile, i.e contact details, modify the menu, create table/POS QR-codes (and in the next version, get some sales analisis).
+  Used by the venue's/shop's staff to create and edit the place profile, i.e contact details, modify the menu, create table/POS QR-codes (and in the next version, get some sales analysis).
 
   <img src="public/UnQ-Venue.png" alt="UnQ-venue">
 
@@ -196,6 +197,13 @@ So for this purpose, the app has two user interfaces:
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+#### Sales Analysis
+
+An insight into product sales performance of the venue will be availble in the next release.
+🛠 Watch this space! 👀
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 #### Try Venue Interface
 
 - To try the venue interface, you can open the app on the following link
@@ -224,6 +232,6 @@ So for this purpose, the app has two user interfaces:
 
 ## Contact
 
-[@Nando](https://hernando-crespo.vercel.app/) - Get in touch and let me know what do you think of this project! 😉
+[@Nando](https://hernando-crespo.vercel.app/) - I think this is amazing but I might be biased! So get in touch and let me know what do you think of this project! 😉
 
 <p align="right">(<a href="#top">back to top</a>)</p>
