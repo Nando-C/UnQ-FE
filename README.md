@@ -91,7 +91,7 @@ So for this purpose, the app has two user interfaces:
 
   Used by the customers to order and pay for Food & Drinks and designed to be only mobile.
 
-  <img src="public/UnQ-Customer.png" alt="UnQ-customer" max-height="400">
+  <img src="public/UnQ-Customer.png" alt="UnQ-customer" height="400">
 
 - Venue / Shop
 
