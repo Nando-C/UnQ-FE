@@ -107,7 +107,7 @@ So for this purpose, the app has two user interfaces:
 
 - You will see the venue's availble menu and will be able to add items to the cart right away.
 
-    <img align="center" src="public/UnQ-Customer.png" alt="UnQ-customer" height="400">
+    <img src="public/UnQ-Customer.png" alt="UnQ-customer" height="400">
 
 - In case you land here following different route, you will have a list of venues to choose from. Then you'll have to first select the table/POS you are sitting, before being able to add items to the cart.
 
@@ -137,7 +137,7 @@ So for this purpose, the app has two user interfaces:
 
 - The best way is to access the app through the following QR-code, by scaning it with your mobile's phone camera. (Or tap it, if you are viewing this on a phone). This simulates that you are scanning a QR-code on the Fire Place 🔥 table of the Rocketlit venue (fictional place).
 
-  <a href="https://un-q.vercel.app/shops/6158a19282eaef10787cd6f3/tables/61702525cc1ec6af70a92f35" target="_blank"><img src="public/test-QRcode.png" alt="test-qrcode" height="300"></a>
+  <a href="https://un-q.vercel.app/shops/6158a19282eaef10787cd6f3/tables/61702525cc1ec6af70a92f35" target="_blank"><img src="public/test-QRcode.png" alt="test-qrcode" height="200"></a>
 
 - When you try to add an item to the cart, you will be prompted to login/sign up. You can create an account if you wish, or you can use the following details.
 
