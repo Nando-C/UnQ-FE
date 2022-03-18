@@ -172,7 +172,7 @@ So for this purpose, the app has two user interfaces:
 
 #### Details
 
-- On the details section, you will be able to update the venues information and hre is where you can delete it (i.e if the pop-up market has finished)
+- On the details section, you will be able to update the venue's information and/or delete the venue (i.e: if the pop-up market has finished)
 
     <img src="public/venue-details.gif" alt="venue-details">
 
