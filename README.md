@@ -200,6 +200,7 @@ So for this purpose, the app has two user interfaces:
 #### Sales Analysis
 
 An insight into product sales performance of the venue will be availble in the next release.
+
 🛠 Watch this space! 👀
 
 <p align="right">(<a href="#top">back to top</a>)</p>
