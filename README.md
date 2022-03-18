@@ -153,8 +153,8 @@ So for this purpose, the app has two user interfaces:
 
 - You can test payments using the following paypal demo account details:
 
-        user: sb-earpx8110921@personal.example.com
-        password: 7--vsMqt
+        user: test@unq.com
+        password: 12345678
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
