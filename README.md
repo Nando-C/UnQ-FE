@@ -105,9 +105,9 @@ So for this purpose, the app has two user interfaces:
 
 - Ideally you will land here by having scaned a venue's QR-code on your mobile, which places you right in the specific table/POS your are sitting within the venue/shop.
 
-- You will see the venue's availble menu and can start adding items to the cart.
+- You will see the venue's availble menu and will be able to add items to the cart right away.
 
-    <img src="public/UnQ-Customer.png" alt="UnQ-customer" height="400">
+    <img src="public/UnQ-Customer.png" alt="UnQ-customer" height="400" align="center">
 
 - In case you land here following different route, you will have a list of venues to choose from. Then you'll have to first select the table/POS you are sitting, before being able to add items to the cart.
 
