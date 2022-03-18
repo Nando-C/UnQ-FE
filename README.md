@@ -4,7 +4,7 @@
 <br />
 <div align="center">
   <!-- <a href="https://github.com/Nando-C/UnQ-FE">
-    <img src="linkedin/public/linkedIn-logo.png" alt="Logo" height="100">
+    <img src="" alt="Logo" height="100">
   </a> -->
 
 <h3 align="center">UnQ -> [Front-End]</h3>
