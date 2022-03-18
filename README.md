@@ -107,11 +107,11 @@ So for this purpose, the app has two user interfaces:
 
 - You will see the venue's availble menu and can start adding items to the cart.
 
-    <img src="public/UnQ-Customer.png" alt="UnQ-customer">
+    <img src="public/UnQ-Customer.png" alt="UnQ-customer" height="400">
 
 - In case you land here following different route, you will have a list of venues to choose from. Then you'll have to first select the table/POS you are sitting, before being able to add items to the cart.
 
-    <img src="public/customer-no-qrcode.gif" alt="customer-no-qrcode">
+    <img src="public/customer-no-qrcode.gif" alt="customer-no-qrcode" height="400">
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -119,7 +119,7 @@ So for this purpose, the app has two user interfaces:
 
 - On the cart, you have the option to select all items and pay for the full bill or select the quantities of the ones you want to pay for, to share the bill with your friends. In the second case, your friends can scan the QRcode with their phones to select the remaining items, or use the same phone to do so and pay with their own card.
 
-    <img src="public/cart-selection.gif" alt="cart-items-selection">
+    <img src="public/cart-selection.gif" alt="cart-items-selection" height="400">
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -127,7 +127,7 @@ So for this purpose, the app has two user interfaces:
 
 - As for payment options, you can use your paypal account or your prefered Debit or Credit Card.
 
-    <img src="public/payment.gif" alt="payment-options">
+    <img src="public/payment.gif" alt="payment-options" height="400">
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
