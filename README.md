@@ -65,7 +65,7 @@ Developed completly from (not having idea of what to conceive) concept to deploy
 
 In reality this is a MVP (Minimal Viable Product) that I am planning to improve in the near future, but still makes me really proud! 😁
 
-You can find the Back-End repo of this project in the following link: [UnQ's BackEnd](https://github.com/Nando-C/UnQ-BE)
+You can find the Back-End repo of this project in the following link: [UnQ's Back-End](https://github.com/Nando-C/UnQ-BE)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

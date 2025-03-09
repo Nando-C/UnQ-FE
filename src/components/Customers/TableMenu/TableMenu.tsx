@@ -78,20 +78,21 @@ const TableMenu = () => {
         </Row>
         <Card.Subtitle className="mb-1 mt-4 fw-bold"> MENU </Card.Subtitle>
         <ListGroup className="px-0 mb-5" variant="flush">
-          {shop?.menu
-            .filter(
-              (menu) =>
-                menu.category.toLowerCase().includes(query.toLowerCase()) ||
-                menu.name.toLowerCase().includes(query.toLowerCase()) ||
-                menu.short_description
-                  .toLowerCase()
-                  .includes(query.toLowerCase())
-            )
-            .map((menuItem) => (
-              <ListGroup.Item key={menuItem._id} className="px-0 menu-item">
-                <MenuItem shopId={shopId} itemId={menuItem._id} />
-              </ListGroup.Item>
-            ))}
+          {shop?.menu &&
+            shop.menu
+              .filter(
+                (menu) =>
+                  menu.category.toLowerCase().includes(query.toLowerCase()) ||
+                  menu.name.toLowerCase().includes(query.toLowerCase()) ||
+                  menu.short_description
+                    .toLowerCase()
+                    .includes(query.toLowerCase())
+              )
+              .map((menuItem) => (
+                <ListGroup.Item key={menuItem._id} className="px-0 menu-item">
+                  <MenuItem shopId={shopId} itemId={menuItem._id} />
+                </ListGroup.Item>
+              ))}
         </ListGroup>
       </Container>
       <ShopTablesOffCanvas show={show} handleClose={handleClose} />

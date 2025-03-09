@@ -30,10 +30,10 @@ const AllShopsList = () => {
         {shopList
           .filter(
             (shop) =>
-              shop.name.toLowerCase().includes(query.toLowerCase()) ||
-              shop.bio.toLowerCase().includes(query.toLowerCase()) ||
-              shop.menu.find((m) =>
-                m.name.toLowerCase().includes(query.toLowerCase())
+              shop.name?.toLowerCase().includes(query.toLowerCase()) ||
+              shop.bio?.toLowerCase().includes(query.toLowerCase()) ||
+              shop.menu?.find((m) =>
+                m.name?.toLowerCase().includes(query.toLowerCase())
               )
           )
           .map((shop) => (
