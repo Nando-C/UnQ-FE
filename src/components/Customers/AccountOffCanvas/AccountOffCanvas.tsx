@@ -54,14 +54,12 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
   const updateUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const data = await backend.put(`/users/me`, user);
-    console.log("updatedUser: ", data); //<=========================================== LOG
+    await backend.put(`/users/me`, user);
 
     if (imageFile) {
       const newItemImg = new FormData();
       newItemImg.append("avatar", imageFile);
-      const newImage = await backend.put(`/users/me/avatar`, newItemImg);
-      console.log(newImage);
+      await backend.put(`/users/me/avatar`, newItemImg);
     }
     dispatch(fetchUserData());
     handleClose();

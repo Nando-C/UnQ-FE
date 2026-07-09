@@ -69,16 +69,14 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       web_URL: editShop.web_URL,
     };
     const created = await backend.post(`/shops`, newShop);
-    console.log("newShop: ", created);
 
     if (imageFile) {
       const newShopCover = new FormData();
       newShopCover.append("cover", imageFile);
-      const newCover = await backend.put(
+      await backend.put(
         `/shops/${created.data._id}/cover`,
         newShopCover
       );
-      console.log(newCover);
     }
     dispatch(fetchShopList());
     handleClose();
@@ -86,18 +84,15 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
 
   const updateShop = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(editShop);
 
-    const data = await backend.put(`/shops/${editShop._id}`, editShop);
-    console.log(data);
+    await backend.put(`/shops/${editShop._id}`, editShop);
     if (imageFile) {
       const newShopCover = new FormData();
       newShopCover.append("cover", imageFile);
-      const newCover = await backend.put(
+      await backend.put(
         `/shops/${editShop._id}/cover`,
         newShopCover
       );
-      console.log(newCover);
     }
     dispatch(fetchShopList());
     // setEditShop({
@@ -107,8 +102,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   };
 
   const deleteShop = async () => {
-    const deleted = await backend.delete(`/shops/${editShop._id}`);
-    console.log("Deleted Shop: ", deleted); //<========================================== LOG
+    await backend.delete(`/shops/${editShop._id}`);
     history.push("/");
     handleClose();
   };

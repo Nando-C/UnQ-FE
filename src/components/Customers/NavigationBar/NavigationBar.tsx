@@ -36,9 +36,6 @@ const NavigationBar = () => {
     0
   );
 
-  console.log("items: ", items);
-  console.log("itemsQty: ", itemsQty);
-
   return (
     <>
       <Container className="NavigationBar" fluid>

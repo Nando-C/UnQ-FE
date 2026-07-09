@@ -23,16 +23,16 @@ const CartListItems = () => {
   const [selectedAll, setSelectedAll] = useState(false);
 
   const totalCart = cart.items.reduce(
-    (total, item) => total + item.qty * item.menuId.price,
+    (total, item) => total + item.qty * (item.menuId?.price ?? 0),
     0
   );
   const totalSplit = cart.split
     .filter((split) => split.splitStatus === "open")
-    .reduce((total, split) => total + split.qty * split.menuId.price, 0);
+    .reduce((total, split) => total + split.qty * (split.menuId?.price ?? 0), 0);
 
   const totalSplitPayed = cart.split
     .filter((split) => split.splitStatus === "closed")
-    .reduce((total, split) => total + split.qty * split.menuId.price, 0);
+    .reduce((total, split) => total + split.qty * (split.menuId?.price ?? 0), 0);
 
   const remainingCartTotal = totalCart - totalSplitPayed - totalSplit;
 

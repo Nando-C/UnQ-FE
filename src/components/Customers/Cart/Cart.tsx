@@ -15,8 +15,6 @@ import "./Cart.css";
 const Cart = () => {
   const dispatch = useAppDispatch();
   const { shopId, tableId } = useAppSelector(selectCartPointers);
-  console.log("shopId: ", shopId);
-  console.log("tableId: ", tableId);
 
   const [tableName, setTableName] = useState("");
 
@@ -29,7 +27,6 @@ const Cart = () => {
       const tName = shop!.tables.filter((table) => table._id === tableId)[0]
         .name;
       setTableName(tName);
-      console.log(tName);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

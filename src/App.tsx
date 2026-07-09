@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-// import logo from "./logo.svg";
 import "./App.css";
 import { BrowserRouter as Router, Route } from "react-router-dom";
 import Register from "./components/Register/Register";
@@ -48,25 +47,8 @@ function App() {
           path="/shops/:shopId/tables/:tableId/cart"
           component={Cart}
         />
-        <Route exact path="/shops//tables//cart" component={Cart} />
         <Route exact path="/myAccount" component={Account} />
-        {/* <NavigationBar /> */}
       </Router>
-
-      {/* <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header> */}
     </div>
   );
 }

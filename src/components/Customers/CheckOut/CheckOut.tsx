@@ -39,7 +39,6 @@ const CheckOut = ({
               amount={totalPayment}
               // currency="GBP"
               onSuccess={(details: any, data: object) => {
-                console.log("cart : ", cart);
                 cart.split
                   .filter((i) => i.splitStatus === "open")
                   .map((item) =>

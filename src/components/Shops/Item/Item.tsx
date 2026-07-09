@@ -28,11 +28,10 @@ const Item = ({ itemId, shopId }: ItemProps) => {
 
   const updateAvailable = async () => {
     const updatedItem = { ...menuItem, available: !available };
-    const data = await backend.put(
+    await backend.put(
       `/shops/${shopId}/menu/${itemId}`,
       updatedItem
     );
-    console.log("updatedAvailable: ", data); //<=========================================== LOG
     dispatch(fetchShopList());
   };
 

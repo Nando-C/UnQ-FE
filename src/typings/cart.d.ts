@@ -2,7 +2,7 @@ import { IMenu } from "./menu";
 
 export interface IItem {
     _id?: string
-    menuId: IMenu | null | undedfined
+    menuId: IMenu | null | undefined
     qty: number
     qtyPayed?: number
     // totalPriceItems: number
@@ -11,7 +11,7 @@ export interface IItem {
 export interface ISplitItem {
     _id: string
     userId: string
-    menuId: string | null | undedfined
+    menuId: IMenu | null | undefined
     qty: number
     splitStatus: string
     // total_price_items: number

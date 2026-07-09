@@ -68,11 +68,10 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
     if (imageFile) {
       const newItemImg = new FormData();
       newItemImg.append("image", imageFile);
-      const newImage = await backend.put(
+      await backend.put(
         `/shops/${shopId}/menu/${created.data._id}/img`,
         newItemImg
       );
-      console.log(newImage);
     }
     dispatch(fetchShopList());
     handleClose();
@@ -81,25 +80,22 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   const updateItem = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const data = await backend.put(`/shops/${shopId}/menu/${item._id}`, item);
-    console.log("updateItem: ", data); //<=========================================== LOG
+    await backend.put(`/shops/${shopId}/menu/${item._id}`, item);
 
     if (imageFile) {
       const newItemImg = new FormData();
       newItemImg.append("image", imageFile);
-      const newImage = await backend.put(
+      await backend.put(
         `/shops/${shopId}/menu/${item._id}/img`,
         newItemImg
       );
-      console.log(newImage);
     }
     dispatch(fetchShopList());
     handleClose();
   };
 
   const deleteItem = async () => {
-    const deleted = await backend.delete(`/shops/${shopId}/menu/${item._id}`);
-    console.log("updateItem: ", deleted); //<=========================================== LOG
+    await backend.delete(`/shops/${shopId}/menu/${item._id}`);
     // console.log("Deleted")
     // history.push("/")
     dispatch(fetchShopList());

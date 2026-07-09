@@ -89,15 +89,11 @@ const CartItem = ({
     } else {
       setSelected(!selected);
     }
-    const splitExists = item?.menuId._id === split?.menuId._id;
-
-    console.log("splitExists: ", splitExists);
+    const splitExists = item?.menuId?._id === split?.menuId?._id;
 
     if (!selected && !splitExists) {
-      console.log("add to split");
       increment();
     } else if (selected && splitExists) {
-      console.log("remove from split");
       removeItemFromSplit();
     }
   };
@@ -109,14 +105,11 @@ const CartItem = ({
     if (selectedAll) {
       if (split) {
         quantity = item!.qty - item!.qtyPayed! - split.qty;
-        console.log("split -> quantity: ", quantity);
       } else {
         quantity = item!.qty - item!.qtyPayed!;
-        console.log("selectedAll -> quantity: ", quantity);
       }
     } else {
       quantity = 1;
-      console.log("quantity: ", quantity);
     }
 
     const plusItem = {
