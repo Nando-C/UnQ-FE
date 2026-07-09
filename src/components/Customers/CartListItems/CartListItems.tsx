@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, ListGroup, Row, Button, Form, Col } from "react-bootstrap";
-import { useDispatch } from "react-redux";
 import { useHistory, useParams } from "react-router";
-import { useAppSelector } from "../../../redux/app/hooks";
+import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { getTableCart, selectCartsData } from "../../../redux/slices/cartSlice";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
@@ -13,7 +12,7 @@ const CartListItems = () => {
   const params = useParams<{ tableId: string }>();
   const tableId = params.tableId;
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     dispatch(getTableCart(tableId));

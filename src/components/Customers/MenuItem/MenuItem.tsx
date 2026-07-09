@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, Col, Image, Row, Button } from "react-bootstrap";
-import { useDispatch } from "react-redux";
 import { useParams, useHistory } from "react-router-dom";
-import { useAppSelector } from "../../../redux/app/hooks";
+import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { addToCart } from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
@@ -26,7 +25,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
     qty: 1,
   });
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   useEffect(() => {
     dispatch(fetchSingleShop(shopId));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

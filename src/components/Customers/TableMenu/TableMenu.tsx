@@ -10,9 +10,8 @@ import {
   Row,
   Button,
 } from "react-bootstrap";
-import { useDispatch } from "react-redux";
 import { useParams } from "react-router";
-import { useAppSelector } from "../../../redux/app/hooks";
+import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { storeCartPointers } from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
@@ -35,7 +34,7 @@ const TableMenu = () => {
 
   const [query, setQuery] = useState("");
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   useEffect(() => {
     dispatch(storeCartPointers(params));
   }, [shopId, tableId]); // eslint-disable-line react-hooks/exhaustive-deps
