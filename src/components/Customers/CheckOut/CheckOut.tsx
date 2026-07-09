@@ -1,7 +1,9 @@
 import { Offcanvas } from "react-bootstrap";
 import "./CheckOut.css";
-import { PayPalButton } from "react-paypal-button-v2";
-import { useEffect, useState } from "react";
+import {
+  PayPalButtons,
+  PayPalScriptProvider,
+} from "@paypal/react-paypal-js";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { checkOutItem, selectCartsData } from "../../../redux/slices/cartSlice";
 
@@ -21,81 +23,57 @@ const CheckOut = ({
   const cart = useAppSelector(selectCartsData);
   const dispatch = useAppDispatch();
 
-  const [totalPayment, setTotalPayment] = useState(0);
-  useEffect(() => {
-    setTotalPayment(total);
-  }, [total]);
-
   return (
-    <>
-      <div className="CheckOut">
-        <Offcanvas placement="bottom" show={show} onHide={handleClose}>
-          <Offcanvas.Header closeButton>
-            <Offcanvas.Title>Select Payment Type</Offcanvas.Title>
-          </Offcanvas.Header>
-          <Offcanvas.Body>
-            {/* <AiOutlineCheckCircle size={100}/> */}
-            <PayPalButton
-              amount={totalPayment}
-              // currency="GBP"
-              onSuccess={(details: any, data: object) => {
-                cart.split
-                  .filter((i) => i.splitStatus === "open")
-                  .map((item) =>
-                    dispatch(
-                      checkOutItem({
-                        shopId: "",
-                        tableId: cart.tableId,
-                        cartId: cart._id,
-                        item: item,
-                      })
-                    )
-                  );
-                handleShowFbk();
-                // alert("Transaction completed by " + details.payer.name.given_name)
-
-                handleClose();
-                return;
-              }}
+    <div className="CheckOut">
+      <Offcanvas placement="bottom" show={show} onHide={handleClose}>
+        <Offcanvas.Header closeButton>
+          <Offcanvas.Title>Select Payment Type</Offcanvas.Title>
+        </Offcanvas.Header>
+        <Offcanvas.Body>
+          {show && (
+            <PayPalScriptProvider
               options={{
-                clientId: "sb",
+                clientId: import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb",
                 currency: "GBP",
               }}
-            />
-          </Offcanvas.Body>
-        </Offcanvas>
-      </div>
-
-      {/* <Modal show={show} onHide={handleClose}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Select Payment Type</Modal.Title>
-                </Modal.Header>
-                <Modal.Body >
-                    <PayPalButton 
-                        amount={totalPayment}
-                        // currency="GBP"
-                        onSuccess={(details: any, data: object) => {
-                            console.log("cart : ", cart)
-                            {cart.split.filter(i => i.splitStatus === "open").map(item => dispatch(checkOutItem({
-                                    shopId: "",
-                                    tableId: cart.tableId,
-                                    cartId: cart._id,
-                                    item: item
-                                }))
-                            )}
-                            // alert("Transaction completed by " + details.payer.name.given_name)
-                            
-                            handleClose()
-                            return
-                        }}
-                        options={{
-                            clientId: "sb",
-                            currency: "GBP"
-                        }}
-                    />
-                </Modal.Body>
-            </Modal> */}
-    </>
+            >
+              <PayPalButtons
+                createOrder={(data, actions) =>
+                  actions.order.create({
+                    intent: "CAPTURE",
+                    purchase_units: [
+                      {
+                        amount: {
+                          value: total.toFixed(2),
+                          currency_code: "GBP",
+                        },
+                      },
+                    ],
+                  })
+                }
+                onApprove={async (data, actions) => {
+                  await actions.order?.capture();
+                  cart.split
+                    .filter((i) => i.splitStatus === "open")
+                    .map((item) =>
+                      dispatch(
+                        checkOutItem({
+                          shopId: "",
+                          tableId: cart.tableId,
+                          cartId: cart._id,
+                          item: item,
+                        })
+                      )
+                    );
+                  handleShowFbk();
+                  handleClose();
+                }}
+              />
+            </PayPalScriptProvider>
+          )}
+        </Offcanvas.Body>
+      </Offcanvas>
+    </div>
   );
 };
 
