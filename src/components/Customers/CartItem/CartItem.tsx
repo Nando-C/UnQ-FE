@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, Col, Row, Button, Image, Form } from "react-bootstrap";
 import { useParams } from "react-router";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
@@ -6,7 +6,6 @@ import {
   addToSplit,
   decreaseSplit,
   deleteFromCart,
-  getTableCart,
   removeFromSplit,
   selectCartsData,
 } from "../../../redux/slices/cartSlice";
@@ -36,8 +35,8 @@ const CartItem = ({
   const splitItem = cart.split.find(
     (item) => item._id === itemId && item.splitStatus === "open"
   );
-  const payed = cartItem!.qtyPayed;
-  const itemQty = cartItem!.qty - payed!;
+  const payed = cartItem?.qtyPayed ?? 0;
+  const itemQty = (cartItem?.qty ?? 0) - payed;
 
   const [selected, setSelected] = useState(false);
 
@@ -57,7 +56,6 @@ const CartItem = ({
   });
 
   useEffect(() => {
-    dispatch(getTableCart(tableId));
     setItem(cartItem);
     setSplit(splitItem);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -72,7 +70,12 @@ const CartItem = ({
     }
   }, [cartItem, splitItem]);
 
+  const mounted = useRef(false);
   useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
     if (selectedAll) {
       increment();
     } else {
@@ -161,6 +164,8 @@ const CartItem = ({
       })
     );
   };
+
+  if (!cartItem) return null;
 
   return (
     <>

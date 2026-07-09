@@ -25,14 +25,16 @@ const NavigationBar = () => {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    dispatch(getTableCart(tableId));
+    if (tableId) {
+      dispatch(getTableCart(tableId));
+    }
   }, [tableId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const items = useAppSelector(selectCartsData).items.filter(
-    (item) => item.qty > item.qtyPayed!
+    (item) => item.qty > (item.qtyPayed ?? 0)
   );
   const itemsQty = items.reduce(
-    (total, item) => total + item.qty - item.qtyPayed!,
+    (total, item) => total + item.qty - (item.qtyPayed ?? 0),
     0
   );
 
@@ -50,16 +52,24 @@ const NavigationBar = () => {
               </Link>
               {/* </Nav.Link> */}
               {/* <Nav.Link href={`/shops/${shopId}/tables/${tableId}/cart`}> */}
-              <Link
-                className="cart-link nav-link mx-5"
-                to={`/shops/${shopId}/tables/${tableId}/cart`}
-              >
-                <IoCartOutline className="mt-1" size={35} />
-                {itemsQty > 0 && (
-                  <span className="qty-indicator text-primary">{itemsQty}</span>
-                )}
-                {/* <IoCart/> */}
-              </Link>
+              {shopId && tableId ? (
+                <Link
+                  className="cart-link nav-link mx-5"
+                  to={`/shops/${shopId}/tables/${tableId}/cart`}
+                >
+                  <IoCartOutline className="mt-1" size={35} />
+                  {itemsQty > 0 && (
+                    <span className="qty-indicator text-primary">
+                      {itemsQty}
+                    </span>
+                  )}
+                  {/* <IoCart/> */}
+                </Link>
+              ) : (
+                <span className="cart-link nav-link mx-5">
+                  <IoCartOutline className="mt-1" size={35} />
+                </span>
+              )}
               {/* </Nav.Link> */}
               {/* <Nav.Link className="ms-4" href=""> */}
               <Link className="nav-link ms-4" to={`/myAccount`}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Card, Col, Container, Image, Row, Button } from "react-bootstrap";
 import { IoArrowBack } from "react-icons/io5";
 import { useHistory } from "react-router";
@@ -16,19 +16,15 @@ const Cart = () => {
   const dispatch = useAppDispatch();
   const { shopId, tableId } = useAppSelector(selectCartPointers);
 
-  const [tableName, setTableName] = useState("");
-
   const shop = useAppSelector(selectSelectedShop);
+  const tableName =
+    shop?.tables.find((table) => table._id === tableId)?.name ?? "";
 
   useEffect(() => {
-    // dispatch(getMyOpenCart())
-    dispatch(getTableCart(tableId));
     if (tableId) {
-      const tName = shop!.tables.filter((table) => table._id === tableId)[0]
-        .name;
-      setTableName(tName);
+      dispatch(getTableCart(tableId));
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tableId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cart = useAppSelector(selectCartsData);
   // console.log(cart)

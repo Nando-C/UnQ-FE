@@ -18,7 +18,7 @@ const Item = ({ itemId, shopId }: ItemProps) => {
   );
   const menuItem = shop?.menu.find((item) => item._id === itemId);
 
-  const [available, setAvailable] = useState(menuItem!.available);
+  const [available, setAvailable] = useState(menuItem?.available ?? false);
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
@@ -34,6 +34,8 @@ const Item = ({ itemId, shopId }: ItemProps) => {
     );
     dispatch(fetchShopList());
   };
+
+  if (!menuItem) return null;
 
   return (
     <>
@@ -96,7 +98,7 @@ const Item = ({ itemId, shopId }: ItemProps) => {
           shopId={shopId}
           show={show}
           handleClose={handleClose}
-          itemId={menuItem!._id}
+          itemId={menuItem._id}
         />
       </div>
     </>

@@ -36,7 +36,9 @@ const TableMenu = () => {
   const [query, setQuery] = useState("");
 
   const dispatch = useDispatch();
-  dispatch(storeCartPointers(params));
+  useEffect(() => {
+    dispatch(storeCartPointers(params));
+  }, [shopId, tableId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     dispatch(fetchSingleShop(shopId));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

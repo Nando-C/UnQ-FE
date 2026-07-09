@@ -18,9 +18,11 @@ const Dashboard = () => {
   const userDataStore = useAppSelector(selectUserData);
   const isManager = userDataStore.role === "shopMg" ? true : false;
 
-  if (isManager) {
-    dispatch(fetchShopList());
-  }
+  useEffect(() => {
+    if (isManager) {
+      dispatch(fetchShopList());
+    }
+  }, [isManager, dispatch]);
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
