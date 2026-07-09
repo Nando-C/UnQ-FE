@@ -4,18 +4,18 @@ import backend from "../../backend/backend";
 import { IUser, IUserStore } from "../../typings/user";
 import { RootState } from "../app/store";
 
-const initialState: IUserStore = {
-   data: {
+const emptyUser: IUser = {
     _id: "",
     name: "",
     surname: "",
     email: "",
-    password: "",
     avatar: "",
     role: "",
-    refreshToken: "",
-    googleId: "",
-   },
+}
+
+const initialState: IUserStore = {
+    data: emptyUser,
+    status: "idle",
 }
 
 export const fetchUserData = createAsyncThunk("user/fetchUserData", async () => {
@@ -32,25 +32,25 @@ export const userSlice = createSlice({
     initialState,
     reducers: {},
     extraReducers: (builder) => {
+        builder.addCase(fetchUserData.pending, (state) => {
+            state.status = "loading"
+        })
         builder.addCase(fetchUserData.fulfilled, (state, action) => {
             state.data = action.payload
+            state.status = "authenticated"
         })
-        builder.addCase(logOut.fulfilled, (state, action) => {
-            state.data = {
-                _id: "",
-                name: "",
-                surname: "",
-                email: "",
-                password: "",
-                avatar: "",
-                role: "",
-                refreshToken: "",
-                googleId: "",
-               }
+        builder.addCase(fetchUserData.rejected, (state) => {
+            state.data = emptyUser
+            state.status = "guest"
+        })
+        builder.addCase(logOut.fulfilled, (state) => {
+            state.data = emptyUser
+            state.status = "guest"
         })
     }
 })
 
 export const selectUserData = (state: RootState) => state.user.data
+export const selectUserStatus = (state: RootState) => state.user.status
 
 export default userSlice.reducer

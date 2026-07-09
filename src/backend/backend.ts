@@ -1,41 +1,37 @@
-import axios from "axios"
+import axios, { AxiosError, AxiosRequestConfig } from "axios"
 
 const backend = axios.create({
     baseURL: process.env.REACT_APP_BE_URL,
     withCredentials: true,
 })
 
-// const refreshAccessToken = async () => {
-//     const { data } = await backend.post("/auth/refreshToken")
-//     return data
-// }
+interface RetriableRequestConfig extends AxiosRequestConfig {
+    _retry?: boolean
+}
 
-// // Response interceptor
-// // Retrying requests after refreshing tokens
-// backend.interceptors.response.use(
-//     //By default we are forwarding the response as-is
-//     (response) => response,
-//     //But here we define the error handler
-//     async function (error) {
-//         // The configuration for the request that just failed:
-//         const failedRequest = error.config
-//         if (
-//             // If unauthorized let's try to refresh the tokens...
-//             error.response.status === 401 &&
-//             // but won't retry if the failed request was already attempting to refresh the tokens
-//             failedRequest.url !== "/auth/refreshToken"
-//         ) {
-//             await refreshAccessToken()
+// Response interceptor: silently refreshes the 15-minute access token on a
+// 401 and replays the original request once, so the user stays logged in.
+backend.interceptors.response.use(
+    (response) => response,
+    async (error: AxiosError) => {
+        const failedRequest = error.config as RetriableRequestConfig
 
-//             const retryRequest = backend(failedRequest)
-//             return retryRequest
-//         } else if (failedRequest.url === "/auth/refreshToken") {
-//             window.location.href = "/login"
-//             return Promise.reject(error)
-//         } else {
-//             return Promise.reject(error)
-//         }
-//     }
-// )
+        if (
+            error.response?.status === 401 &&
+            failedRequest.url !== "/auth/refreshToken" &&
+            !failedRequest._retry
+        ) {
+            failedRequest._retry = true
+            try {
+                await backend.post("/auth/refreshToken")
+                return backend(failedRequest)
+            } catch (refreshError) {
+                return Promise.reject(error)
+            }
+        }
+
+        return Promise.reject(error)
+    }
+)
 
 export default backend

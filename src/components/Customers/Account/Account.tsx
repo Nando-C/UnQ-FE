@@ -1,6 +1,6 @@
 import { Card, Container, Image, Button, Row, Col } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { logOut, selectUserData } from "../../../redux/slices/userSlice";
+import { logOut, selectUserData, selectUserStatus } from "../../../redux/slices/userSlice";
 import { GrEdit } from "react-icons/gr";
 import "./Account.css";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import Login from "../../Login/Login";
 
 const Account = () => {
   const user = useAppSelector(selectUserData);
+  const status = useAppSelector(selectUserStatus);
   const history = useHistory();
   const dispatch = useAppDispatch();
 
@@ -24,7 +25,7 @@ const Account = () => {
 
   return (
     <>
-      {user._id ? (
+      {status === "authenticated" ? (
         <Container className="Account p-2 text-center">
           <Card className="p-2">
             <Row className="align-items-center">
@@ -49,9 +50,9 @@ const Account = () => {
             LogOut
           </Button>
         </Container>
-      ) : (
+      ) : status === "guest" ? (
         <Login />
-      )}
+      ) : null}
       <AccountOffCanvas show={show} handleClose={handleClose} />
     </>
   );

@@ -4,13 +4,13 @@ export interface IUser {
     name: string
     surname: string
     email: string
-    password?: string
     avatar?: string
     role: string
-    refreshToken?: string
-    googleId?: string
 }
+
+export type UserStatus = "idle" | "loading" | "authenticated" | "guest"
 
 export interface IUserStore {
     data: IUser
+    status: UserStatus
 }
