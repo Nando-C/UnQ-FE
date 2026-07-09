@@ -131,6 +131,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
                 // variant="outline-primary"
                 size="sm"
                 onClick={addItemToCart}
+                disabled={item.qty < 1}
               >
                 <strong>Add</strong>
               </Button>

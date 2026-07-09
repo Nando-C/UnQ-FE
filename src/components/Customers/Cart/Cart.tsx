@@ -1,20 +1,22 @@
 import { useEffect } from "react";
 import { Card, Col, Container, Image, Row, Button } from "react-bootstrap";
 import { IoArrowBack } from "react-icons/io5";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
+import { getTableCart, selectCartsData } from "../../../redux/slices/cartSlice";
 import {
-  getTableCart,
-  selectCartPointers,
-  selectCartsData,
-} from "../../../redux/slices/cartSlice";
-import { selectSelectedShop } from "../../../redux/slices/shopSlice";
+  fetchSingleShop,
+  selectSelectedShop,
+} from "../../../redux/slices/shopSlice";
 import CartListItems from "../CartListItems/CartListItems";
 import "./Cart.css";
 
 const Cart = () => {
   const dispatch = useAppDispatch();
-  const { shopId, tableId } = useAppSelector(selectCartPointers);
+  const { shopId = "", tableId = "" } = useParams<{
+    shopId: string;
+    tableId: string;
+  }>();
 
   const shop = useAppSelector(selectSelectedShop);
   const tableName =
@@ -25,6 +27,12 @@ const Cart = () => {
       dispatch(getTableCart(tableId));
     }
   }, [tableId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (shopId && !shop) {
+      dispatch(fetchSingleShop(shopId));
+    }
+  }, [shopId, shop]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cart = useAppSelector(selectCartsData);
   // console.log(cart)

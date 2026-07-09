@@ -31,34 +31,39 @@ interface AddToSplitProps {
     cartId: string
     item: IItem
 }
+const toCartPayload = (item: IItem) => ({
+    menuId: typeof item.menuId === "string" ? item.menuId : item.menuId?._id,
+    qty: item.qty,
+})
+
 export const getMyOpenCart = createAsyncThunk("cart/getMyOpenCart", async () => {
     const { data }: AxiosResponse<ICart> = await backend.get(`carts/`)
     return data
 })
 export const addToCart = createAsyncThunk("cart/addToCart", async ({shopId, tableId, item}: AddToCartProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/addItem`, item)
+    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/addItem`, toCartPayload(item))
     return data
 })
 export const addToSplit = createAsyncThunk("cart/addToSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/addSplitItem`, item)
+    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/addSplitItem`, toCartPayload(item))
     return data
 })
 export const decreaseSplit = createAsyncThunk("cart/ decreaseSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/decreaseSplitItem`, item)
+    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/decreaseSplitItem`, toCartPayload(item))
     return data
 })
 
 export const removeFromCart = createAsyncThunk("cart/removeFromCart", async ({shopId, tableId, item}: AddToCartProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/removeItem`, item)
+    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/removeItem`, toCartPayload(item))
     return data
 })
 export const deleteFromCart = createAsyncThunk("cart/deleteFromCart", async ({shopId, tableId, item}: AddToCartProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/deleteItem`, item)
+    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/deleteItem`, toCartPayload(item))
     return data
 })
 
 export const removeFromSplit = createAsyncThunk("cart/removeFromSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/removeSplitItem`, item)
+    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/removeSplitItem`, toCartPayload(item))
     return data
 })
 
@@ -67,7 +72,7 @@ export const getTableCart = createAsyncThunk("cart/getTableCart", async (tableId
     return data
 })
 export const checkOutItem = createAsyncThunk("cart/checkOutItem", async ({shopId, tableId, cartId, item}: AddToSplitProps)=> {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/checkOutSplitItem`, item)
+    const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/checkOutSplitItem`, toCartPayload(item))
     return data
 })
 
