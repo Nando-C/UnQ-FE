@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import axios from "axios";
 import {
   Col,
   Container,
@@ -11,7 +12,23 @@ import {
 } from "react-bootstrap";
 import { useHistory } from "react-router-dom";
 import backend from "../../backend/backend";
+import { useAppDispatch } from "../../redux/app/hooks";
+import { fetchUserData } from "../../redux/slices/userSlice";
 import "./Register.css";
+
+const MIN_PASSWORD_LENGTH = 8;
+
+const getErrorMessage = (err: unknown): string => {
+  if (axios.isAxiosError(err)) {
+    if (err.response?.status === 409) return "Email already registered";
+    const data = err.response?.data as
+      | { message?: string; details?: { message: string }[] }
+      | undefined;
+    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
+    if (data?.message) return data.message;
+  }
+  return "Something went wrong, try again";
+};
 
 const Register = () => {
   const [credentials, setCredentials] = useState({
@@ -23,17 +40,41 @@ const Register = () => {
 
   const [verifyPassword, setVerifyPassword] = useState("");
   const history = useHistory();
+  const dispatch = useAppDispatch();
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSingUp = async (e: FormEvent) => {
+  const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
+    setError("");
 
+    if (
+      !credentials.name ||
+      !credentials.surname ||
+      !credentials.email ||
+      !credentials.password
+    ) {
+      setError("All fields are required");
+      return;
+    }
+    if (credentials.password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      return;
+    }
+    if (verifyPassword !== credentials.password) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
     try {
       await backend.post("/auth/register", credentials);
+      dispatch(fetchUserData());
       history.push("/");
-    } catch (error) {
-      console.log(error);
-      setError("Email already exists");
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,7 +89,7 @@ const Register = () => {
           />
         </Col>
         <Col xs={12} sm={6}>
-          <Form onSubmit={handleSingUp}>
+          <Form onSubmit={handleSignUp}>
             <Row>
               <Col>
                 <Form.Group className="mb-3" controlId="formBasicEmail">
@@ -131,7 +172,7 @@ const Register = () => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Button variant="primary" type="submit">
+            <Button variant="primary" type="submit" disabled={loading}>
               SignUp
             </Button>
             {error && (

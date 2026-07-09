@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import axios from "axios";
 import {
   Col,
   Container,
@@ -7,6 +8,7 @@ import {
   Button,
   FloatingLabel,
   Image,
+  Alert,
 } from "react-bootstrap";
 import { useHistory } from "react-router-dom";
 import backend from "../../backend/backend";
@@ -15,6 +17,13 @@ import "../Register/Register.css";
 import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
 import { selectCartPointers } from "../../redux/slices/cartSlice";
 import { fetchUserData } from "../../redux/slices/userSlice";
+
+const getErrorMessage = (err: unknown): string => {
+  if (axios.isAxiosError(err)) {
+    if (err.response?.status === 401) return "Wrong email or password";
+  }
+  return "Something went wrong, try again";
+};
 
 const Login = () => {
   const [credentials, setCredentials] = useState({
@@ -26,8 +35,13 @@ const Login = () => {
   const history = useHistory();
   const dispatch = useAppDispatch();
 
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     try {
       await backend.post("/auth/login", credentials);
@@ -37,8 +51,10 @@ const Login = () => {
       } else {
         history.push("/");
       }
-    } catch (error) {
-      console.log(error);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,7 +100,12 @@ const Login = () => {
                 <a href={`/register`}> SignUp</a>
               </p>
             </Form.Group>
-            <Button variant="primary" type="submit">
+            {error && (
+              <Alert className="my-3" variant="danger">
+                {error}
+              </Alert>
+            )}
+            <Button variant="primary" type="submit" disabled={loading}>
               Login
             </Button>
             <Form.Group className="my-3">
