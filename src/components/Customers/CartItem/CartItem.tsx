@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Card, Col, Row, Button, Image, Form } from "react-bootstrap";
-import { useParams } from "react-router";
+import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
   addToSplit,
@@ -26,9 +26,10 @@ const CartItem = ({
   selectedAll,
   setSelectedAll,
 }: CartItemProps) => {
-  const params = useParams<{ shopId: string; tableId: string }>();
-  const shopId = params.shopId;
-  const tableId = params.tableId;
+  const { shopId = "", tableId = "" } = useParams<{
+    shopId: string;
+    tableId: string;
+  }>();
 
   const cart = useAppSelector(selectCartsData);
   const cartItem = cart.items.find((item) => item._id === itemId);

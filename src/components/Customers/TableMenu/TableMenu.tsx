@@ -10,7 +10,7 @@ import {
   Row,
   Button,
 } from "react-bootstrap";
-import { useParams } from "react-router";
+import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { storeCartPointers } from "../../../redux/slices/cartSlice";
 import {
@@ -22,9 +22,10 @@ import ShopTablesOffCanvas from "../ShopTablesOffCanvas/ShopTablesOffCanvas";
 import "./TableMenu.css";
 
 const TableMenu = () => {
-  const params = useParams<{ shopId: string; tableId: string }>();
-  const shopId = params.shopId;
-  const tableId = params.tableId;
+  const { shopId = "", tableId = "" } = useParams<{
+    shopId: string;
+    tableId: string;
+  }>();
   // console.log("shopId: ", shopId)
   // console.log("tableId: ", tableId)
 
@@ -36,7 +37,7 @@ const TableMenu = () => {
 
   const dispatch = useAppDispatch();
   useEffect(() => {
-    dispatch(storeCartPointers(params));
+    dispatch(storeCartPointers({ shopId, tableId }));
   }, [shopId, tableId]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     dispatch(fetchSingleShop(shopId));

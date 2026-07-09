@@ -10,7 +10,7 @@ import {
   Image,
   Alert,
 } from "react-bootstrap";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import backend from "../../backend/backend";
 import { FcGoogle } from "react-icons/fc";
 import "../Register/Register.css";
@@ -32,7 +32,7 @@ const Login = () => {
   });
   const { shopId, tableId } = useAppSelector(selectCartPointers);
 
-  const history = useHistory();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   const [error, setError] = useState<string | null>(null);
@@ -47,9 +47,9 @@ const Login = () => {
       await backend.post("/auth/login", credentials);
       dispatch(fetchUserData());
       if (tableId) {
-        history.push(`/shops/${shopId}/tables/${tableId}`);
+        navigate(`/shops/${shopId}/tables/${tableId}`);
       } else {
-        history.push("/");
+        navigate("/");
       }
     } catch (err) {
       setError(getErrorMessage(err));

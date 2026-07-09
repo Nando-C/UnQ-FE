@@ -1,7 +1,7 @@
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Modal, Button, Form, FloatingLabel, Image, Alert } from "react-bootstrap";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
@@ -45,7 +45,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
     menu: [],
   });
   const dispatch = useAppDispatch();
-  const history = useHistory();
+  const navigate = useNavigate();
   const [phoneInput, setPhoneInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -158,7 +158,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
     setError(null);
     try {
       await backend.delete(`/shops/${editShop._id}`);
-      history.push("/");
+      navigate("/");
       handleClose();
     } catch (err) {
       setError(getErrorMessage(err));

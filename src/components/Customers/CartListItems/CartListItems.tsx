@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, ListGroup, Row, Button, Form, Col } from "react-bootstrap";
-import { useHistory, useParams } from "react-router";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { getTableCart, selectCartsData } from "../../../redux/slices/cartSlice";
 import CartItem from "../CartItem/CartItem";
@@ -9,8 +9,7 @@ import PaymentFeedback from "../PaymentFeedback/PaymentFeedback";
 import "./CartListItems.css";
 
 const CartListItems = () => {
-  const params = useParams<{ tableId: string }>();
-  const tableId = params.tableId;
+  const { tableId = "" } = useParams<{ tableId: string }>();
 
   const dispatch = useAppDispatch();
 
@@ -39,7 +38,7 @@ const CartListItems = () => {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const [showFbk, setShowFbk] = useState(false);
   const handleShowFbk = () => {
@@ -50,7 +49,7 @@ const CartListItems = () => {
     return () => clearTimeout(timer);
   };
   const handleCloseFbk = () => {
-    history.goBack();
+    navigate(-1);
     setShowFbk(false);
   };
 

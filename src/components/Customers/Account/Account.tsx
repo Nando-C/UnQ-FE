@@ -5,13 +5,13 @@ import { GrEdit } from "react-icons/gr";
 import "./Account.css";
 import { useState } from "react";
 import AccountOffCanvas from "../AccountOffCanvas/AccountOffCanvas";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 import Login from "../../Login/Login";
 
 const Account = () => {
   const user = useAppSelector(selectUserData);
   const status = useAppSelector(selectUserStatus);
-  const history = useHistory();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   const [show, setShow] = useState(false);
@@ -20,7 +20,7 @@ const Account = () => {
 
   const logMeOut = () => {
     dispatch(logOut());
-    history.push("/login");
+    navigate("/login");
   };
 
   return (

@@ -10,7 +10,7 @@ import {
   Image,
   Alert,
 } from "react-bootstrap";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import backend from "../../backend/backend";
 import { useAppDispatch } from "../../redux/app/hooks";
 import { fetchUserData } from "../../redux/slices/userSlice";
@@ -39,7 +39,7 @@ const Register = () => {
   });
 
   const [verifyPassword, setVerifyPassword] = useState("");
-  const history = useHistory();
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -70,7 +70,7 @@ const Register = () => {
     try {
       await backend.post("/auth/register", credentials);
       dispatch(fetchUserData());
-      history.push("/");
+      navigate("/");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

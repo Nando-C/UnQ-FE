@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import "./App.css";
-import { BrowserRouter as Router, Route } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Register from "./components/Register/Register";
 import Login from "./components/Login/Login";
 // import Item from './components/Shop/Item/Item';
@@ -32,22 +32,22 @@ function App() {
       <Router>
         {isManager ? <ShopNavbar /> : <NavigationBar />}
         {/* <ShopNavbar /> */}
-        <Route exact path="/login" component={Login} />
-        <Route exact path="/register" component={Register} />
-        <Route exact path="/" component={Dashboard} />
-        <Route exact path="/customer/shop/:shopId" component={TableMenu} />
-        <Route exact path="/shop/:shopId" component={ShopDetails} />
-        <Route
-          exact
-          path="/shops/:shopId/tables/:tableId"
-          component={TableMenu}
-        />
-        <Route
-          exact
-          path="/shops/:shopId/tables/:tableId/cart"
-          component={Cart}
-        />
-        <Route exact path="/myAccount" component={Account} />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/customer/shop/:shopId" element={<TableMenu />} />
+          <Route path="/shop/:shopId" element={<ShopDetails />} />
+          <Route
+            path="/shops/:shopId/tables/:tableId"
+            element={<TableMenu />}
+          />
+          <Route
+            path="/shops/:shopId/tables/:tableId/cart"
+            element={<Cart />}
+          />
+          <Route path="/myAccount" element={<Account />} />
+        </Routes>
       </Router>
     </div>
   );

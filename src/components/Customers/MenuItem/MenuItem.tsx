@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card, Col, Image, Row, Button } from "react-bootstrap";
-import { useParams, useHistory } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { addToCart } from "../../../redux/slices/cartSlice";
 import {
@@ -17,8 +17,7 @@ interface MenuItemProps {
 }
 
 const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
-  const params = useParams<{ tableId: string }>();
-  const tableId = params.tableId;
+  const { tableId = "" } = useParams<{ tableId: string }>();
 
   const [item, setItem] = useState<IItem>({
     menuId: null,
@@ -52,7 +51,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
   };
 
   const user = useAppSelector(selectUserData);
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const addItemToCart = async () => {
     if (user._id) {
@@ -64,7 +63,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
         })
       );
     } else {
-      history.push("/login");
+      navigate("/login");
     }
   };
 

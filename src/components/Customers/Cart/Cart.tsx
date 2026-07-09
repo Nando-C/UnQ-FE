@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Card, Col, Container, Image, Row, Button } from "react-bootstrap";
 import { IoArrowBack } from "react-icons/io5";
-import { useHistory } from "react-router";
+import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
   getTableCart,
@@ -29,9 +29,9 @@ const Cart = () => {
   const cart = useAppSelector(selectCartsData);
   // console.log(cart)
 
-  const history = useHistory();
+  const navigate = useNavigate();
   const goBack = () => {
-    history.goBack();
+    navigate(-1);
   };
 
   return (

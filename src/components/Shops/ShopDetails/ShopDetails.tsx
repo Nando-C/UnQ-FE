@@ -24,8 +24,7 @@ import {
 
 const ShopDetails = () => {
   // const shopListStore = useAppSelector(selectShopsData)
-  const params = useParams<{ shopId: string }>();
-  const shopId = params.shopId;
+  const { shopId = "" } = useParams<{ shopId: string }>();
   const dispatch = useAppDispatch();
 
   useEffect(() => {
