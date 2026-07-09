@@ -1,5 +1,7 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react";
+import axios from "axios";
 import {
+  Alert,
   Form,
   Image,
   Offcanvas,
@@ -12,6 +14,17 @@ import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchUserData, selectUserData } from "../../../redux/slices/userSlice";
 import { IUser } from "../../../typings/user";
 import "./AccountOffCanvas.css";
+
+const getErrorMessage = (err: unknown): string => {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as
+      | { message?: string; details?: { message: string }[] }
+      | undefined;
+    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
+    if (data?.message) return data.message;
+  }
+  return "Something went wrong, try again";
+};
 
 interface AccountOffCanvasProps {
   show: boolean;
@@ -39,10 +52,11 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
       avatar: myUser.avatar,
       role: myUser.role,
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [myUser]);
 
   const [imageFile, setImageFile] = useState<File | null>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.currentTarget.files;
@@ -53,16 +67,25 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
 
   const updateUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
 
-    await backend.put(`/users/me`, user);
+    try {
+      await backend.put(`/users/me`, {
+        name: user.name,
+        surname: user.surname,
+        email: user.email,
+      });
 
-    if (imageFile) {
-      const newItemImg = new FormData();
-      newItemImg.append("avatar", imageFile);
-      await backend.put(`/users/me/avatar`, newItemImg);
+      if (imageFile) {
+        const newItemImg = new FormData();
+        newItemImg.append("avatar", imageFile);
+        await backend.put(`/users/me/avatar`, newItemImg);
+      }
+      dispatch(fetchUserData());
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
     }
-    dispatch(fetchUserData());
-    handleClose();
   };
 
   return (
@@ -140,25 +163,12 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingSelect" label="Role">
-                <Form.Select
-                  aria-label="Floating label select example"
-                  value={user.role}
-                  onChange={(e) =>
-                    setUser({ ...user, role: e.currentTarget.value })
-                  }
-                >
-                  <option>Open this select menu</option>
-                  <option value="customer">Customer</option>
-                  <option value="shopMg">Shop Manager</option>
-                </Form.Select>
-              </FloatingLabel>
-            </Form.Group>
+            {error && (
+              <Alert className="my-2" variant="danger">
+                {error}
+              </Alert>
+            )}
             <Form.Group className="d-flex justify-content-end">
-              {/* <Button variant="outline-danger" className="my-2" onClick={deleteItem}>
-                                Delete Item
-                            </Button> */}
               <Button className="my-2" variant="primary" type="submit">
                 Save Changes
               </Button>

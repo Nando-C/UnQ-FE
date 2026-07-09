@@ -1,11 +1,23 @@
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
-import { Modal, Button, Form, FloatingLabel, Image } from "react-bootstrap";
+import axios from "axios";
+import { Modal, Button, Form, FloatingLabel, Image, Alert } from "react-bootstrap";
 import { useHistory } from "react-router-dom";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { IShop } from "../../../typings/shop";
 import "./ShopModal.css";
+
+const getErrorMessage = (err: unknown): string => {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as
+      | { message?: string; details?: { message: string }[] }
+      | undefined;
+    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
+    if (data?.message) return data.message;
+  }
+  return "Something went wrong, try again";
+};
 
 interface ShopModalProps {
   show: boolean;
@@ -34,6 +46,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   });
   const dispatch = useAppDispatch();
   const history = useHistory();
+  const [phoneInput, setPhoneInput] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const [imageFile, setImageFile] = useState<File | null>();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,53 +72,97 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       tables: shop ? shop.tables : [],
       menu: shop ? shop.menu : [],
     });
+    setPhoneInput(shop ? String(shop.phone) : "");
   }, [shop]);
 
+  const parsePhone = (): number | undefined | null => {
+    if (phoneInput.trim() === "") return undefined;
+    const parsed = parseInt(phoneInput, 10);
+    return Number.isNaN(parsed) ? null : parsed;
+  };
+
   const createShop = async () => {
+    setError(null);
+    if (editShop.name.trim() === "") {
+      setError("Name is required");
+      return;
+    }
+    const phone = parsePhone();
+    if (phone === null) {
+      setError("Phone number must be numeric");
+      return;
+    }
     const newShop = {
       name: editShop.name,
       bio: editShop.bio,
       open_times: editShop.open_times,
-      phone: editShop.phone,
+      phone,
       web_URL: editShop.web_URL,
     };
-    const created = await backend.post(`/shops`, newShop);
+    try {
+      const created = await backend.post(`/shops`, newShop);
 
-    if (imageFile) {
-      const newShopCover = new FormData();
-      newShopCover.append("cover", imageFile);
-      await backend.put(
-        `/shops/${created.data._id}/cover`,
-        newShopCover
-      );
+      if (imageFile) {
+        const newShopCover = new FormData();
+        newShopCover.append("cover", imageFile);
+        await backend.put(
+          `/shops/${created.data._id}/cover`,
+          newShopCover
+        );
+      }
+      dispatch(fetchShopList());
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
     }
-    dispatch(fetchShopList());
-    handleClose();
   };
 
   const updateShop = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    await backend.put(`/shops/${editShop._id}`, editShop);
-    if (imageFile) {
-      const newShopCover = new FormData();
-      newShopCover.append("cover", imageFile);
-      await backend.put(
-        `/shops/${editShop._id}/cover`,
-        newShopCover
-      );
+    setError(null);
+    if (editShop.name.trim() === "") {
+      setError("Name is required");
+      return;
     }
-    dispatch(fetchShopList());
-    // setEditShop({
-    //     _id: "",name: "",cover: "",bio: "",open_times: "",phone: 0,web_URL: "",shopMg: [],tables: [],menu: []
-    // })
-    handleClose();
+    const phone = parsePhone();
+    if (phone === null) {
+      setError("Phone number must be numeric");
+      return;
+    }
+    const updatedShop = {
+      name: editShop.name,
+      bio: editShop.bio,
+      open_times: editShop.open_times,
+      phone,
+      web_URL: editShop.web_URL,
+    };
+    try {
+      await backend.put(`/shops/${editShop._id}`, updatedShop);
+      if (imageFile) {
+        const newShopCover = new FormData();
+        newShopCover.append("cover", imageFile);
+        await backend.put(
+          `/shops/${editShop._id}/cover`,
+          newShopCover
+        );
+      }
+      dispatch(fetchShopList());
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   };
 
   const deleteShop = async () => {
-    await backend.delete(`/shops/${editShop._id}`);
-    history.push("/");
-    handleClose();
+    if (!window.confirm("Delete this shop?")) return;
+    setError(null);
+    try {
+      await backend.delete(`/shops/${editShop._id}`);
+      history.push("/");
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   };
 
   return (
@@ -187,14 +245,10 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
             <Form.Group className="mb-3" controlId="formBasicEmail">
               <FloatingLabel controlId="floatingInput" label="Phone Number">
                 <Form.Control
+                  type="tel"
                   placeholder="Phone Number"
-                  value={editShop.phone}
-                  onChange={(e) =>
-                    setEditShop({
-                      ...editShop,
-                      phone: parseInt(e.target.value),
-                    })
-                  }
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
                 />
               </FloatingLabel>
             </Form.Group>
@@ -209,6 +263,11 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
+            {error && (
+              <Alert className="my-2" variant="danger">
+                {error}
+              </Alert>
+            )}
             {shopId !== "new" ? (
               <Form.Group className="d-flex justify-content-between">
                 <Button

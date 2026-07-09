@@ -1,9 +1,21 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { Modal, Button, Form, FloatingLabel, Image } from "react-bootstrap";
+import axios from "axios";
+import { Modal, Button, Form, FloatingLabel, Image, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { IMenu } from "../../../typings/menu";
+
+const getErrorMessage = (err: unknown): string => {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as
+      | { message?: string; details?: { message: string }[] }
+      | undefined;
+    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
+    if (data?.message) return data.message;
+  }
+  return "Something went wrong, try again";
+};
 
 interface ItemModalProps {
   shopId: string;
@@ -27,8 +39,10 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
     description: "",
     price: 0,
     available: false,
-    category: "",
+    category: "food",
   });
+  const [priceInput, setPriceInput] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setItem({
@@ -39,8 +53,9 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       description: menuItem ? menuItem.description : "",
       price: menuItem ? menuItem.price : 0,
       available: menuItem ? menuItem.available : false,
-      category: menuItem ? menuItem.category : "",
+      category: menuItem ? menuItem.category : "food",
     });
+    setPriceInput(menuItem ? String(menuItem.price) : "");
   }, [menuItem]);
 
   const dispatch = useAppDispatch();
@@ -56,50 +71,80 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   };
 
   const createItem = async () => {
+    setError(null);
+    const price = parseFloat(priceInput);
+    if (Number.isNaN(price) || price <= 0) {
+      setError("Price must be a positive number");
+      return;
+    }
     const newItem = {
       name: item.name,
       short_description: item.short_description,
       description: item.description,
-      price: item.price,
+      price,
       available: item.available,
       category: item.category,
     };
-    const created = await backend.post(`/shops/${shopId}/menu`, newItem);
-    if (imageFile) {
-      const newItemImg = new FormData();
-      newItemImg.append("image", imageFile);
-      await backend.put(
-        `/shops/${shopId}/menu/${created.data._id}/img`,
-        newItemImg
-      );
+    try {
+      const created = await backend.post(`/shops/${shopId}/menu`, newItem);
+      if (imageFile) {
+        const newItemImg = new FormData();
+        newItemImg.append("image", imageFile);
+        await backend.put(
+          `/shops/${shopId}/menu/${created.data._id}/img`,
+          newItemImg
+        );
+      }
+      dispatch(fetchShopList());
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
     }
-    dispatch(fetchShopList());
-    handleClose();
   };
 
   const updateItem = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    await backend.put(`/shops/${shopId}/menu/${item._id}`, item);
-
-    if (imageFile) {
-      const newItemImg = new FormData();
-      newItemImg.append("image", imageFile);
-      await backend.put(
-        `/shops/${shopId}/menu/${item._id}/img`,
-        newItemImg
-      );
+    setError(null);
+    const price = parseFloat(priceInput);
+    if (Number.isNaN(price) || price <= 0) {
+      setError("Price must be a positive number");
+      return;
     }
-    dispatch(fetchShopList());
-    handleClose();
+    const updatedItem = {
+      name: item.name,
+      short_description: item.short_description,
+      description: item.description,
+      price,
+      available: item.available,
+      category: item.category,
+    };
+    try {
+      await backend.put(`/shops/${shopId}/menu/${item._id}`, updatedItem);
+
+      if (imageFile) {
+        const newItemImg = new FormData();
+        newItemImg.append("image", imageFile);
+        await backend.put(
+          `/shops/${shopId}/menu/${item._id}/img`,
+          newItemImg
+        );
+      }
+      dispatch(fetchShopList());
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   };
 
   const deleteItem = async () => {
-    await backend.delete(`/shops/${shopId}/menu/${item._id}`);
-    // console.log("Deleted")
-    // history.push("/")
-    dispatch(fetchShopList());
-    handleClose();
+    setError(null);
+    try {
+      await backend.delete(`/shops/${shopId}/menu/${item._id}`);
+      dispatch(fetchShopList());
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   };
 
   return (
@@ -186,11 +231,12 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
             <Form.Group className="mb-3" controlId="formBasicEmail">
               <FloatingLabel controlId="floatingInput" label="Price">
                 <Form.Control
+                  type="number"
+                  step="0.01"
+                  min="0"
                   placeholder="Price"
-                  value={item.price}
-                  onChange={(e) =>
-                    setItem({ ...item, price: parseInt(e.target.value) })
-                  }
+                  value={priceInput}
+                  onChange={(e) => setPriceInput(e.target.value)}
                 />
               </FloatingLabel>
             </Form.Group>
@@ -211,16 +257,23 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
               {/* </FloatingLabel> */}
             </Form.Group>
             <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Category">
-                <Form.Control
-                  placeholder="Category"
+              <FloatingLabel controlId="floatingSelect" label="Category">
+                <Form.Select
                   value={item.category}
                   onChange={(e) =>
-                    setItem({ ...item, category: e.target.value })
+                    setItem({ ...item, category: e.currentTarget.value })
                   }
-                />
+                >
+                  <option value="food">Food</option>
+                  <option value="drinks">Drinks</option>
+                </Form.Select>
               </FloatingLabel>
             </Form.Group>
+            {error && (
+              <Alert className="my-2" variant="danger">
+                {error}
+              </Alert>
+            )}
             {itemId !== "new" ? (
               <Form.Group className="d-flex justify-content-between">
                 <Button

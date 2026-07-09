@@ -1,10 +1,22 @@
 import { useEffect, useState } from "react";
-import { FloatingLabel, Form, Modal, Button } from "react-bootstrap";
+import axios from "axios";
+import { FloatingLabel, Form, Modal, Button, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { ITable } from "../../../typings/shop";
 import "./TableModal.css";
+
+const getErrorMessage = (err: unknown): string => {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as
+      | { message?: string; details?: { message: string }[] }
+      | undefined;
+    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
+    if (data?.message) return data.message;
+  }
+  return "Something went wrong, try again";
+};
 
 interface TableModalProps {
   shopId: string;
@@ -39,37 +51,54 @@ const TableModal = ({
   }, [selectedTable]);
 
   const dispatch = useAppDispatch();
+  const [error, setError] = useState<string | null>(null);
 
   const createTable = async () => {
+    setError(null);
+    if (table.name.trim() === "") {
+      setError("Name is required");
+      return;
+    }
     const newTable = {
       name: table.name,
     };
-
-    await backend.post(`/shops/${shopId}/tables`, newTable);
-
-    dispatch(fetchShopList());
-    handleClose();
+    try {
+      await backend.post(`/shops/${shopId}/tables`, newTable);
+      dispatch(fetchShopList());
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   };
 
   const updateTable = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    await backend.put(
-      `/shops/${shopId}/tables/${table._id}`,
-      table
-    );
-
-    dispatch(fetchShopList());
-    handleClose();
+    setError(null);
+    if (table.name.trim() === "") {
+      setError("Name is required");
+      return;
+    }
+    try {
+      await backend.put(`/shops/${shopId}/tables/${table._id}`, {
+        name: table.name,
+      });
+      dispatch(fetchShopList());
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   };
 
   const deleteTable = async () => {
-    await backend.delete(
-      `/shops/${shopId}/tables/${table._id}`
-    );
-
-    dispatch(fetchShopList());
-    handleClose();
+    if (!window.confirm("Delete this table?")) return;
+    setError(null);
+    try {
+      await backend.delete(`/shops/${shopId}/tables/${table._id}`);
+      dispatch(fetchShopList());
+      handleClose();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
   };
 
   return (
@@ -89,6 +118,11 @@ const TableModal = ({
                 />
               </FloatingLabel>
             </Form.Group>
+            {error && (
+              <Alert className="my-2" variant="danger">
+                {error}
+              </Alert>
+            )}
             {tableId !== "new" ? (
               <Form.Group className="d-flex justify-content-between">
                 <Button

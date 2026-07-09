@@ -18,8 +18,6 @@ const Item = ({ itemId, shopId }: ItemProps) => {
   );
   const menuItem = shop?.menu.find((item) => item._id === itemId);
 
-  const [available, setAvailable] = useState(menuItem?.available ?? false);
-
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -27,11 +25,9 @@ const Item = ({ itemId, shopId }: ItemProps) => {
   const dispatch = useAppDispatch();
 
   const updateAvailable = async () => {
-    const updatedItem = { ...menuItem, available: !available };
-    await backend.put(
-      `/shops/${shopId}/menu/${itemId}`,
-      updatedItem
-    );
+    await backend.put(`/shops/${shopId}/menu/${itemId}`, {
+      available: !menuItem?.available,
+    });
     dispatch(fetchShopList());
   };
 
@@ -77,11 +73,8 @@ const Item = ({ itemId, shopId }: ItemProps) => {
                     <Form.Check
                       type="switch"
                       id="custom-switch"
-                      checked={available}
-                      onChange={(e) => {
-                        setAvailable(e.target.checked ? true : false);
-                        updateAvailable();
-                      }}
+                      checked={menuItem.available}
+                      onChange={() => updateAvailable()}
                       // label="Available"
                     />
                   </Form>
