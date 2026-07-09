@@ -9,7 +9,6 @@ import Dashboard from "./components/Dashboard/Dashboard";
 import ShopDetails from "./components/Shops/ShopDetails/ShopDetails";
 import { useAppDispatch, useAppSelector } from "./redux/app/hooks";
 import { fetchUserData, selectUserData } from "./redux/slices/userSlice";
-import { fetchShopList } from "./redux/slices/shopSlice";
 import Cart from "./components/Customers/Cart/Cart";
 import NavigationBar from "./components/Customers/NavigationBar/NavigationBar";
 import TableMenu from "./components/Customers/TableMenu/TableMenu";
@@ -21,7 +20,6 @@ function App() {
 
   useEffect(() => {
     dispatch(fetchUserData());
-    dispatch(fetchShopList());
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const userDataStore = useAppSelector(selectUserData);

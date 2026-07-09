@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Card, Col, Row, Button, Image, Form } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
@@ -9,9 +9,13 @@ import {
   removeFromSplit,
   selectCartsData,
 } from "../../../redux/slices/cartSlice";
+import { selectUserData } from "../../../redux/slices/userSlice";
 import { IItem, ISplitItem } from "../../../typings/cart";
 import { RiDeleteBinLine } from "react-icons/ri";
 import "./CartItem.css";
+
+const menuIdOf = (x: IItem | ISplitItem | undefined) =>
+  typeof x?.menuId === "string" ? x.menuId : x?.menuId?._id;
 
 interface CartItemProps {
   cartId: string;
@@ -32,92 +36,58 @@ const CartItem = ({
   }>();
 
   const cart = useAppSelector(selectCartsData);
+  const myUser = useAppSelector(selectUserData);
   const cartItem = cart.items.find((item) => item._id === itemId);
   const splitItem = cart.split.find(
-    (item) => item._id === itemId && item.splitStatus === "open"
+    (s) =>
+      s.splitStatus === "open" &&
+      s.userId === myUser._id &&
+      menuIdOf(s) === menuIdOf(cartItem)
   );
   const payed = cartItem?.qtyPayed ?? 0;
   const itemQty = (cartItem?.qty ?? 0) - payed;
 
-  const [selected, setSelected] = useState(false);
+  const selected = !!splitItem;
 
-  const [split, setSplit] = useState<ISplitItem | undefined>({
-    _id: "",
-    userId: "",
-    menuId: null,
-    qty: 0,
-    splitStatus: "",
-  });
-
-  const [item, setItem] = useState<IItem | undefined>({
-    _id: "",
-    menuId: null,
-    qty: 1,
-    qtyPayed: 0,
-  });
-
+  const prevSelectedAll = useRef(selectedAll);
   useEffect(() => {
-    setItem(cartItem);
-    setSplit(splitItem);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    setItem(cartItem);
-    setSplit(splitItem);
-    if (splitItem) {
-      setSelected(true);
-    } else {
-      setSelected(false);
-    }
-  }, [cartItem, splitItem]);
-
-  const mounted = useRef(false);
-  useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
+    if (prevSelectedAll.current === selectedAll) return;
+    prevSelectedAll.current = selectedAll;
     if (selectedAll) {
-      increment();
+      if (!splitItem) increment();
     } else {
-      removeItemFromSplit();
+      if (splitItem) removeItemFromSplit();
     }
   }, [selectedAll]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dispatch = useAppDispatch();
 
-  const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (selectedAll) {
-      setSelectedAll(false);
-      setSelected(false);
-    } else {
-      setSelected(!selected);
-    }
-    const splitExists = item?.menuId?._id === split?.menuId?._id;
-
-    if (!selected && !splitExists) {
-      increment();
-    } else if (selected && splitExists) {
+  const handleSelect = () => {
+    if (splitItem) {
       removeItemFromSplit();
+      if (selectedAll) setSelectedAll(false);
+    } else {
+      increment();
     }
   };
 
   const increment = () => {
     //<====================   adds item to SPLIT Cart
+    if (!cartItem?.menuId) return;
     let quantity = 0;
 
     if (selectedAll) {
-      if (split) {
-        quantity = item!.qty - item!.qtyPayed! - split.qty;
+      if (splitItem) {
+        quantity = cartItem.qty - (cartItem.qtyPayed ?? 0) - splitItem.qty;
       } else {
-        quantity = item!.qty - item!.qtyPayed!;
+        quantity = cartItem.qty - (cartItem.qtyPayed ?? 0);
       }
     } else {
       quantity = 1;
     }
 
     const plusItem = {
-      ...item!,
+      ...cartItem,
       qty: quantity,
     };
 
@@ -132,36 +102,37 @@ const CartItem = ({
   };
 
   const decrement = () => {
-    const minusItem = item!;
+    if (!cartItem?.menuId) return;
 
     dispatch(
       decreaseSplit({
         shopId: shopId,
         tableId: tableId,
         cartId: cartId,
-        item: minusItem,
+        item: cartItem,
       })
     );
   };
 
   const removeItemFromSplit = () => {
-    const minusItem = item!;
+    if (!cartItem?.menuId) return;
     dispatch(
       removeFromSplit({
         shopId: shopId,
         tableId: tableId,
         cartId: cartId,
-        item: minusItem,
+        item: cartItem,
       })
     );
   };
 
   const deleteItemFromCart = () => {
+    if (!cartItem?.menuId) return;
     dispatch(
       deleteFromCart({
         shopId: shopId,
         tableId: tableId,
-        item: item!,
+        item: cartItem,
       })
     );
   };
@@ -179,7 +150,7 @@ const CartItem = ({
             <Form.Check
               type="checkbox"
               checked={selected}
-              onChange={(e) => handleSelect(e)}
+              onChange={handleSelect}
             />
             {/* {console.log("selected: ",selected)} */}
           </Form.Group>
@@ -198,7 +169,7 @@ const CartItem = ({
             <Row>
               <Col className="image-col pe-0 " xs={4}>
                 <Image
-                  src={item?.menuId?.image}
+                  src={cartItem?.menuId?.image}
                   rounded
                   fluid
                   className="w-100 h-100"
@@ -208,7 +179,7 @@ const CartItem = ({
                 <Row className="my-3">
                   <Col>
                     <Card.Subtitle className="ms-3">
-                      {item?.menuId?.name}
+                      {cartItem?.menuId?.name}
                     </Card.Subtitle>
                     {/* <Card.Body className="ms-3 p-0">
                         <small>{item?.menuId?.short_description}</small>
@@ -235,7 +206,7 @@ const CartItem = ({
                   <Col className="p-0" xs={4}>
                     <Card.Body className="p-0 ms-3">
                       <span className="price text-primary">
-                        £ {item?.menuId?.price}
+                        £ {cartItem?.menuId?.price}
                       </span>
                     </Card.Body>
                   </Col>
@@ -255,7 +226,7 @@ const CartItem = ({
                       </Col>
                       <Col className="px-0">
                         <Card.Body className="p-0">
-                          <small>{split?.qty}</small>
+                          <small>{splitItem?.qty}</small>
                         </Card.Body>
                       </Col>
                       <Col className="px-0">
