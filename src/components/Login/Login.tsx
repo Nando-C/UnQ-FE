@@ -113,7 +113,7 @@ const Login = () => {
                 className="border"
                 variant="light"
                 as="a"
-                href={`${process.env.REACT_APP_BE_URL}/auth/googleLogin`}
+                href={`${import.meta.env.VITE_BE_URL}/auth/googleLogin`}
               >
                 <FcGoogle className="me-2" size={25} />
                 Login with Google

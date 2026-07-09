@@ -1,7 +1,7 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios"
 
 const backend = axios.create({
-    baseURL: process.env.REACT_APP_BE_URL,
+    baseURL: import.meta.env.VITE_BE_URL,
     withCredentials: true,
 })
 
