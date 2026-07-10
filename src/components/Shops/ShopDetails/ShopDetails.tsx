@@ -19,11 +19,8 @@ import {
   fetchSingleShop,
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
-// import { fetchUserData } from "../../../redux/slices/userSlice"
-// import { IShop } from "../../../typings/shop"
 
 const ShopDetails = () => {
-  // const shopListStore = useAppSelector(selectShopsData)
   const { shopId = "" } = useParams<{ shopId: string }>();
   const dispatch = useAppDispatch();
 
@@ -32,11 +29,6 @@ const ShopDetails = () => {
   }, [dispatch, shopId]);
 
   const shop = useAppSelector(selectSelectedShop);
-
-  // const shop = useAppSelector((state) =>
-  //   state.shops.data.find((shop) => shop._id === shopId)
-  // );
-  // const shop = shopListStore.find(shop => shop._id === shopId)
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);

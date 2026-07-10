@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Card, Button } from "react-bootstrap";
 import { GrEdit } from "react-icons/gr";
 import { useAppSelector } from "../../../redux/app/hooks";
+import placeholder from "../../../assets/placeholder.svg";
 import TableModal from "../TableModal/TableModal";
 import "./SingleTable.css";
 
@@ -17,7 +18,7 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
   );
   const table = shop?.tables.find((table) => table._id === tableId);
 
-  const defaultCover = `https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png`;
+  const defaultCover = placeholder;
 
   const qrCode = new QRCodeStyling({
     width: 250,
@@ -51,9 +52,7 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
       <div className="SingleTable text-center">
         <Card>
           <Card.Title className="mt-3">{table?.name}</Card.Title>
-          {/* <Card.Body>{table?.Qr_Url}</Card.Body> */}
           <div ref={qrRef} />
-          {/* <Button onClick={handleShow} >Edit Table</Button> */}
           <Button size={"lg"} onClick={handleShow}>
             <GrEdit />
           </Button>

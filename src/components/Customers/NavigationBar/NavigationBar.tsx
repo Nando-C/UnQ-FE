@@ -21,7 +21,6 @@ const NavigationBar = () => {
   useEffect(() => {
     dispatch(fetchUserData());
     dispatch(fetchAllShops());
-    // dispatch(fetchShopList())
   }, [dispatch]);
 
   useEffect(() => {
@@ -43,15 +42,10 @@ const NavigationBar = () => {
       <Container className="NavigationBar" fluid>
         <Navbar className="p-0" fixed="bottom" bg="light" variant="light">
           <Container fluid className="px-0 bg-white border-top">
-            {/* <Navbar.Brand href="#home">Navbar</Navbar.Brand> */}
             <Nav className="mx-auto align-items-center">
-              {/* <Nav.Link className="me-4" href="/"> */}
               <Link className="nav-link me-4" to={`/`}>
                 <AiOutlineHome size={35} />
-                {/* <AiFillHome/> */}
               </Link>
-              {/* </Nav.Link> */}
-              {/* <Nav.Link href={`/shops/${shopId}/tables/${tableId}/cart`}> */}
               {shopId && tableId ? (
                 <Link
                   className="cart-link nav-link mx-5"
@@ -63,20 +57,15 @@ const NavigationBar = () => {
                       {itemsQty}
                     </span>
                   )}
-                  {/* <IoCart/> */}
                 </Link>
               ) : (
                 <span className="cart-link nav-link mx-5">
                   <IoCartOutline className="mt-1" size={35} />
                 </span>
               )}
-              {/* </Nav.Link> */}
-              {/* <Nav.Link className="ms-4" href=""> */}
               <Link className="nav-link ms-4" to={`/myAccount`}>
                 <FaRegUserCircle size={30} />
-                {/* <FaUserCircle/> */}
               </Link>
-              {/* </Nav.Link> */}
             </Nav>
           </Container>
         </Navbar>

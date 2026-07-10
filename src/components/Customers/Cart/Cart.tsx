@@ -9,6 +9,7 @@ import {
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
 import CartListItems from "../CartListItems/CartListItems";
+import placeholder from "../../../assets/placeholder.svg";
 import "./Cart.css";
 
 const Cart = () => {
@@ -35,7 +36,6 @@ const Cart = () => {
   }, [dispatch, shopId, shop]);
 
   const cart = useAppSelector(selectCartsData);
-  // console.log(cart)
 
   const navigate = useNavigate();
   const goBack = () => {
@@ -67,11 +67,7 @@ const Cart = () => {
             <Card.Body>
               <Row className="align-items-center">
                 <Col className="image-col pe-0 ">
-                  <Image
-                    src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png"
-                    rounded
-                    fluid
-                  />
+                  <Image src={placeholder} rounded fluid />
                 </Col>
                 <Card.Title>
                   Looks like you don't have any open orders!!

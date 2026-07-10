@@ -13,6 +13,7 @@ import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchUserData, selectUserData } from "../../../redux/slices/userSlice";
 import { IUser } from "../../../typings/user";
+import placeholder from "../../../assets/placeholder.svg";
 import "./AccountOffCanvas.css";
 
 const getErrorMessage = (err: unknown): string => {
@@ -32,7 +33,6 @@ interface AccountOffCanvasProps {
 }
 const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
   const dispatch = useAppDispatch();
-  // dispatch(fetchUserData())
   const myUser = useAppSelector(selectUserData);
 
   const [user, setUser] = useState<IUser>({
@@ -62,7 +62,6 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
     const files = e.currentTarget.files;
     if (!files) return;
     setImageFile(files[0]);
-    // console.log("imageFile: ", imageFile)
   };
 
   const updateUser = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -107,11 +106,9 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 src={
                   imageFile
                     ? URL.createObjectURL(imageFile)
-                    : user?.avatar ||
-                      "https://via.placeholder.com/600x600?text=Blog+Image"
+                    : user?.avatar || placeholder
                 }
                 height="200px"
-                // width="400px"
                 alt="cover"
                 className="d-block mx-auto pb-5"
                 roundedCircle

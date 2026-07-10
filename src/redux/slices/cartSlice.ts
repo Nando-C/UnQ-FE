@@ -36,10 +36,6 @@ const toCartPayload = (item: IItem) => ({
     qty: item.qty,
 })
 
-export const getMyOpenCart = createAsyncThunk("cart/getMyOpenCart", async () => {
-    const { data }: AxiosResponse<ICart> = await backend.get(`carts/`)
-    return data
-})
 export const addToCart = createAsyncThunk("cart/addToCart", async ({shopId, tableId, item}: AddToCartProps) => {
     const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/addItem`, toCartPayload(item))
     return data
@@ -87,9 +83,6 @@ export const cartsSlice = createSlice({
         }
     },
     extraReducers: (builder) => {
-        builder.addCase(getMyOpenCart.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
         builder.addCase(addToCart.fulfilled, (state, action) => {
             state.data = action.payload
         })
@@ -120,6 +113,5 @@ export const cartsSlice = createSlice({
 export const { storeCartPointers } = cartsSlice.actions
 export const selectCartsData = (state: RootState) => state.carts.data
 export const selectCartPointers = (state: RootState) => state.carts.pointers
-// export const selectCartItem = (id: string | undefined, state: RootState) => state.carts.data.items.find(item => item._id === id)
 
 export default cartsSlice.reducer

@@ -3,8 +3,6 @@ import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Register from "./components/Register/Register";
 import Login from "./components/Login/Login";
-// import Item from './components/Shop/Item/Item';
-// import ItemList from './components/Shop/ItemList/ItemList';
 import Dashboard from "./components/Dashboard/Dashboard";
 import ShopDetails from "./components/Shops/ShopDetails/ShopDetails";
 import { useAppDispatch, useAppSelector } from "./redux/app/hooks";
@@ -29,7 +27,6 @@ function App() {
     <div className="App bg-light">
       <Router>
         {isManager ? <ShopNavbar /> : <NavigationBar />}
-        {/* <ShopNavbar /> */}
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

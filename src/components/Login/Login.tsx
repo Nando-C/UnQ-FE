@@ -17,6 +17,7 @@ import "../Register/Register.css";
 import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
 import { selectCartPointers } from "../../redux/slices/cartSlice";
 import { fetchUserData } from "../../redux/slices/userSlice";
+import placeholder from "../../assets/placeholder.svg";
 
 const getErrorMessage = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
@@ -62,11 +63,7 @@ const Login = () => {
     <Container className="Register mb-5 text-center">
       <Row className="align-items-center">
         <Col xs={12} sm={6}>
-          <Image
-            src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png"
-            rounded
-            fluid
-          />
+          <Image src={placeholder} rounded fluid />
         </Col>
         <Col xs={12} sm={6}>
           <Form onSubmit={handleLogin}>

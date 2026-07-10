@@ -5,6 +5,7 @@ import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { IMenu } from "../../../typings/menu";
+import placeholder from "../../../assets/placeholder.svg";
 
 const getErrorMessage = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
@@ -29,7 +30,6 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
     state.shops.data.find((shop) => shop._id === shopId)
   );
   const menuItem = shop?.menu.find((item) => item._id === itemId);
-  // console.log("myItem :", menuItem);
 
   const [item, setItem] = useState<IMenu>({
     _id: "",
@@ -67,7 +67,6 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
     const files = e.currentTarget.files;
     if (!files) return;
     setImageFile(files[0]);
-    // console.log("imageFile: ", imageFile)
   };
 
   const createItem = async () => {
@@ -166,11 +165,9 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 src={
                   imageFile
                     ? URL.createObjectURL(imageFile)
-                    : item.image ||
-                      "https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png"
+                    : item.image || placeholder
                 }
                 height="200px"
-                // width="400px"
                 alt="cover"
                 className="d-block mb-2"
               />
@@ -208,7 +205,6 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                   placeholder="Short Description"
                   value={item.short_description}
                   style={{ height: "80px" }}
-                  // style={{ height: '200px' }}
                   onChange={(e) =>
                     setItem({ ...item, short_description: e.target.value })
                   }
@@ -241,7 +237,6 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
               </FloatingLabel>
             </Form.Group>
             <Form.Group className="mb-3" controlId="formBasicEmail">
-              {/* <FloatingLabel controlId="floatingInput" label="Available"> */}
               <Form.Check
                 type="switch"
                 id="custom-switch"
@@ -254,7 +249,6 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 }
                 label="Available"
               />
-              {/* </FloatingLabel> */}
             </Form.Group>
             <Form.Group className="mb-3" controlId="formBasicEmail">
               <FloatingLabel controlId="floatingSelect" label="Category">

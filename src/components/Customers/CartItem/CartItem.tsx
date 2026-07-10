@@ -155,20 +155,10 @@ const CartItem = ({
               checked={selected}
               onChange={handleSelect}
             />
-            {/* {console.log("selected: ",selected)} */}
           </Form.Group>
         </Col>
         <Col xs={11}>
           <Card className="CartItem">
-            {/* <Badge
-              bg={splitItem?.qty === itemQty ? "success" : "warning"}
-              text="dark"
-            >
-              <small>
-                {" "}
-                Cart Qty: {splitItem?.qty ? itemQty - splitItem.qty : itemQty}
-              </small>
-            </Badge> */}
             <Row>
               <Col className="image-col pe-0 " xs={4}>
                 <Image
@@ -184,9 +174,6 @@ const CartItem = ({
                     <Card.Subtitle className="ms-3">
                       {cartItem?.menuId?.name}
                     </Card.Subtitle>
-                    {/* <Card.Body className="ms-3 p-0">
-                        <small>{item?.menuId?.short_description}</small>
-                    </Card.Body> */}
                   </Col>
                   <Col xs="auto">
                     <span className="cart-qty-span">
@@ -196,14 +183,6 @@ const CartItem = ({
                       </small>
                     </span>
                   </Col>
-                  {/* <Col>
-                    <Badge pill bg="warning" text="dark">
-                        <small> Cart Qty: {splitItem?.qty ? itemQty - splitItem.qty : itemQty}</small>
-                    </Badge>
-                    <Card.Text>
-                        <small> Cart Qty: {splitItem?.qty ? itemQty - splitItem.qty : itemQty}</small>
-                    </Card.Text>
-                  </Col> */}
                 </Row>
                 <Row className="pb-1 align-items-center">
                   <Col className="p-0" xs={4}>
@@ -224,7 +203,6 @@ const CartItem = ({
                           ) : (
                             <></>
                           )
-                          // <Button disabled size="sm" onClick={decrement} ><strong>-</strong></Button>
                         }
                       </Col>
                       <Col className="px-0">
@@ -254,23 +232,12 @@ const CartItem = ({
                             <RiDeleteBinLine />
                           </Button>
                         )}
-                        {/* <Button size="sm" onClick={decrement} ><strong>-</strong></Button> */}
                       </Col>
                     </Row>
                   </Col>
-                  {/* <Col className="p-0" xs={1}>
-                                        {selected
-                                            ? <Button disabled size="sm" variant="danger" onClick={deleteItemFromCart}><RiDeleteBinLine/></Button>
-                                            : <Button active size="sm" variant="danger" onClick={deleteItemFromCart}><RiDeleteBinLine/></Button>
-                                        } */}
-                  {/* <Button size="sm" variant="danger" onClick={deleteItemFromCart}><RiDeleteBinLine/></Button> */}
-                  {/* </Col> */}
                 </Row>
               </Col>
             </Row>
-            {/* <Badge  bg="warning" text="dark">
-                            <small> Cart Qty: {splitItem?.qty ? itemQty - splitItem.qty : itemQty}</small>
-                        </Badge> */}
           </Card>
         </Col>
       </Row>

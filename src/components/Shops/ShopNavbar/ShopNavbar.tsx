@@ -3,6 +3,7 @@ import { FaRegUserCircle } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { useAppSelector } from "../../../redux/app/hooks";
 import { selectSelectedShop } from "../../../redux/slices/shopSlice";
+import placeholder from "../../../assets/placeholder.svg";
 import "./ShopNavbar.css";
 
 const ShopNavbar = () => {
@@ -14,15 +15,13 @@ const ShopNavbar = () => {
         <Container>
           <Navbar.Brand href="#home">
             <img
-              src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png"
+              src={placeholder}
               width="30"
               height="30"
               className="d-inline-block align-top"
-              alt="React Bootstrap logo"
+              alt="UnQ logo"
             />
           </Navbar.Brand>
-          {/* <Navbar.Toggle aria-controls="responsive-navbar-nav" /> */}
-          {/* <Navbar.Collapse id="responsive-navbar-nav"> */}
           <Nav
             className={
               shop?._id
@@ -42,10 +41,8 @@ const ShopNavbar = () => {
             )}
             <Link className="nav-link" to={`/myAccount`}>
               <FaRegUserCircle size={30} />
-              {/* My Account */}
             </Link>
           </Nav>
-          {/* </Navbar.Collapse> */}
         </Container>
       </Navbar>
     </>

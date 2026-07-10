@@ -26,15 +26,11 @@ const TableList = ({ shopId }: ShopMenuProps) => {
         <Button onClick={handleShow}>Add Table</Button>
       </div>
       <Row>
-        {/* <ListGroup className="px-0" variant="flush"> */}
         {shop?.tables.map((table) => (
           <Col key={table._id} className="mb-4" sm={12} md={6} lg={4} xl={3}>
-            {/* <ListGroup.Item key={table._id} className="px-0 menu-item"> */}
             <SingleTable shopId={shopId} tableId={table._id} />
-            {/* </ListGroup.Item> */}
           </Col>
         ))}
-        {/* </ListGroup> */}
       </Row>
       <TableModal
         shopId={shopId}

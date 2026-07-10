@@ -6,6 +6,7 @@ import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { IShop } from "../../../typings/shop";
+import placeholder from "../../../assets/placeholder.svg";
 import "./ShopModal.css";
 
 const getErrorMessage = (err: unknown): string => {
@@ -30,7 +31,6 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
   );
-  // console.log("shop: ", shop)
 
   const [editShop, setEditShop] = useState<IShop>({
     _id: "",
@@ -56,7 +56,6 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
     const files = e.currentTarget.files;
     if (!files) return;
     setImageFile(files[0]);
-    // console.log("imageFile: ", imageFile)
   };
 
   useEffect(() => {
@@ -184,11 +183,9 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 src={
                   imageFile
                     ? URL.createObjectURL(imageFile)
-                    : editShop.cover ||
-                      "https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png"
+                    : editShop.cover || placeholder
                 }
                 height="200px"
-                // width="400px"
                 alt="cover"
                 className="d-block mb-2"
               />
