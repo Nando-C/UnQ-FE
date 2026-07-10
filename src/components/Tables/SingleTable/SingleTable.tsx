@@ -1,5 +1,5 @@
 import QRCodeStyling from "qr-code-styling";
-import { createRef, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, Button } from "react-bootstrap";
 import { GrEdit } from "react-icons/gr";
 import { useAppSelector } from "../../../redux/app/hooks";
@@ -32,10 +32,12 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
       margin: 5,
     },
   });
-  const qrRef = createRef<any>();
+  const qrRef = useRef<HTMLDivElement>(null);
 
+  // Must append once on mount only; qrCode is a new QRCodeStyling instance
+  // every render, so listing it here would re-append the canvas every render.
   useEffect(() => {
-    qrCode.append(qrRef.current);
+    qrCode.append(qrRef.current ?? undefined);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   qrCode.update({ data: table?.Qr_Url });

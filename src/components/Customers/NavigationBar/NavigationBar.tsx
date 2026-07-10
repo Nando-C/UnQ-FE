@@ -22,13 +22,13 @@ const NavigationBar = () => {
     dispatch(fetchUserData());
     dispatch(fetchAllShops());
     // dispatch(fetchShopList())
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
   useEffect(() => {
     if (tableId) {
       dispatch(getTableCart(tableId));
     }
-  }, [tableId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch, tableId]);
 
   const items = useAppSelector(selectCartsData).items.filter(
     (item) => item.qty > (item.qtyPayed ?? 0)

@@ -26,13 +26,13 @@ const Cart = () => {
     if (tableId) {
       dispatch(getTableCart(tableId));
     }
-  }, [tableId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch, tableId]);
 
   useEffect(() => {
     if (shopId && !shop) {
       dispatch(fetchSingleShop(shopId));
     }
-  }, [shopId, shop]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch, shopId, shop]);
 
   const cart = useAppSelector(selectCartsData);
   // console.log(cart)

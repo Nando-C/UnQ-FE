@@ -29,7 +29,7 @@ const ShopDetails = () => {
 
   useEffect(() => {
     dispatch(fetchSingleShop(shopId));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch, shopId]);
 
   const shop = useAppSelector(selectSelectedShop);
 

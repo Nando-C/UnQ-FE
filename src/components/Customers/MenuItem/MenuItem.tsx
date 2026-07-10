@@ -27,14 +27,14 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
   const dispatch = useAppDispatch();
   useEffect(() => {
     dispatch(fetchSingleShop(shopId));
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch, shopId]);
 
   const shop = useAppSelector(selectSelectedShop);
   const menuItem = shop?.menu.find((item) => item._id === itemId);
 
   useEffect(() => {
-    setItem({ ...item, menuId: menuItem });
-  }, [menuItem]); // eslint-disable-line react-hooks/exhaustive-deps
+    setItem((prev) => ({ ...prev, menuId: menuItem }));
+  }, [menuItem]);
 
   const increment = () => {
     const newQty = item.qty + 1;

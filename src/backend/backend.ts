@@ -35,7 +35,7 @@ backend.interceptors.response.use(
                 }
                 await refreshPromise
                 return backend(failedRequest)
-            } catch (refreshError) {
+            } catch {
                 return Promise.reject(error)
             }
         }

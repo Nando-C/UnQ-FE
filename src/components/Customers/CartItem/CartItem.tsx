@@ -50,6 +50,9 @@ const CartItem = ({
   const selected = !!splitItem;
 
   const prevSelectedAll = useRef(selectedAll);
+  // Must react only to actual selectedAll changes (guarded below by
+  // prevSelectedAll), not to every splitItem/increment/removeItemFromSplit
+  // identity change on store updates.
   useEffect(() => {
     if (prevSelectedAll.current === selectedAll) return;
     prevSelectedAll.current = selectedAll;

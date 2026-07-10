@@ -71,7 +71,7 @@ export const getTableCart = createAsyncThunk("cart/getTableCart", async (tableId
     const { data }: AxiosResponse<ICart> = await backend.get(`carts/tables/${tableId}`)
     return data
 })
-export const checkOutItem = createAsyncThunk("cart/checkOutItem", async ({shopId, tableId, cartId, item}: AddToSplitProps)=> {
+export const checkOutItem = createAsyncThunk("cart/checkOutItem", async ({tableId, cartId, item}: AddToSplitProps)=> {
     const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/checkOutSplitItem`, toCartPayload(item))
     return data
 })
