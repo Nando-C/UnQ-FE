@@ -3,19 +3,25 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <!-- <a href="https://github.com/Nando-C/UnQ-FE">
-    <img src="" alt="Logo" height="100">
-  </a> -->
 
-<h3 align="center">UnQ -> [Front-End]</h3>
+<h3 align="center">UnQ — Front-End</h3>
 
   <p align="center">
-    A Food & Drinks Ordering Application, solo capstone project developed for Strive School's Full Stack program!
+    Scan a table's QR code, order food & drinks, and split the bill per item — a food & drinks ordering app built as a solo capstone.
     <br />
     <br />
+    <a href="https://github.com/Nando-C/UnQ-BE">Back-End repo</a>
+    ·
     <a href="#try-customer-interface">View Demo</a>
-    <!-- ·
-    <a href="https://github.com/Nando-C/UnQ-FE/issues">Report Bug</a> -->
+  </p>
+
+  <p align="center">
+    <img src="https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black" alt="React 18.3">
+    <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5.9">
+    <img src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white" alt="Vite 7">
+    <img src="https://img.shields.io/badge/Redux_Toolkit-2.9-764ABC?logo=redux&logoColor=white" alt="Redux Toolkit 2.9">
+    <img src="https://img.shields.io/badge/React_Router-6.30-CA4245?logo=reactrouter&logoColor=white" alt="React Router 6.30">
+    <img src="https://img.shields.io/badge/React--Bootstrap-2.10-7952B3?logo=bootstrap&logoColor=white" alt="React-Bootstrap 2.10">
   </p>
 </div>
 
@@ -29,6 +35,16 @@
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#setup">Setup</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#environment-variables">Environment Variables</a></li>
+        <li><a href="#scripts">Scripts</a></li>
+      </ul>
+    </li>
+    <li><a href="#testing">Testing</a></li>
     <li><a href="#app-use">App Use</a>
      <ul>
         <li><a href="#customer-interface">Customer Interface</a>
@@ -57,26 +73,134 @@
 
 ## About The Project
 
-<!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
+UnQ gives a venue (restaurant, bar, pop-up) a unique QR code per table. A customer scans it, sees that table's live menu, adds items to a shared table cart, and can split the bill per item with whoever else is at the table — each person pays for just what they picked, by card or PayPal. On the other side, a venue manager signs in to a dashboard to manage their shop(s): edit venue details, keep the menu current, and generate/print the QR code for each table.
 
-This is the Front-End of my Solo Capstone project for the Full Stack Master Camp at Strive School.
+This started as a solo capstone project for Strive School's Full Stack Master Camp — concept to deployment, both the front-end and this project's back-end, in 5 weeks.
 
-Developed completly from (not having idea of what to conceive) concept to deployment in 5 weeks, implementing both the Font-End & Back-End from scratch within this time frame.
+**Recently modernized (2026):** the toolchain and dependency tree were both dead-code-audit-level stale (CRA/react-scripts 4, React 17, Redux Toolkit 1, react-router 5), so the app went through a staged modernization tracked in [`IMPROVEMENT_PLAN.md`](./IMPROVEMENT_PLAN.md):
 
-In reality this is a MVP (Minimal Viable Product) that I am planning to improve in the near future, but still makes me really proud! 😁
-
-You can find the Back-End repo of this project in the following link: [UnQ's Back-End](https://github.com/Nando-C/UnQ-BE)
+- Build tooling: Create React App/react-scripts 4 → Vite 7, with a matching TypeScript 5 bump.
+- React 17 → 18, Redux Toolkit 1 → 2/react-redux 9, react-router 5 → 6, the PayPal SDK moved to its current maintained package.
+- Silent token refresh on the front end to match the back-end's hardened 15-minute access token / 4-week refresh token rotation.
+- Form validation (auth forms, manager CRUD forms) aligned with the back-end's zod-validated contract, surfacing its actual error shape instead of guessing at one.
+- A Vitest + Testing Library + msw test suite, and an ESLint flat config, added where none existed before.
+- `npm audit`: **181 findings (11 critical) → 0**, and a clean `npm install` with no peer-dependency overrides.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ### Built With
 
-- [TypeScript](https://typescriptlang.org/)
-- [Node.js](https://nodejs.org/)
-- [React.js](https://reactjs.org/)
-- [Bootstrap](https://getbootstrap.com)
-- [Redux](https://redux.js.org/)
-- Love ❤️ and lots of coffee ☕️
+- [React](https://reactjs.org/) + [TypeScript](https://typescriptlang.org/)
+- [Vite](https://vitejs.dev/)
+- [Redux Toolkit](https://redux-toolkit.js.org/) + [React Router](https://reactrouter.com/)
+- [React-Bootstrap](https://react-bootstrap.github.io/)
+- [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/) + [msw](https://mswjs.io/)
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- FEATURES -->
+
+## Features
+
+- **QR-driven table menus** — each table gets its own QR code; scanning it opens that shop's menu scoped to that table.
+- **Shared table cart with per-item bill splitting** — anyone at the table can add items to the same cart and choose exactly which items (and quantities) they're paying for.
+- **Checkout** — PayPal (sandbox) via `@paypal/react-paypal-js`.
+- **Auth** — email/password and Google OAuth, JWT access + refresh tokens in httpOnly cookies, with silent refresh-on-401 so a 15-minute access token never logs the user out mid-session.
+- **Manager dashboard** — CRUD for shops, menu items (with per-item availability toggle), and tables; QR-code generation per table via `qr-code-styling`; images are uploaded through the back end to Cloudinary.
+- **Role-aware UI** — the app renders the customer or manager interface based on the signed-in user's role. Promoting a user to manager (`shopMg`) is a back-end/admin operation today — there's no self-service "become a manager" flow in the UI.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- ARCHITECTURE -->
+
+## Architecture
+
+```mermaid
+flowchart LR
+    QR(["📱 Table QR code<br/>/shops/:shopId/tables/:tableId"]) --> Router
+
+    subgraph FE["Front-End — React 18 + TypeScript (Vite)"]
+        Router["react-router v6<br/>App.tsx"]
+        UI["Components<br/>Customers · Shops · Tables · Dashboard"]
+        Store["Redux Toolkit store<br/>slices: user · shops · carts"]
+        Axios["axios instance — backend.ts<br/>single-flight refresh-on-401"]
+
+        Router --> UI
+        UI -->|"useAppSelector /<br/>useAppDispatch"| Store
+        Store -->|async thunks| Axios
+    end
+
+    Axios <-->|"REST · httpOnly JWT cookies<br/>(access 15 min / refresh 4 wk)"| BE["UnQ-BE<br/>Express + zod"]
+    UI <-->|"createOrder → approve → capture<br/>@paypal/react-paypal-js"| PayPal["PayPal<br/>(sandbox)"]
+    PayPal -.->|"on capture success:<br/>checkOutItem per split item<br/>→ BE marks items paid"| Store
+
+    BE --> Mongo[("MongoDB")]
+    BE --> Cloudinary["Cloudinary<br/>images"]
+    BE --> Google["Google OAuth"]
+```
+
+- **Entry**: `src/index.tsx` → `src/App.tsx`, which owns routing (`react-router-dom` v6) and switches between the customer `NavigationBar` and the manager `ShopNavbar`.
+- **State**: Redux Toolkit, one slice per domain — `user` (auth/profile + `status: "idle" | "loading" | "authenticated" | "guest"`), `shops` (venues, menu items, tables), `carts` (table cart + per-item split state). Components read/dispatch through the typed hooks in `redux/app/hooks.ts` (`useAppDispatch`/`useAppSelector`) rather than the bare react-redux hooks.
+- **API access**: exclusively through the axios instance in `src/backend/backend.ts` (`withCredentials: true` — auth lives in httpOnly cookies, never in JS-readable storage). A response interceptor there transparently refreshes an expired access token on a 401 (single-flighted, so concurrent 401s share one refresh call) and replays the original request once.
+- **Shared types**: `src/typings/`.
+- **Env vars**: `VITE_BE_URL` (back-end base URL) and `VITE_PAYPAL_CLIENT_ID` (PayPal sandbox/app client ID) — see [Environment Variables](#environment-variables).
+
+```
+src/
+├── App.tsx                 routes + top-level nav switch
+├── index.tsx                entry point
+├── backend/
+│   └── backend.ts           axios instance + refresh-on-401 interceptor
+├── redux/
+│   ├── app/                 store + typed hooks
+│   └── slices/               user, shops, carts
+├── components/
+│   ├── Customers/            table menu, cart, split/checkout, navbar
+│   ├── Shops/                 shop details/menu/items (manager CRUD)
+│   ├── Tables/                table list + QR-code generation
+│   ├── Dashboard/             post-login landing (shop list / customer view)
+│   ├── Login/ Register/       auth forms
+├── typings/                  shared TS types (cart, menu, shop, user)
+└── tests/                    Vitest + Testing Library + msw suite
+```
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- SETUP -->
+
+## Setup
+
+### Prerequisites
+
+- Node.js ≥ 20
+- A running instance of [UnQ's Back-End](https://github.com/Nando-C/UnQ-BE) (anything behind auth needs it — see its own README for setup)
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in:
+
+| Variable | Description |
+|---|---|
+| `VITE_BE_URL` | Base URL of the running UnQ-BE instance |
+| `VITE_PAYPAL_CLIENT_ID` | PayPal client ID for the checkout button (falls back to PayPal's shared `"sb"` sandbox ID if unset) |
+
+### Scripts
+
+| Script | Description |
+|---|---|
+| `npm run dev` / `npm start` | Start the Vite dev server on `:3000` |
+| `npm run build` | Type-check, then build the production bundle to `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint over `src` |
+| `npm test` | Run the Vitest suite once |
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- TESTING -->
+
+## Testing
+
+The suite is written with Vitest, React Testing Library, and msw (mocking the back end at the network layer, no real requests). It covers the auth forms' validation and error mapping, the silent-refresh interceptor, cart total math, the navbar order badge, and the manager item form's category/price validation.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
