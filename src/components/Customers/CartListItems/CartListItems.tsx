@@ -40,17 +40,21 @@ const CartListItems = () => {
 
   const navigate = useNavigate();
 
-  const [showFbk, setShowFbk] = useState(false);
-  const handleShowFbk = () => {
-    setShowFbk(true);
-    const timer = setTimeout(() => {
-      handleCloseFbk();
+  const [showFbk, setShowFbk] = useState<{
+    variant: "success" | "failure";
+    message?: string;
+  } | null>(null);
+  const handleShowFbk = (variant: "success" | "failure", message?: string) => {
+    setShowFbk({ variant, message });
+    setTimeout(() => {
+      handleCloseFbk(variant);
     }, 3000);
-    return () => clearTimeout(timer);
   };
-  const handleCloseFbk = () => {
-    navigate(-1);
-    setShowFbk(false);
+  const handleCloseFbk = (variant?: "success" | "failure") => {
+    if ((variant ?? showFbk?.variant) === "success") {
+      navigate(-1);
+    }
+    setShowFbk(null);
   };
 
   return (
@@ -115,7 +119,12 @@ const CartListItems = () => {
         total={totalSplit}
         handleShowFbk={handleShowFbk}
       />
-      <PaymentFeedback showFbk={showFbk} handleCloseFbk={handleCloseFbk} />
+      <PaymentFeedback
+        showFbk={!!showFbk}
+        variant={showFbk?.variant ?? "success"}
+        message={showFbk?.message}
+        handleCloseFbk={() => handleCloseFbk()}
+      />
     </>
   );
 };

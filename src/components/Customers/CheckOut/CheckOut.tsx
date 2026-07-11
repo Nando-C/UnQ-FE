@@ -11,7 +11,7 @@ interface CheckOutProps {
   show: boolean;
   handleClose: () => void;
   total: number;
-  handleShowFbk: () => void;
+  handleShowFbk: (variant: "success" | "failure", message?: string) => void;
 }
 
 const CheckOut = ({
@@ -52,7 +52,16 @@ const CheckOut = ({
                   })
                 }
                 onApprove={async (data, actions) => {
-                  await actions.order?.capture();
+                  try {
+                    await actions.order?.capture();
+                  } catch {
+                    handleClose();
+                    handleShowFbk(
+                      "failure",
+                      "Payment failed — nothing was charged. Please try again."
+                    );
+                    return;
+                  }
                   cart.split
                     .filter((i) => i.splitStatus === "open")
                     .map((item) =>
@@ -65,8 +74,22 @@ const CheckOut = ({
                         })
                       )
                     );
-                  handleShowFbk();
+                  handleShowFbk("success");
                   handleClose();
+                }}
+                onCancel={() => {
+                  handleClose();
+                  handleShowFbk(
+                    "failure",
+                    "Payment cancelled — nothing was charged."
+                  );
+                }}
+                onError={() => {
+                  handleClose();
+                  handleShowFbk(
+                    "failure",
+                    "Payment failed — nothing was charged. Please try again."
+                  );
                 }}
               />
             </PayPalScriptProvider>
