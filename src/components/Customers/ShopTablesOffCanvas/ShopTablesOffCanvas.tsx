@@ -27,7 +27,10 @@ const ShopTablesOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
           <ListGroup>
             {shop?.tables.map((table) => (
               <ListGroup.Item key={table._id} className="px-0">
-                <Link to={`/shops/${shop._id}/tables/${table._id}`}>
+                <Link
+                  to={`/shops/${shop._id}/tables/${table._id}`}
+                  onClick={handleClose}
+                >
                   <Card>
                     <Card.Title className="m-0 p-1">{table.name}</Card.Title>
                   </Card>
