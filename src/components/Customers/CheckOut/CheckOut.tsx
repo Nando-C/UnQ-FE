@@ -5,7 +5,7 @@ import {
   PayPalScriptProvider,
 } from "@paypal/react-paypal-js";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { checkOutItem, selectCartsData } from "../../../redux/slices/cartSlice";
+import { checkOutSplit, selectCartsData } from "../../../redux/slices/cartSlice";
 
 interface CheckOutProps {
   show: boolean;
@@ -62,18 +62,22 @@ const CheckOut = ({
                     );
                     return;
                   }
-                  cart.split
-                    .filter((i) => i.splitStatus === "open")
-                    .map((item) =>
-                      dispatch(
-                        checkOutItem({
-                          shopId: "",
-                          tableId: cart.tableId,
-                          cartId: cart._id,
-                          item: item,
-                        })
-                      )
+                  try {
+                    await dispatch(
+                      checkOutSplit({
+                        tableId: cart.tableId,
+                        cartId: cart._id,
+                        paypalOrderId: data.orderID,
+                      })
+                    ).unwrap();
+                  } catch {
+                    handleClose();
+                    handleShowFbk(
+                      "failure",
+                      "Payment received, but confirming it with the server failed — please contact staff."
                     );
+                    return;
+                  }
                   handleShowFbk("success");
                   handleClose();
                 }}

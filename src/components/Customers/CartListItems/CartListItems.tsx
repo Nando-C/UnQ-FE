@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, ListGroup, Row, Button, Form, Col } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
@@ -44,13 +44,16 @@ const CartListItems = () => {
     variant: "success" | "failure";
     message?: string;
   } | null>(null);
+  const fbkTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const handleShowFbk = (variant: "success" | "failure", message?: string) => {
+    if (fbkTimeoutRef.current) clearTimeout(fbkTimeoutRef.current);
     setShowFbk({ variant, message });
-    setTimeout(() => {
+    fbkTimeoutRef.current = setTimeout(() => {
       handleCloseFbk(variant);
     }, 3000);
   };
   const handleCloseFbk = (variant?: "success" | "failure") => {
+    if (fbkTimeoutRef.current) clearTimeout(fbkTimeoutRef.current);
     if ((variant ?? showFbk?.variant) === "success") {
       navigate(-1);
     }

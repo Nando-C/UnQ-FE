@@ -67,8 +67,13 @@ export const getTableCart = createAsyncThunk("cart/getTableCart", async (tableId
     const { data }: AxiosResponse<ICart> = await backend.get(`carts/tables/${tableId}`)
     return data
 })
-export const checkOutItem = createAsyncThunk("cart/checkOutItem", async ({tableId, cartId, item}: AddToSplitProps)=> {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/checkOutSplitItem`, toCartPayload(item))
+interface CheckOutSplitProps {
+    tableId: string
+    cartId: string
+    paypalOrderId: string
+}
+export const checkOutSplit = createAsyncThunk("cart/checkOutSplit", async ({tableId, cartId, paypalOrderId}: CheckOutSplitProps)=> {
+    const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/checkOutSplit`, { paypalOrderId })
     return data
 })
 
@@ -104,7 +109,7 @@ export const cartsSlice = createSlice({
         builder.addCase(getTableCart.fulfilled, (state, action) => {
             state.data = action.payload
         })
-        builder.addCase(checkOutItem.fulfilled, (state, action) => {
+        builder.addCase(checkOutSplit.fulfilled, (state, action) => {
             state.data = action.payload
         })
     }
