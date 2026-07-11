@@ -10,7 +10,7 @@ import {
 } from "../../../redux/slices/cartSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
 import { IItem } from "../../../typings/cart";
-import { menuIdOf } from "../../../lib/cart";
+import { availableQty, menuIdOf } from "../../../lib/cart";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
 import PaymentFeedback from "../PaymentFeedback/PaymentFeedback";
@@ -28,6 +28,17 @@ const CartListItems = () => {
     dispatch(getTableCart(tableId));
   }, [dispatch, tableId]);
 
+  // Cheap staleness mitigation: the cart view has no live/polled updates, so
+  // at least refresh when a customer returns to this tab (another diner may
+  // have claimed units while it was in the background). Doesn't cover a tab
+  // left in the foreground the whole time — a real fix would need polling or
+  // a push channel.
+  useEffect(() => {
+    const onFocus = () => dispatch(getTableCart(tableId));
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [dispatch, tableId]);
+
   const cart = useAppSelector(selectCartsData);
   const myUser = useAppSelector(selectUserData);
 
@@ -40,11 +51,20 @@ const CartListItems = () => {
         menuIdOf(s) === menuIdOf(item)
     );
 
-  // "Select All" is derived, never stored: checked exactly when every unpaid
-  // item has an open split of mine. Toggling it dispatches per-item commands,
-  // so it can never disagree with the individual checkboxes.
+  // An item fully claimed by other diners (nothing left for me, and I hold no
+  // split of my own) must not count against "Select All" — otherwise one
+  // contested item would make the header permanently un-tickable.
+  const selectableItems = visibleItems.filter((i) => {
+    const mine = mySplitFor(i);
+    return mine || availableQty(i, cart.split, myUser._id) > 0;
+  });
+
+  // "Select All" is derived, never stored: checked exactly when every
+  // selectable unpaid item has an open split of mine. Toggling it dispatches
+  // per-item commands, so it can never disagree with the individual checkboxes.
   const allSelected =
-    visibleItems.length > 0 && visibleItems.every((i) => !!mySplitFor(i));
+    selectableItems.length > 0 &&
+    selectableItems.every((i) => !!mySplitFor(i));
 
   const handleToggleAll = async () => {
     if (allSelected) {
@@ -52,15 +72,22 @@ const CartListItems = () => {
         if (mySplitFor(item)) {
           await dispatch(
             removeFromSplit({ shopId, tableId, cartId: cart._id, item })
-          );
+          )
+            .unwrap()
+            .catch(() => {
+              dispatch(getTableCart(tableId));
+            });
         }
       }
     } else {
-      // Give unselected items their full remaining qty; items someone already
-      // split (partially or fully) are left as they are.
+      // Give unselected items whatever's still available to me (total minus
+      // paid minus other diners' open splits); items someone already split
+      // (partially or fully, including a full claim by another diner) are
+      // left as they are.
       for (const item of visibleItems) {
         if (!mySplitFor(item)) {
-          const remaining = item.qty - (item.qtyPayed ?? 0);
+          const remaining = availableQty(item, cart.split, myUser._id);
+          if (remaining <= 0) continue;
           await dispatch(
             addToSplit({
               shopId,
@@ -68,7 +95,11 @@ const CartListItems = () => {
               cartId: cart._id,
               item: { ...item, qty: remaining },
             })
-          );
+          )
+            .unwrap()
+            .catch(() => {
+              dispatch(getTableCart(tableId));
+            });
         }
       }
     }

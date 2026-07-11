@@ -5,11 +5,12 @@ import {
   addToSplit,
   decreaseSplit,
   deleteFromCart,
+  getTableCart,
   removeFromSplit,
   selectCartsData,
 } from "../../../redux/slices/cartSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
-import { menuIdOf } from "../../../lib/cart";
+import { availableQty, menuIdOf } from "../../../lib/cart";
 import { RiDeleteBinLine } from "react-icons/ri";
 import "./CartItem.css";
 
@@ -33,8 +34,11 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
       s.userId === myUser._id &&
       menuIdOf(s) === menuIdOf(cartItem)
   );
-  const payed = cartItem?.qtyPayed ?? 0;
-  const itemQty = (cartItem?.qty ?? 0) - payed;
+  // How much of this (shared) item is still up for grabs: total minus paid
+  // minus whatever OTHER diners at the table already hold in an open split.
+  const avail = availableQty(cartItem, cart.split, myUser._id);
+  const remaining = splitItem?.qty ? avail - splitItem.qty : avail;
+  const fullyClaimed = avail <= 0 && !splitItem;
 
   const selected = !!splitItem;
 
@@ -64,7 +68,13 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
         cartId: cartId,
         item: plusItem,
       })
-    );
+    )
+      .unwrap()
+      .catch(() => {
+        // A 409 means someone else claimed the unit first — the refreshed
+        // cart is the feedback, no toast needed.
+        dispatch(getTableCart(tableId));
+      });
   };
 
   const decrement = () => {
@@ -89,7 +99,11 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
         cartId: cartId,
         item: cartItem,
       })
-    );
+    )
+      .unwrap()
+      .catch(() => {
+        dispatch(getTableCart(tableId));
+      });
   };
 
   const deleteItemFromCart = () => {
@@ -116,8 +130,14 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
             <Form.Check
               type="checkbox"
               checked={selected}
+              disabled={fullyClaimed}
               onChange={handleSelect}
             />
+            {fullyClaimed && (
+              <Form.Text muted className="d-block">
+                claimed by others
+              </Form.Text>
+            )}
           </Form.Group>
         </Col>
         <Col xs={11}>
@@ -140,10 +160,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                   </Col>
                   <Col xs="auto">
                     <span className="cart-qty-span">
-                      <small>
-                        in cart:{" "}
-                        {splitItem?.qty ? itemQty - splitItem.qty : itemQty}
-                      </small>
+                      <small>in cart: {remaining}</small>
                     </span>
                   </Col>
                 </Row>
@@ -173,9 +190,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                       </Col>
                       <Col className="px-0">
                         {selected ? (
-                          (splitItem?.qty
-                            ? itemQty - splitItem.qty
-                            : itemQty) <= 0 ? (
+                          remaining <= 0 ? (
                             <Button disabled size="sm" onClick={increment}>
                               <strong>+</strong>
                             </Button>

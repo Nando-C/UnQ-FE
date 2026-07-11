@@ -70,11 +70,20 @@ const CheckOut = ({
                         paypalOrderId: data.orderID,
                       })
                     ).unwrap();
-                  } catch {
+                  } catch (err) {
                     handleClose();
+                    // Money has already moved at this point regardless of
+                    // what the BE says (402 replay/amount mismatch, 409
+                    // availability conflict, or anything else) — the
+                    // "contact staff" framing must survive even when we can
+                    // show the BE's specific reason.
+                    const beMessage = (err as { message?: string } | undefined)
+                      ?.message;
                     handleShowFbk(
                       "failure",
-                      "Payment received, but confirming it with the server failed — please contact staff."
+                      beMessage
+                        ? `Payment received, but the server rejected it (${beMessage}) — please contact staff.`
+                        : "Payment received, but confirming it with the server failed — please contact staff."
                     );
                     return;
                   }

@@ -184,3 +184,64 @@ describe("Select All / individual split selection", () => {
     expect(boxes()[2]).not.toBeChecked()
   })
 })
+
+describe("cross-user split availability", () => {
+  beforeEach(() => {
+    cartState = baseCart()
+    added.length = 0
+    removed.length = 0
+    installHandlers()
+  })
+
+  it("disables the checkbox and shows a claimed hint when another user holds every remaining unit", async () => {
+    cartState.split = [
+      { _id: "s-m2-other", userId: "u2", menuId: menu("m2", 3), qty: 1, splitStatus: "open" },
+    ]
+    renderCart()
+
+    await waitFor(() => expect(boxes()[2]).toBeDisabled())
+    expect(screen.getByText(/claimed by others/i)).toBeInTheDocument()
+    // The other item (not contested) stays enabled.
+    expect(boxes()[1]).not.toBeDisabled()
+  })
+
+  it("Select All skips a fully-claimed item but still ticks once the rest are selected", async () => {
+    cartState.split = [
+      { _id: "s-m2-other", userId: "u2", menuId: menu("m2", 3), qty: 1, splitStatus: "open" },
+    ]
+    const { user } = renderCart()
+
+    const [selectAll] = boxes()
+    await user.click(selectAll)
+
+    // Only the uncontested item (m1) gets added; m2 is fully claimed by u2.
+    await waitFor(() => expect(added).toEqual([{ menuId: "m1", qty: 2 }]))
+    await waitFor(() => expect(boxes()[0]).toBeChecked())
+    expect(boxes()[2]).toBeDisabled()
+  })
+
+  it("re-fetches the cart when addSplitItem is rejected with a 409 (someone else claimed it first)", async () => {
+    let getCalls = 0
+    server.use(
+      http.get(`${BASE}/carts/tables/t1`, () => {
+        getCalls++
+        return HttpResponse.json(cartState)
+      }),
+      http.post(
+        `${BASE}/carts/:shopId/tables/:tableId/:cartId/addSplitItem`,
+        () =>
+          HttpResponse.json(
+            { message: "Not enough units left to split" },
+            { status: 409 }
+          )
+      )
+    )
+    const { user } = renderCart()
+
+    await waitFor(() => expect(getCalls).toBe(1))
+
+    await user.click(boxes()[1])
+
+    await waitFor(() => expect(getCalls).toBe(2))
+  })
+})

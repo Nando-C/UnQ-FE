@@ -47,4 +47,28 @@ describe("checkOutSplit thunk", () => {
         .unwrap()
     ).rejects.toBeTruthy()
   })
+
+  it("rejection carries {status, message} from the BE's 409 conflict body", async () => {
+    server.use(
+      http.post(
+        `${BASE}/carts/tables/t1/cart1/checkOutSplit`,
+        () =>
+          HttpResponse.json(
+            { message: "Not enough units left to split" },
+            { status: 409 }
+          )
+      )
+    )
+
+    const store = makeStore()
+    const result = await store.dispatch(
+      checkOutSplit({ tableId: "t1", cartId: "cart1", paypalOrderId: "order1" })
+    )
+
+    expect(result.type).toBe("cart/checkOutSplit/rejected")
+    expect(result.payload).toEqual({
+      status: 409,
+      message: "Not enough units left to split",
+    })
+  })
 })

@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
 import { ICart, ICartStore, IItem } from "../../typings/cart"
 import backend from "../../backend/backend"
-import { AxiosResponse } from "axios"
+import axios, { AxiosResponse } from "axios"
 import { RootState } from "../app/store"
 
 const initialState: ICartStore = {
@@ -72,10 +72,23 @@ interface CheckOutSplitProps {
     cartId: string
     paypalOrderId: string
 }
-export const checkOutSplit = createAsyncThunk("cart/checkOutSplit", async ({tableId, cartId, paypalOrderId}: CheckOutSplitProps)=> {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/checkOutSplit`, { paypalOrderId })
-    return data
-})
+export const checkOutSplit = createAsyncThunk(
+    "cart/checkOutSplit",
+    async ({tableId, cartId, paypalOrderId}: CheckOutSplitProps, { rejectWithValue }) => {
+        try {
+            const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/checkOutSplit`, { paypalOrderId })
+            return data
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                return rejectWithValue({
+                    status: err.response?.status,
+                    message: err.response?.data?.message,
+                })
+            }
+            throw err
+        }
+    }
+)
 
 export const cartsSlice = createSlice({
     name: "carts",
