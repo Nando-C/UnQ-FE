@@ -1,0 +1,186 @@
+import { describe, it, expect, beforeEach } from "vitest"
+import { screen, waitFor } from "@testing-library/react"
+import { http, HttpResponse } from "msw"
+import CartListItems from "../components/Customers/CartListItems/CartListItems"
+import { renderWithProviders } from "./helpers"
+import { server, BASE } from "./server"
+import type { ICart } from "../typings/cart"
+import type { IMenu } from "../typings/menu"
+
+const menu = (id: string, price: number): IMenu => ({
+  _id: id,
+  name: `item-${id}`,
+  image: "",
+  short_description: "",
+  description: "",
+  price,
+  available: true,
+  category: "food",
+})
+
+const me = {
+  _id: "u1",
+  name: "Split",
+  surname: "Tester",
+  email: "u1@test.io",
+  avatar: "",
+  role: "customer",
+}
+
+const baseCart = (): ICart => ({
+  _id: "cart1",
+  userId: "u1",
+  tableId: "t1",
+  status: "open",
+  items: [
+    { _id: "i1", menuId: menu("m1", 4.5), qty: 2, qtyPayed: 0 },
+    { _id: "i2", menuId: menu("m2", 3), qty: 1, qtyPayed: 0 },
+  ],
+  split: [],
+})
+
+// A tiny stateful mock BE: split adds/removes mutate `cartState` and every
+// response returns the whole updated cart, exactly like the real API.
+let cartState: ICart
+const added: { menuId: string; qty: number }[] = []
+const removed: string[] = []
+
+const mySplit = (menuId: string) =>
+  cartState.split.find(
+    (s) =>
+      s.splitStatus === "open" &&
+      s.userId === "u1" &&
+      (typeof s.menuId === "string" ? s.menuId : s.menuId?._id) === menuId
+  )
+
+const installHandlers = () => {
+  server.use(
+    http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cartState)),
+    http.post(
+      `${BASE}/carts/:shopId/tables/:tableId/:cartId/addSplitItem`,
+      async ({ request }) => {
+        const { menuId, qty } = (await request.json()) as {
+          menuId: string
+          qty: number
+        }
+        added.push({ menuId, qty })
+        const existing = mySplit(menuId)
+        if (existing) {
+          existing.qty += qty
+        } else {
+          const item = cartState.items.find(
+            (i) => (typeof i.menuId === "string" ? i.menuId : i.menuId?._id) === menuId
+          )
+          cartState.split.push({
+            _id: `s-${menuId}`,
+            userId: "u1",
+            menuId: item!.menuId,
+            qty,
+            splitStatus: "open",
+          })
+        }
+        return HttpResponse.json(cartState)
+      }
+    ),
+    http.post(
+      `${BASE}/carts/:shopId/tables/:tableId/:cartId/removeSplitItem`,
+      async ({ request }) => {
+        const { menuId } = (await request.json()) as { menuId: string }
+        removed.push(menuId)
+        cartState.split = cartState.split.filter((s) => s !== mySplit(menuId))
+        return HttpResponse.json(cartState)
+      }
+    )
+  )
+}
+
+const renderCart = () =>
+  renderWithProviders(<CartListItems />, {
+    preloadedState: {
+      user: { data: me, status: "authenticated" },
+      carts: { data: cartState, pointers: { shopId: "s1", tableId: "t1" } },
+    },
+    route: "/shops/s1/tables/t1/cart",
+    path: "/shops/:shopId/tables/:tableId/cart",
+  })
+
+// Checkbox order in the DOM: [Select All, item i1, item i2].
+const boxes = () => screen.getAllByRole("checkbox")
+
+describe("Select All / individual split selection", () => {
+  beforeEach(() => {
+    cartState = baseCart()
+    added.length = 0
+    removed.length = 0
+    installHandlers()
+  })
+
+  it("Select All adds every unselected item with its full remaining qty", async () => {
+    const { user } = renderCart()
+
+    const [selectAll] = boxes()
+    expect(selectAll).not.toBeChecked()
+
+    await user.click(selectAll)
+
+    await waitFor(() =>
+      expect(added).toEqual([
+        { menuId: "m1", qty: 2 },
+        { menuId: "m2", qty: 1 },
+      ])
+    )
+    await waitFor(() => expect(boxes()[0]).toBeChecked())
+    expect(boxes()[1]).toBeChecked()
+    expect(boxes()[2]).toBeChecked()
+  })
+
+  it("unchecking one item removes only that item and just unticks Select All", async () => {
+    cartState.split = [
+      { _id: "s-m1", userId: "u1", menuId: menu("m1", 4.5), qty: 2, splitStatus: "open" },
+      { _id: "s-m2", userId: "u1", menuId: menu("m2", 3), qty: 1, splitStatus: "open" },
+    ]
+    const { user } = renderCart()
+
+    await waitFor(() => expect(boxes()[0]).toBeChecked())
+
+    await user.click(boxes()[1]) // uncheck item m1
+
+    await waitFor(() => expect(removed).toEqual(["m1"]))
+    await waitFor(() => expect(boxes()[1]).not.toBeChecked())
+    // The other item's selection survives; only the header untick follows.
+    expect(boxes()[2]).toBeChecked()
+    expect(boxes()[0]).not.toBeChecked()
+    expect(added).toEqual([]) // and nothing got (re)added anywhere
+  })
+
+  it("hand-selecting the last remaining item ticks Select All", async () => {
+    cartState.split = [
+      { _id: "s-m1", userId: "u1", menuId: menu("m1", 4.5), qty: 1, splitStatus: "open" },
+    ]
+    const { user } = renderCart()
+
+    expect(boxes()[0]).not.toBeChecked()
+
+    await user.click(boxes()[2]) // select item m2 individually
+
+    await waitFor(() => expect(added).toEqual([{ menuId: "m2", qty: 1 }]))
+    await waitFor(() => expect(boxes()[0]).toBeChecked())
+  })
+
+  it("unchecking Select All clears every selection", async () => {
+    cartState.split = [
+      { _id: "s-m1", userId: "u1", menuId: menu("m1", 4.5), qty: 2, splitStatus: "open" },
+      { _id: "s-m2", userId: "u1", menuId: menu("m2", 3), qty: 1, splitStatus: "open" },
+    ]
+    const { user } = renderCart()
+
+    await waitFor(() => expect(boxes()[0]).toBeChecked())
+
+    await user.click(boxes()[0])
+
+    await waitFor(() => expect(removed).toEqual(["m1", "m2"]))
+    await waitFor(() => expect(boxes()[0]).not.toBeChecked())
+    expect(boxes()[1]).not.toBeChecked()
+    expect(boxes()[2]).not.toBeChecked()
+  })
+})

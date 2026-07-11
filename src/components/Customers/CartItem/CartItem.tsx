@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { Card, Col, Row, Button, Image, Form } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
@@ -10,26 +9,16 @@ import {
   selectCartsData,
 } from "../../../redux/slices/cartSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
-import { IItem, ISplitItem } from "../../../typings/cart";
+import { menuIdOf } from "../../../lib/cart";
 import { RiDeleteBinLine } from "react-icons/ri";
 import "./CartItem.css";
-
-const menuIdOf = (x: IItem | ISplitItem | undefined) =>
-  typeof x?.menuId === "string" ? x.menuId : x?.menuId?._id;
 
 interface CartItemProps {
   cartId: string;
   itemId: string | undefined;
-  selectedAll: boolean;
-  setSelectedAll: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const CartItem = ({
-  cartId,
-  itemId,
-  selectedAll,
-  setSelectedAll,
-}: CartItemProps) => {
+const CartItem = ({ cartId, itemId }: CartItemProps) => {
   const { shopId = "", tableId = "" } = useParams<{
     shopId: string;
     tableId: string;
@@ -49,49 +38,23 @@ const CartItem = ({
 
   const selected = !!splitItem;
 
-  const prevSelectedAll = useRef(selectedAll);
-  // Must react only to actual selectedAll changes (guarded below by
-  // prevSelectedAll), not to every splitItem/increment/removeItemFromSplit
-  // identity change on store updates.
-  useEffect(() => {
-    if (prevSelectedAll.current === selectedAll) return;
-    prevSelectedAll.current = selectedAll;
-    if (selectedAll) {
-      if (!splitItem) increment();
-    } else {
-      if (splitItem) removeItemFromSplit();
-    }
-  }, [selectedAll]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const dispatch = useAppDispatch();
 
   const handleSelect = () => {
     if (splitItem) {
       removeItemFromSplit();
-      if (selectedAll) setSelectedAll(false);
     } else {
       increment();
     }
   };
 
   const increment = () => {
-    //<====================   adds item to SPLIT Cart
+    //<====================   adds one unit of the item to the SPLIT
     if (!cartItem?.menuId) return;
-    let quantity = 0;
-
-    if (selectedAll) {
-      if (splitItem) {
-        quantity = cartItem.qty - (cartItem.qtyPayed ?? 0) - splitItem.qty;
-      } else {
-        quantity = cartItem.qty - (cartItem.qtyPayed ?? 0);
-      }
-    } else {
-      quantity = 1;
-    }
 
     const plusItem = {
       ...cartItem,
-      qty: quantity,
+      qty: 1,
     };
 
     dispatch(
@@ -195,15 +158,13 @@ const CartItem = ({
                   <Col xs={6}>
                     <Row className="quantity-wrapper text-center align-items-center">
                       <Col className="px-0">
-                        {
-                          selected || selectedAll ? (
-                            <Button active size="sm" onClick={decrement}>
-                              <strong>-</strong>
-                            </Button>
-                          ) : (
-                            <></>
-                          )
-                        }
+                        {selected ? (
+                          <Button active size="sm" onClick={decrement}>
+                            <strong>-</strong>
+                          </Button>
+                        ) : (
+                          <></>
+                        )}
                       </Col>
                       <Col className="px-0">
                         <Card.Body className="p-0">

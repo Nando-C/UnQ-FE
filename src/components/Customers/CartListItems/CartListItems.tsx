@@ -2,14 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import { Card, ListGroup, Row, Button, Form, Col } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { getTableCart, selectCartsData } from "../../../redux/slices/cartSlice";
+import {
+  addToSplit,
+  getTableCart,
+  removeFromSplit,
+  selectCartsData,
+} from "../../../redux/slices/cartSlice";
+import { selectUserData } from "../../../redux/slices/userSlice";
+import { IItem } from "../../../typings/cart";
+import { menuIdOf } from "../../../lib/cart";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
 import PaymentFeedback from "../PaymentFeedback/PaymentFeedback";
 import "./CartListItems.css";
 
 const CartListItems = () => {
-  const { tableId = "" } = useParams<{ tableId: string }>();
+  const { shopId = "", tableId = "" } = useParams<{
+    shopId: string;
+    tableId: string;
+  }>();
 
   const dispatch = useAppDispatch();
 
@@ -18,7 +29,50 @@ const CartListItems = () => {
   }, [dispatch, tableId]);
 
   const cart = useAppSelector(selectCartsData);
-  const [selectedAll, setSelectedAll] = useState(false);
+  const myUser = useAppSelector(selectUserData);
+
+  const visibleItems = cart.items.filter((i) => (i.qtyPayed ?? 0) < i.qty);
+  const mySplitFor = (item: IItem) =>
+    cart.split.find(
+      (s) =>
+        s.splitStatus === "open" &&
+        s.userId === myUser._id &&
+        menuIdOf(s) === menuIdOf(item)
+    );
+
+  // "Select All" is derived, never stored: checked exactly when every unpaid
+  // item has an open split of mine. Toggling it dispatches per-item commands,
+  // so it can never disagree with the individual checkboxes.
+  const allSelected =
+    visibleItems.length > 0 && visibleItems.every((i) => !!mySplitFor(i));
+
+  const handleToggleAll = async () => {
+    if (allSelected) {
+      for (const item of visibleItems) {
+        if (mySplitFor(item)) {
+          await dispatch(
+            removeFromSplit({ shopId, tableId, cartId: cart._id, item })
+          );
+        }
+      }
+    } else {
+      // Give unselected items their full remaining qty; items someone already
+      // split (partially or fully) are left as they are.
+      for (const item of visibleItems) {
+        if (!mySplitFor(item)) {
+          const remaining = item.qty - (item.qtyPayed ?? 0);
+          await dispatch(
+            addToSplit({
+              shopId,
+              tableId,
+              cartId: cart._id,
+              item: { ...item, qty: remaining },
+            })
+          );
+        }
+      }
+    }
+  };
 
   const totalCart = cart.items.reduce(
     (total, item) => total + item.qty * (item.menuId?.price ?? 0),
@@ -70,8 +124,8 @@ const CartListItems = () => {
           >
             <Form.Check
               type="checkbox"
-              checked={selectedAll}
-              onChange={() => setSelectedAll(!selectedAll)}
+              checked={allSelected}
+              onChange={handleToggleAll}
               label="Select All"
             />
           </Form.Group>
@@ -97,18 +151,11 @@ const CartListItems = () => {
         </Col>
       </Row>
       <ListGroup className="px-0" variant="flush">
-        {cart.items
-          .filter((i) => i.qtyPayed! < i.qty)
-          .map((item) => (
-            <ListGroup.Item key={item._id} className="px-0 menu-item">
-              <CartItem
-                selectedAll={selectedAll}
-                cartId={cart._id}
-                itemId={item._id}
-                setSelectedAll={setSelectedAll}
-              />
-            </ListGroup.Item>
-          ))}
+        {visibleItems.map((item) => (
+          <ListGroup.Item key={item._id} className="px-0 menu-item">
+            <CartItem cartId={cart._id} itemId={item._id} />
+          </ListGroup.Item>
+        ))}
       </ListGroup>
 
       <Row className="mx-1 py-5">
