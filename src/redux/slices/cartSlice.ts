@@ -67,16 +67,36 @@ export const getTableCart = createAsyncThunk("cart/getTableCart", async (tableId
     const { data }: AxiosResponse<ICart> = await backend.get(`carts/tables/${tableId}`)
     return data
 })
-interface CheckOutSplitProps {
+interface CheckOutProps {
     tableId: string
     cartId: string
+}
+export const createCheckoutOrder = createAsyncThunk(
+    "cart/createCheckoutOrder",
+    async ({tableId, cartId}: CheckOutProps, { rejectWithValue }) => {
+        try {
+            const { data }: AxiosResponse<{ paypalOrderId: string }> = await backend.post(`carts/tables/${tableId}/${cartId}/createCheckoutOrder`)
+            return data.paypalOrderId
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                return rejectWithValue({
+                    status: err.response?.status,
+                    message: err.response?.data?.message,
+                })
+            }
+            throw err
+        }
+    }
+)
+
+interface CaptureCheckoutProps extends CheckOutProps {
     paypalOrderId: string
 }
-export const checkOutSplit = createAsyncThunk(
-    "cart/checkOutSplit",
-    async ({tableId, cartId, paypalOrderId}: CheckOutSplitProps, { rejectWithValue }) => {
+export const captureCheckout = createAsyncThunk(
+    "cart/captureCheckout",
+    async ({tableId, cartId, paypalOrderId}: CaptureCheckoutProps, { rejectWithValue }) => {
         try {
-            const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/checkOutSplit`, { paypalOrderId })
+            const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/captureCheckout`, { paypalOrderId })
             return data
         } catch (err) {
             if (axios.isAxiosError(err)) {
@@ -122,7 +142,7 @@ export const cartsSlice = createSlice({
         builder.addCase(getTableCart.fulfilled, (state, action) => {
             state.data = action.payload
         })
-        builder.addCase(checkOutSplit.fulfilled, (state, action) => {
+        builder.addCase(captureCheckout.fulfilled, (state, action) => {
             state.data = action.payload
         })
     }

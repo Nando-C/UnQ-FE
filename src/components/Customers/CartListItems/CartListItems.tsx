@@ -197,7 +197,6 @@ const CartListItems = () => {
       <CheckOut
         show={show}
         handleClose={handleClose}
-        total={totalSplit}
         handleShowFbk={handleShowFbk}
       />
       <PaymentFeedback

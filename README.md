@@ -84,7 +84,7 @@ This started as a solo capstone project for Strive School's Full Stack Master Ca
 - Silent token refresh on the front end to match the back-end's hardened 15-minute access token / 4-week refresh token rotation.
 - Form validation (auth forms, manager CRUD forms) aligned with the back-end's zod-validated contract, surfacing its actual error shape instead of guessing at one.
 - A Vitest + Testing Library + msw test suite, and an ESLint flat config, added where none existed before.
-- Checkout moved off the client-trusted per-item confirmation onto the back end's PayPal-verified `checkOutSplit` endpoint — the front end now sends the captured order id and the server confirms it with PayPal before marking anything paid.
+- Checkout is now server-created and server-captured: the back end mints the PayPal order (`createCheckoutOrder`, priced from the database) and captures it after buyer approval (`captureCheckout`) — the front end never handles money, only relays the buyer's approval.
 - `npm audit`: **181 findings (11 critical) → 0**, and a clean `npm install` with no peer-dependency overrides.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -105,7 +105,7 @@ This started as a solo capstone project for Strive School's Full Stack Master Ca
 
 - **QR-driven table menus** — each table gets its own QR code; scanning it opens that shop's menu scoped to that table.
 - **Shared table cart with per-item bill splitting** — anyone at the table can add items to the same cart and choose exactly which items (and quantities) they're paying for.
-- **Checkout** — PayPal (sandbox) via `@paypal/react-paypal-js`, with server-side payment verification: the back end confirms the captured order with PayPal (status, currency, exact amount) before marking any items paid.
+- **Checkout** — PayPal (sandbox) via `@paypal/react-paypal-js`, with server-created and server-captured payments: the back end mints the order for the buyer's DB-priced split total and captures it itself after approval, so the client never handles money — a post-capture conflict is refunded automatically.
 - **Auth** — email/password and Google OAuth, JWT access + refresh tokens in httpOnly cookies, with silent refresh-on-401 so a 15-minute access token never logs the user out mid-session.
 - **Manager dashboard** — CRUD for shops, menu items (with per-item availability toggle), and tables; QR-code generation per table via `qr-code-styling`; images are uploaded through the back end to Cloudinary.
 - **Role-aware UI** — the app renders the customer or manager interface based on the signed-in user's role. Promoting a user to manager (`shopMg`) is a back-end/admin operation today — there's no self-service "become a manager" flow in the UI.
@@ -132,8 +132,8 @@ flowchart LR
     end
 
     Axios <-->|"REST · httpOnly JWT cookies<br/>(access 15 min / refresh 4 wk)"| BE["UnQ-BE<br/>Express + zod"]
-    UI <-->|"createOrder → approve → capture<br/>@paypal/react-paypal-js"| PayPal["PayPal<br/>(sandbox)"]
-    PayPal -.->|"on capture success:<br/>checkOutSplit(orderID) → BE verifies<br/>with PayPal before marking items paid"| Store
+    BE <-->|"createCheckoutOrder → mint order<br/>captureCheckout → capture + settle"| PayPal["PayPal<br/>(sandbox)"]
+    UI <-->|"buyer approves in popup<br/>@paypal/react-paypal-js"| PayPal
 
     BE --> Mongo[("MongoDB")]
     BE --> Cloudinary["Cloudinary<br/>images"]
