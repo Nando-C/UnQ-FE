@@ -42,6 +42,7 @@
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#environment-variables">Environment Variables</a></li>
         <li><a href="#scripts">Scripts</a></li>
+        <li><a href="#deployment">Deployment</a></li>
       </ul>
     </li>
     <li><a href="#testing">Testing</a></li>
@@ -182,7 +183,8 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Description |
 |---|---|
-| `VITE_BE_URL` | Base URL of the running UnQ-BE instance |
+| `VITE_BE_URL` | Path the app calls the back-end on. Keep it as `/api` so the API is served from this app's own origin and the back-end's auth cookies stay first-party (see [Deployment](#deployment)) |
+| `DEV_PROXY_TARGET` | Where the dev server forwards `/api`. Defaults to `http://localhost:3001`. Deliberately un-prefixed so it never reaches the client bundle |
 | `VITE_PAYPAL_CLIENT_ID` | PayPal client ID for the checkout button (falls back to PayPal's shared `"sb"` sandbox ID if unset) |
 
 ### Scripts
@@ -194,6 +196,16 @@ Copy `.env.example` to `.env` and fill in:
 | `npm run preview` | Preview the production build locally |
 | `npm run lint` | Run ESLint over `src` |
 | `npm test` | Run the Vitest suite once |
+
+### Deployment
+
+The front-end deploys to [Vercel](https://vercel.com/); the back-end runs separately.
+
+- **The build output directory is `dist/`** (Vite), not CRA's `build/` — set it in the Vercel project settings or the first deploy serves nothing.
+- **The API is proxied through this app's own origin.** `vercel.json` rewrites `/api/:path*` to the back-end, and `VITE_BE_URL` must be set to the relative path `/api` (in the Vercel project's environment variables, not the back-end's URL). This is not cosmetic. The back-end sets its JWT cookies `Secure; SameSite=None`, which is correct for cross-origin — but when the two apps sit on different registrable domains, Safari's Intelligent Tracking Prevention blocks those cookies as third-party regardless of `SameSite`. Served through this origin they are first-party, and Safari accepts them with no user intervention.
+- **Google OAuth has to point at the proxied path too.** The back-end builds its Google callback URL from its own `BACKEND_URL`, so that variable must be the proxied prefix — `https://un-q.vercel.app/api` in production, `http://localhost:3000/api` in development — and the same URL with `/auth/googleRedirect` appended must be registered as an authorized redirect URI in the Google Cloud Console. Leave `BACKEND_URL` pointing straight at the back-end and Google returns the browser to the back-end's own domain, where the cookies get set out of reach of this origin: Google sign-in then fails silently in *every* browser, not just Safari.
+
+Local development reproduces the same shape through Vite's dev-server proxy (`vite.config.ts`), which forwards `/api` to `DEV_PROXY_TARGET`.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -270,13 +282,6 @@ So for this purpose, the app has two user interfaces:
         Email address: frank@mail.com
         Password: 1234
 
-  ### Note:
-
-  If your are using Safari, you will have to disable cross site tracking while trying this app. Unfortunately this is an issue with authentication that I still yet to solve, but I assure you there is nothing dodgy behind.
-  On Chrome it works perfectly fine. 😉
-
-        Settings -> Safari -> Prevent Cross-Site Tracking
-
 - You can test payments using the following paypal demo account details:
 
         user: test@unq.com
@@ -340,17 +345,6 @@ An insight into product sales performance of the venue will be availble in the n
 
         Email address: manager@mail.com
         Password: test
-
-  ### Note:
-
-  If your are using Safari, you will have to disable cross site tracking while trying this app. Unfortunately this is an issue with authentication that I still yet to solve, but I assure you there is nothing dodgy behind.
-  On Chrome it works perfectly fine. 😉
-
-        On a laptop:
-        Safari -> Preferences -> Privacy -> Website Tracking: Un-Check Prevent cross-site tracking
-
-        On an iPhone:
-        Settings -> Safari -> Prevent Cross-Site Tracking
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
