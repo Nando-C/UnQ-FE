@@ -2,14 +2,18 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="/favicon.ico" />
+    <!-- SVG first: modern browsers prefer it and it stays crisp at any size.
+         The .ico remains for browsers that do not support SVG favicons. -->
+    <link rel="icon" type="image/svg+xml" href="/unq-icon.svg" />
+    <link rel="icon" sizes="16x16 32x32 48x48" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
       content="UnQ — scan a table's QR code, order food & drinks, and split the bill per item."
     />
-    <link rel="apple-touch-icon" href="/logo192.png" />
+    <!-- Apple touch icons must be raster; iOS ignores SVG here. -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
