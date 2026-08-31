@@ -14,8 +14,8 @@ import { useNavigate } from "react-router-dom";
 import backend from "../../backend/backend";
 import { useAppDispatch } from "../../redux/app/hooks";
 import { fetchUserData } from "../../redux/slices/userSlice";
+import wordmark from "../../assets/unq-wordmark-onematerial.svg";
 import "./Register.css";
-import placeholder from "../../assets/placeholder.svg";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -83,7 +83,12 @@ const Register = () => {
     <Container className="Register mb-5 text-center">
       <Row className="align-items-center">
         <Col xs={12} sm={6}>
-          <Image src={placeholder} rounded fluid />
+          <Image
+            src={wordmark}
+            alt="UnQ"
+            fluid
+            style={{ maxWidth: "22rem" }}
+          />
         </Col>
         <Col xs={12} sm={6}>
           <Form onSubmit={handleSignUp}>

@@ -17,7 +17,7 @@ import "../Register/Register.css";
 import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
 import { selectCartPointers } from "../../redux/slices/cartSlice";
 import { fetchUserData } from "../../redux/slices/userSlice";
-import placeholder from "../../assets/placeholder.svg";
+import wordmark from "../../assets/unq-wordmark-onematerial.svg";
 
 const getErrorMessage = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
@@ -63,7 +63,12 @@ const Login = () => {
     <Container className="Register mb-5 text-center">
       <Row className="align-items-center">
         <Col xs={12} sm={6}>
-          <Image src={placeholder} rounded fluid />
+          <Image
+            src={wordmark}
+            alt="UnQ"
+            fluid
+            style={{ maxWidth: "22rem" }}
+          />
         </Col>
         <Col xs={12} sm={6}>
           <Form onSubmit={handleLogin}>

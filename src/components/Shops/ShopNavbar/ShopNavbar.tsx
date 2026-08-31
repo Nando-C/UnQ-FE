@@ -2,8 +2,8 @@ import { Container, Nav, Navbar } from "react-bootstrap";
 import { FaRegUserCircle } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import { useAppSelector } from "../../../redux/app/hooks";
+import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import { selectSelectedShop } from "../../../redux/slices/shopSlice";
-import placeholder from "../../../assets/placeholder.svg";
 import "./ShopNavbar.css";
 
 const ShopNavbar = () => {
@@ -15,11 +15,11 @@ const ShopNavbar = () => {
         <Container>
           <Navbar.Brand href="#home">
             <img
-              src={placeholder}
-              width="30"
+              src={wordmark}
+              width="54"
               height="30"
               className="d-inline-block align-top"
-              alt="UnQ logo"
+              alt="UnQ"
             />
           </Navbar.Brand>
           <Nav
