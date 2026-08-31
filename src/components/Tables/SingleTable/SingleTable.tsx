@@ -25,7 +25,15 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
     height: 250,
     image: shop?.cover !== defaultCover ? shop?.cover : "",
     dotsOptions: {
-      color: "#4267b2",
+      // The brand hue (8.2deg, matching the logo's 8.4deg) darkened for scannability.
+      // NOT $primary itself: the coral is #FF5F45, whose red channel is 255 — identical
+      // to the white background — so in the red band the modules vanish entirely. That
+      // matters because these get printed and stuck on tables, where a red-light laser
+      // or IR reader would see a blank square. Coral also sits at luma 140/255, right on
+      // the binarisation midpoint, and only 3.01:1 against white. This is 10.16:1 with a
+      // red-channel delta of 133, so it survives print, dim rooms and odd angles while
+      // still reading as the brand rather than the generic black.
+      color: "#7A2214",
       type: "rounded",
     },
     imageOptions: {
@@ -53,7 +61,7 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
         <Card>
           <Card.Title className="mt-3">{table?.name}</Card.Title>
           <div ref={qrRef} />
-          <Button size={"lg"} onClick={handleShow}>
+          <Button size={"lg"} className="d-print-none" onClick={handleShow}>
             <GrEdit />
           </Button>
         </Card>

@@ -1,0 +1,74 @@
+/* Two equal rails either side of Add Table: the empty one on the left mirrors the one
+ * holding the print action, so Add Table keeps the centred position it has always had
+ * while the print button sits flush with the right edge.
+ *
+ * flex: 1 1 0 rather than Bootstrap's .flex-fill (flex: 1 1 auto) — with an auto basis
+ * the rails size to their CONTENT, so the right one grows around the button and shoves
+ * Add Table 68px off centre. A zero basis makes the two rails genuinely equal.
+ *
+ * Note the rails cannot be relied on to prevent a collision: a rail's automatic minimum
+ * size comes from its min-content width, which assumes the button's label may WRAP, but
+ * the button itself does not shrink — so a full-width label spills out of its rail and
+ * lands on top of Add Table (-37px of overlap at 320px). That is solved in the markup by
+ * dropping to an icon-only button below the sm breakpoint, not here. */
+.TableList-actions > .tl-rail {
+  flex: 1 1 0;
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  /* Print the table grid and nothing else. Hiding by visibility rather than display
+   * keeps this component from having to know what else is on the page — the navbar,
+   * the shop details card and the menu all live in ShopDetails, and listing them here
+   * would break the moment that page gains a section. The absolute position then
+   * reclaims the space the hidden ancestors would otherwise still reserve. */
+  body * {
+    visibility: hidden;
+  }
+
+  #tableList,
+  #tableList * {
+    visibility: visible;
+  }
+
+  #tableList {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0 !important;
+  }
+
+  /* Bootstrap's responsive columns resolve against the PAPER width — roughly 794px for
+   * A4, which lands on the md breakpoint and yields only two codes per row. Three is
+   * the density that fills a sheet without shrinking the codes below a comfortable
+   * scanning size. */
+  #tableList .row > [class*="col"] {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+  }
+
+  /* A code split across a page break is unscannable, so never break inside one. */
+  #tableList .SingleTable {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* The canvas is a 250px bitmap; sizing it in mm fixes the printed dimensions instead
+   * of leaving them at the mercy of the browser's pixel-to-paper scaling. At 45mm a
+   * ~33-module code gives ~1.3mm per module, comfortably above the ~0.4mm floor where
+   * scanners start to struggle. */
+  #tableList .SingleTable canvas {
+    width: 45mm !important;
+    height: 45mm !important;
+  }
+
+  /* Cards are containers on paper, not objects — drop the screen chrome. */
+  #tableList .SingleTable > .card {
+    box-shadow: none;
+    border: none;
+  }
+}
