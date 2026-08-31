@@ -43,3 +43,32 @@
   top: 10px;
   right: 10px;
 }
+
+/* While a label sits BESIDE its value (below md), zero the subtitle's vertical margins.
+ * Bootstrap gives .card-subtitle margin-top:-4px and Item.css adds margin-bottom:4px,
+ * and align-items:center centres the MARGIN box — so that 8px of asymmetry lifted the
+ * label 4.1px above the value it was supposed to line up with. The margins are still
+ * wanted at md and up, where the label sits above the value instead. */
+@media (max-width: 767.98px) {
+  /* Fill the column. The two cells stretch to a common height, but each pair is only
+   * as tall as its own content — the toggle's 26px against the price's 36px — so
+   * align-items:center was centring each pair against its OWN height and left the
+   * shorter one sitting 5px high. Filling the column gives both the same axis. */
+  .Item .value-pair {
+    height: 100%;
+  }
+
+  .Item .value-pair > .card-subtitle {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  /* The switch carries no label, so .form-switch's 2.5em padding-left leaves 0.5em of
+   * dead space to the right of the 2em control — enough that a right-aligned toggle
+   * stops short of the edge everything else lines up on. Pulling the box back by that
+   * 0.5em puts the toggle's right edge on the card's content edge, mirroring the left
+   * edge the title and the two descriptions share. */
+  .Item .value-pair .form-check {
+    margin-right: -0.5em;
+  }
+}
