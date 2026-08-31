@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2.50 -17.50 141.56 77.56" role="img" aria-labelledby="ttl">
+  <title id="ttl">UnQ</title>
+  <desc>"Un" drawn as one continuous stroke that reads as a switchback queue, resolving into a table with one diner at it. Every curve is radius 15; every straight is 18. Single-ink fallback: every stroke inherits currentColor, and the diner is omitted because without a colour change it would read as a thickening, not a person.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="13">
+    <path d="M 12,12 V 30 A 15,15 0 0,0 42,30 V 12 A 15,15 0 0,1 72,12 V 30" stroke="currentColor"/>
+    <path d="M 94,12 A 15,15 0 0,1 124,12 L 124,30 A 15,15 0 0,1 94,30 Z" stroke="currentColor"/>
+    <path d="M 114.66,35.66 L 124.56,45.56" stroke="currentColor"/>
+  </g>
+</svg>
