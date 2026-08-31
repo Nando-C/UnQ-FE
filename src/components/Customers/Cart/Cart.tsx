@@ -9,7 +9,7 @@ import {
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
 import CartListItems from "../CartListItems/CartListItems";
-import placeholder from "../../../assets/placeholder.svg";
+import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import "./Cart.css";
 
 const Cart = () => {
@@ -65,9 +65,9 @@ const Cart = () => {
         ) : (
           <Card>
             <Card.Body>
-              <Row className="align-items-center">
-                <Col className="image-col pe-0 ">
-                  <Image src={placeholder} rounded fluid />
+              <Row className="align-items-center text-center">
+                <Col className="image-col py-4">
+                  <Image src={wordmark} alt="UnQ" fluid style={{ maxWidth: "14rem" }} />
                 </Col>
                 <Card.Title>
                   Looks like you don't have any open orders!!
