@@ -1,0 +1,54 @@
+// UnQ theme — Bootstrap recompiled from source with the palette taken from the logo.
+//
+// This file exists instead of importing bootstrap/dist/css/bootstrap.min.css because
+// the compiled stylesheet hardcodes its hex values (`.btn-primary` sets
+// `--bs-btn-bg:#0d6efd`, not `var(--bs-primary)`), so overriding CSS custom properties
+// would retheme some components and miss buttons entirely.
+
+// The logo's coral, unmodified. White text on it is only 3.01:1, so Bootstrap's
+// color-contrast() picks a dark label instead. That label is pure black, not #212529 —
+// $color-contrast-dark defaults to $black — so the measured ratio is 6.97:1.
+//
+// Dark labels also make the interactive states behave the way we want without any
+// overrides: button-variant() tints rather than shades whenever the label is dark, so
+// hover and press BRIGHTEN the button (15% and 20%), and against dark text brightening
+// raises contrast rather than spending it — 8.06:1 on hover, 8.50:1 on press.
+$primary: #FF5F45;
+
+// Links are the one place the coral cannot be used directly: as text on white it is
+// 3.01:1 and fails WCAG AA, where the blue it replaces passed at 4.50:1. This is the
+// same hue darkened to 4.94:1. Note links darken on hover while buttons brighten —
+// that is not an inconsistency but the same rule applied to opposite grounds, since a
+// link sits on white where brightening would destroy legibility.
+$link-color: #CC3D1E;
+
+// Bootstrap's default border is $gray-300 (#DEE2E6), a grey with a hue of 210deg —
+// almost exactly opposite the brand's 8.4deg on the colour wheel. That is why default
+// cards and inputs read faintly cold next to the coral. This is the same neutral shifted
+// onto the brand hue at 6% saturation and MATCHED LUMINANCE: still 1.30:1 against white,
+// so borders keep their exact visual weight and only their temperature changes.
+//
+// Deliberately not coral itself. Saturated coral is reserved for things that mean
+// something — buttons, links, focus — because an accent used on every card edge stops
+// reading as a signal. Chrome is warm-neutral; state is coral.
+//
+// Reaches cards, inputs, tables, list groups and dropdowns at once, since
+// $input-border-color and $card-border-color both derive from this.
+$border-color: #ECDFDD;
+
+// Buttons carry their label in semibold. This is the one part of the "white bold label"
+// idea that survives the contrast maths: bold costs nothing in contrast, while white
+// would cost everything. WCAG only relaxes to 3:1 for text at 18.66px bold or above,
+// and this app's buttons are 16px (.btn) and 14px (.btn-sm), so a white label would be
+// judged as normal text at 3.01:1 and fail. The black label keeps 6.97:1 at rest,
+// 8.06:1 on hover and 8.50:1 on press, and the extra weight gives the button the
+// presence the white label was reaching for.
+//
+// 600 specifically because index.html already loads Georama at 400/600/800, so this is
+// a real face rather than a synthetically emboldened one, and costs no extra request.
+// Written as a literal rather than $font-weight-semibold: Bootstrap's own variables are
+// not defined until the @import below, so the named one does not exist yet here.
+$btn-font-weight: 600;
+
+@import "bootstrap/scss/bootstrap";
+
