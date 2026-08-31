@@ -39,7 +39,7 @@ const Item = ({ itemId, shopId }: ItemProps) => {
         <Card className="p-3">
           <Card.Title>{menuItem?.name}</Card.Title>
           <Row className="align-items-start">
-            <Col className="image-col" xs={12} md={3}>
+            <Col className="image-col mb-3 mb-md-0" xs={12} md={3}>
               <Image
                 src={menuItem?.image}
                 rounded

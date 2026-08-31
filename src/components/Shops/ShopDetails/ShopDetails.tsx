@@ -65,7 +65,9 @@ const ShopDetails = () => {
                 </ListGroup.Item>
               </ListGroup>
             </Card.Body>
-            <Button onClick={handleShow}>Edit Details</Button>
+            <Button className="mb-3" onClick={handleShow}>
+              Edit Details
+            </Button>
           </Col>
         </Row>
       </Card>
