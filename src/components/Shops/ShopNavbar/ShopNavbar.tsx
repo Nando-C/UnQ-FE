@@ -11,7 +11,7 @@ const ShopNavbar = () => {
 
   return (
     <>
-      <Navbar className="bg-white border-bottom py-1" fixed="top">
+      <Navbar className="ShopNavbar bg-white border-bottom py-1" fixed="top">
         <Container>
           <Navbar.Brand href="#home">
             <img
@@ -29,14 +29,14 @@ const ShopNavbar = () => {
                 : "w-100 justify-content-between align-items-center"
             }
           >
-            <Link className="nav-link" to={`/`}>
+            <Link className="nav-link" data-label="My Shops" to={`/`}>
               My Shops
             </Link>
             {shop?._id && (
               <>
-                <Nav.Link href="#shopDetails">Shop Details</Nav.Link>
-                <Nav.Link href="#shopMenu">Menu</Nav.Link>
-                <Nav.Link href="#tableList">Tables</Nav.Link>
+                <Nav.Link href="#shopDetails" data-label="Shop Details">Shop Details</Nav.Link>
+                <Nav.Link href="#shopMenu" data-label="Menu">Menu</Nav.Link>
+                <Nav.Link href="#tableList" data-label="Tables">Tables</Nav.Link>
               </>
             )}
             <Link className="nav-link" to={`/myAccount`}>

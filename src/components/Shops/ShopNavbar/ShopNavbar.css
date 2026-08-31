@@ -1,0 +1,41 @@
+/* Nav links thicken to semibold when hovered, focused or pressed.
+ *
+ * Weight 600 because index.html loads Georama at 400/600/800 — it is a real face, not a
+ * synthetically emboldened 400. (500 is NOT loaded and measures identical to 400, so it
+ * would look like nothing happened.)
+ *
+ * The ::after is the whole trick. Bolding a flex item widens it — "Shop Details" goes
+ * from 87.2px to 91.5px — and because this row is justify-content-around/between, that
+ * 4.4px shoves every sibling sideways, so sweeping the mouse across the navbar makes the
+ * whole row twitch. The pseudo-element holds a zero-height, invisible copy of the label
+ * already set in semibold, so each link is ALWAYS as wide as its bold state and the
+ * visible weight change costs no layout. It reads its text from data-label on the anchor.
+ */
+
+/* The reserved box is wider than the resting 400-weight text, and text defaults to the
+ * start edge — so without this the label would appear to grow only rightwards. Centring
+ * it inside the box splits the difference, and the label thickens symmetrically about
+ * its own midpoint instead of creeping in one direction. */
+.ShopNavbar .nav-link {
+  text-align: center;
+}
+
+.ShopNavbar .nav-link::after {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Deliberately no .active rule. Shop Details / Menu / Tables are hash anchors into one
+ * page, so a "current section" weight would be set on click and never corrected as the
+ * user scrolls — wrong more often than right, and a stale highlight is worse than none.
+ * :active below is the momentary pressed state, which is always accurate. */
+.ShopNavbar .nav-link:hover,
+.ShopNavbar .nav-link:focus-visible,
+.ShopNavbar .nav-link:active {
+  font-weight: 600;
+}
