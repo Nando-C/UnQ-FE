@@ -129,7 +129,7 @@ const CartListItems = () => {
     variant: "success" | "failure";
     message?: string;
   } | null>(null);
-  const fbkTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const fbkTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const handleShowFbk = (variant: "success" | "failure", message?: string) => {
     if (fbkTimeoutRef.current) clearTimeout(fbkTimeoutRef.current);
     setShowFbk({ variant, message });

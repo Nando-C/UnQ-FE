@@ -16,11 +16,11 @@
   </p>
 
   <p align="center">
-    <img src="https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black" alt="React 18.3">
-    <img src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5.9">
-    <img src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white" alt="Vite 7">
-    <img src="https://img.shields.io/badge/Redux_Toolkit-2.9-764ABC?logo=redux&logoColor=white" alt="Redux Toolkit 2.9">
-    <img src="https://img.shields.io/badge/React_Router-6.30-CA4245?logo=reactrouter&logoColor=white" alt="React Router 6.30">
+    <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19">
+    <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white" alt="TypeScript 6.0">
+    <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white" alt="Vite 8">
+    <img src="https://img.shields.io/badge/Redux_Toolkit-2.12-764ABC?logo=redux&logoColor=white" alt="Redux Toolkit 2.12">
+    <img src="https://img.shields.io/badge/React_Router-7-CA4245?logo=reactrouter&logoColor=white" alt="React Router 7">
     <img src="https://img.shields.io/badge/React--Bootstrap-2.10-7952B3?logo=bootstrap&logoColor=white" alt="React-Bootstrap 2.10">
   </p>
 </div>
@@ -80,8 +80,8 @@ This started as a solo capstone project for Strive School's Full Stack Master Ca
 
 **Recently modernized (2026):** the toolchain and dependency tree were both dead-code-audit-level stale (CRA/react-scripts 4, React 17, Redux Toolkit 1, react-router 5), so the app went through a staged modernization tracked in [`IMPROVEMENT_PLAN.md`](./IMPROVEMENT_PLAN.md):
 
-- Build tooling: Create React App/react-scripts 4 → Vite 7, with a matching TypeScript 5 bump.
-- React 17 → 18, Redux Toolkit 1 → 2/react-redux 9, react-router 5 → 6, the PayPal SDK moved to its current maintained package.
+- Build tooling: Create React App/react-scripts 4 → Vite (now 8), with TypeScript now on 6.
+- React 17 → 19, Redux Toolkit 1 → 2/react-redux 9, react-router 5 → 7, the PayPal SDK moved to its current maintained package.
 - Silent token refresh on the front end to match the back-end's hardened 15-minute access token / 4-week refresh token rotation.
 - Form validation (auth forms, manager CRUD forms) aligned with the back-end's zod-validated contract, surfacing its actual error shape instead of guessing at one.
 - A Vitest + Testing Library + msw test suite, and an ESLint flat config, added where none existed before.
@@ -121,7 +121,7 @@ This started as a solo capstone project for Strive School's Full Stack Master Ca
 flowchart LR
     QR(["📱 Table QR code<br/>/shops/:shopId/tables/:tableId"]) --> Router
 
-    subgraph FE["Front-End — React 18 + TypeScript (Vite)"]
+    subgraph FE["Front-End — React 19 + TypeScript (Vite)"]
         Router["react-router v6<br/>App.tsx"]
         UI["Components<br/>Customers · Shops · Tables · Dashboard"]
         Store["Redux Toolkit store<br/>slices: user · shops · carts"]
@@ -174,7 +174,7 @@ src/
 
 ### Prerequisites
 
-- Node.js ≥ 20
+- Node.js ≥ 22.12 (required by Vite 8 and Vitest 5)
 - A running instance of [UnQ's Back-End](https://github.com/Nando-C/UnQ-BE) (anything behind auth needs it — see its own README for setup)
 
 ### Environment Variables
