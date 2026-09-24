@@ -1,74 +1,195 @@
 .Item {
-  position: relative;
+  /* Shared by the thumbnail and by the indent that lines the Details control
+   * and the expanded description up with the name above them. */
+  --item-thumb: 64px;
+  --item-gap: 0.75rem;
 }
+
 .Item > .card {
-  padding: 0.75rem 0.5rem;
-  min-height: 150px;
   box-shadow: 0 6px 6px -4px #5c5c5c38;
 }
 
-.Item > .card .image-col {
-  /* min-height: 100px;
-  max-height: 100px; */
+/* The thumbnail on the left, with two rows stacked beside it: the name
+ * against the edit button, then the short description against the price and
+ * the availability switch. flex-start rather than center so the thumbnail
+ * stays level with the name when a long one wraps. */
+.Item .item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--item-gap);
 }
 
-.Item > .card .image-col img {
+.Item .item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.Item .item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--item-gap);
+  margin-bottom: 0.5rem;
+}
+
+/* The short description against the price and the availability switch, side by
+ * side at lg and up and stacked below that — see the media query at the foot of
+ * this file. */
+.Item .item-sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--item-gap);
+}
+
+/* Fixed square. The image was w-100 h-100 with no ratio, so each item's own
+ * proportions set its card's height and no two rows in the list matched. */
+.Item .item-thumb {
+  flex: 0 0 auto;
+  width: var(--item-thumb);
+  height: var(--item-thumb);
   object-fit: cover;
+  background-color: var(--bs-tertiary-bg);
 }
 
-.Item > .card .card-title {
-  font-size: 1.5rem;
+.Item .item-body {
+  /* Grows to fill whatever the meta cluster leaves, which is also what puts
+   * that cluster on the right-hand edge — no auto margin needed, since
+   * flex-grow consumes the free space before auto margins ever see it.
+   *
+   * min-width:0 because a flex item's automatic minimum size is min-content,
+   * which would otherwise let the body refuse to shrink and push the cluster
+   * past the card's edge — and it is what text-truncate needs to work. */
+  flex: 1 1 7rem;
+  min-width: 0;
+}
+
+.Item .item-name {
+  /* min-width:0 so a long name wraps instead of pushing the edit button out
+   * past the card's edge. */
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 1.0625rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
 }
 
-.Item > .card .price {
-  font-weight: 600;
-  font-size: 1.5rem;
-  letter-spacing: -1.5px;
-}
-
-.Item > .card .card-subtitle {
-  /* font-size: 1.1rem; */
-  /* font-style: italic; */
+.Item .item-short {
   color: rgba(0, 0, 0, 0.65);
+  font-size: 0.875rem;
+}
+
+/* At lg and up this is content-width and sits at the end of the description's
+ * line. */
+.Item .item-meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--item-gap);
+}
+
+.Item .price {
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  font-size: 1.25rem;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  /* "£ 11.5" used to break after the symbol across the whole 768-991px band,
+   * where the price sat in a ~120px column. */
+  white-space: nowrap;
 }
 
-.Item > .card .btn {
-  background-color: rgba(255, 255, 255, 0);
-  border: none;
-  position: absolute;
-  top: 10px;
-  right: 10px;
+/* WCAG 2.2 target size (2.5.8) asks for 24x24 CSS px; Bootstrap's switch is
+ * 32x16. Zeroing the wrapper's 2.5em padding and the input's compensating
+ * negative margin also drops the ~4px of dead space that sat to the right of
+ * the control and kept it off the edge everything else lines up on.
+ *
+ * Note the wrapper is .form-switch alone, with no .form-check: react-bootstrap
+ * only adds that class when the check is given a label, and this one is
+ * labelled through aria-label instead. */
+.Item .form-switch {
+  padding-left: 0;
+  min-height: 0;
+  margin-bottom: 0;
 }
 
-/* While a label sits BESIDE its value (below md), zero the subtitle's vertical margins.
- * Bootstrap gives .card-subtitle margin-top:-4px and Item.css adds margin-bottom:4px,
- * and align-items:center centres the MARGIN box — so that 8px of asymmetry lifted the
- * label 4.1px above the value it was supposed to line up with. The margins are still
- * wanted at md and up, where the label sits above the value instead. */
-@media (max-width: 767.98px) {
-  /* Fill the column. The two cells stretch to a common height, but each pair is only
-   * as tall as its own content — the toggle's 26px against the price's 36px — so
-   * align-items:center was centring each pair against its OWN height and left the
-   * shorter one sitting 5px high. Filling the column gives both the same axis. */
-  .Item .value-pair {
-    height: 100%;
-  }
+.Item .form-switch .form-check-input {
+  width: 2.75rem;
+  height: 1.5rem;
+  margin-top: 0;
+  margin-left: 0;
+}
 
-  .Item .value-pair > .card-subtitle {
-    margin-top: 0;
-    margin-bottom: 0;
-  }
+/* Was position:absolute top/right, which the item name ran underneath at
+ * 320-430px and again across 768-900px. As a flex item it takes its own space
+ * and the name simply wraps beside it. Padding keeps the target above 24px.
+ *
+ * align-items:flex-start on the head row pins it to the first line of a
+ * wrapping name; the negative margin then centres it optically on that line
+ * rather than on the taller button box. */
+.Item .item-edit {
+  /* Hover and press are set through Bootstrap's own button custom properties
+   * rather than by overriding .btn's rules, so this composes with the button
+   * instead of fighting it for specificity — and it inherits .btn's existing
+   * transition, which is already disabled under prefers-reduced-motion.
+   *
+   * The three tints are all derived from $primary by the theme (80% tint, 60%
+   * tint, 60% shade), so the button tracks the brand colour on its own rather
+   * than pinning a hex that would drift the next time the palette moves.
+   *
+   * A filled rounded square rather than a border: a border appearing on hover
+   * would shift the icon by its own width unless the rest state reserved a
+   * transparent one, whereas a background costs no layout at all. */
+  --bs-btn-color: inherit;
+  --bs-btn-hover-color: var(--bs-primary-text-emphasis);
+  --bs-btn-hover-bg: var(--bs-primary-bg-subtle);
+  --bs-btn-active-color: var(--bs-primary-text-emphasis);
+  --bs-btn-active-bg: var(--bs-primary-border-subtle);
 
-  /* The switch carries no label, so .form-switch's 2.5em padding-left leaves 0.5em of
-   * dead space to the right of the 2em control — enough that a right-aligned toggle
-   * stops short of the edge everything else lines up on. Pulling the box back by that
-   * 0.5em puts the toggle's right edge on the card's content edge, mirroring the left
-   * edge the title and the two descriptions share. */
-  .Item .value-pair .form-check {
-    margin-right: -0.5em;
+  flex: 0 0 auto;
+  margin-top: -0.375rem;
+  /* Equal padding on an 18px icon with line-height:1 makes the hover target a
+   * 30x30 square, so the tint reads as a square rather than a lozenge. */
+  padding: 0.375rem;
+  line-height: 1;
+  border-radius: var(--bs-border-radius);
+  text-decoration: none;
+}
+
+.Item .item-details-toggle {
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  /* Indented to the text column so it reads as belonging to the name above it
+   * rather than floating under the thumbnail. */
+  margin-left: calc(var(--item-thumb) + var(--item-gap));
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.Item .item-details-toggle:hover,
+.Item .item-details-toggle:focus-visible {
+  text-decoration: underline;
+}
+
+.Item .item-description {
+  margin: 0.25rem 0 0 calc(var(--item-thumb) + var(--item-gap));
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.Item .item-error {
+  margin-top: 0.5rem;
+  margin-left: calc(var(--item-thumb) + var(--item-gap));
+}
+
+/* From md down, the price and the availability switch take a line of their own
+ * beneath the description and spread to the card's two content edges — the
+ * price onto the same left edge as the name, the switch onto the right. The
+ * basis of 100% is what forces the wrap: flex-wrap breaks lines on the
+ * hypothetical main size, so the cluster cannot share a line with the body no
+ * matter how far the body would shrink. */
+@media (max-width: 991.98px) {
+  .Item .item-meta {
+    flex: 1 1 100%;
+    justify-content: space-between;
   }
 }
