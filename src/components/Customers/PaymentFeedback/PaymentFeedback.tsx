@@ -28,14 +28,14 @@ const PaymentFeedback = ({
             <Row>
               {variant === "success" ? (
                 <>
-                  <AiOutlineCheckCircle color="#0d6efd" size={100} />
+                  <AiOutlineCheckCircle color="var(--bs-success)" size={100} />
                   <Card.Subtitle className="mt-4 text-center">
                     The Transaction Was Successful!
                   </Card.Subtitle>
                 </>
               ) : (
                 <>
-                  <AiOutlineCloseCircle color="#dc3545" size={100} />
+                  <AiOutlineCloseCircle color="var(--bs-danger)" size={100} />
                   <Card.Subtitle className="mt-4 text-center">
                     {message}
                   </Card.Subtitle>

@@ -167,9 +167,11 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
             />
             <div className="image-overlayer"></div>
             {/* In the Add button's place, so it replaces the action the
-                customer would reach for. Shown with or without a table. */}
+                customer would reach for. Shown with or without a table. Light
+                with dark text: a mid-grey pill is hard to tell from the teal
+                buttons for red-blind customers, so it differs by brightness. */}
             {soldOut && (
-              <Badge bg="secondary" className="sold-out-badge">
+              <Badge bg="light" text="dark" className="sold-out-badge border">
                 Sold out
               </Badge>
             )}

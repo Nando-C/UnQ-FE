@@ -163,7 +163,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                     <Card.Subtitle className="ms-3">
                       {cartItem?.menuId?.name}
                       {soldOut && (
-                        <Badge bg="secondary" className="ms-2 align-middle">
+                        <Badge bg="light" text="dark" className="ms-2 align-middle border">
                           Sold out
                         </Badge>
                       )}

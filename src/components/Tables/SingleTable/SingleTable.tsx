@@ -25,15 +25,14 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
     height: 250,
     image: shop?.cover !== defaultCover ? shop?.cover : "",
     dotsOptions: {
-      // The brand hue (8.2deg, matching the logo's 8.4deg) darkened for scannability.
-      // NOT $primary itself: the coral is #FF5F45, whose red channel is 255 — identical
-      // to the white background — so in the red band the modules vanish entirely. That
-      // matters because these get printed and stuck on tables, where a red-light laser
-      // or IR reader would see a blank square. Coral also sits at luma 140/255, right on
-      // the binarisation midpoint, and only 3.01:1 against white. This is 10.16:1 with a
-      // red-channel delta of 133, so it survives print, dim rooms and odd angles while
-      // still reading as the brand rather than the generic black.
-      color: "#7A2214",
+      // The interface teal ($primary, #0F6E66) darkened for scannability. These get
+      // printed and stuck on tables, so they have to survive print, dim rooms, odd
+      // angles and red-light laser readers. $primary itself would scan (6.10:1, luma
+      // 81/255), but this keeps the 10:1 margin the codes had before: 10.10:1 against
+      // white, luma 54/255, well clear of the binarisation midpoint, and a red-channel
+      // delta of 245, so the modules stay solid in the red band too. Still reads as
+      // the brand rather than the generic black.
+      color: "#0A4A45",
       type: "rounded",
     },
     imageOptions: {
