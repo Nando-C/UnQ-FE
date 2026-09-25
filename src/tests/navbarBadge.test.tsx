@@ -84,3 +84,38 @@ describe("NavigationBar cart badge", () => {
     expect(container.querySelector("a.cart-link")).toBeNull()
   })
 })
+
+describe("NavigationBar current page", () => {
+  const cart = cartWith([{ _id: "i1", menuId: menu("m1"), qty: 2, qtyPayed: 0 }])
+  const renderAt = (route: string) => {
+    server.use(http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cart)))
+    return renderWithProviders(<NavigationBar />, {
+      preloadedState: {
+        carts: { data: cart, pointers: { shopId: "s1", tableId: "t1" } },
+      },
+      route,
+    })
+  }
+
+  it("marks the cart as the current page on the cart route, and nothing else", async () => {
+    renderAt("/shops/s1/tables/t1/cart")
+
+    const cartLink = await screen.findByRole("link", { name: "Cart, 2 items" })
+    expect(cartLink).toHaveAttribute("aria-current", "page")
+    expect(cartLink).toHaveClass("active")
+    expect(screen.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current")
+    expect(screen.getByRole("link", { name: "Account" })).not.toHaveAttribute("aria-current")
+  })
+
+  it("does not light Home on a shop's menu page", () => {
+    renderAt("/shops/s1/tables/t1")
+
+    expect(screen.getByRole("link", { name: "Home" })).not.toHaveAttribute("aria-current")
+  })
+
+  it("lights Home on the shop list", () => {
+    renderAt("/")
+
+    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("aria-current", "page")
+  })
+})

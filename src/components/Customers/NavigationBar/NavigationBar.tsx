@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { Container, Nav, Navbar } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Badge, Container, Nav, Navbar } from "react-bootstrap";
+import { NavLink } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchAllShops } from "../../../redux/slices/shopSlice";
 import { fetchUserData } from "../../../redux/slices/userSlice";
@@ -42,30 +42,40 @@ const NavigationBar = () => {
       <Container className="NavigationBar" fluid>
         <Navbar className="p-0" fixed="bottom" bg="light" variant="light">
           <Container fluid className="px-0 bg-white border-top">
+            {/* NavLink marks the page you're on (class "active" plus
+                aria-current="page"), which NavigationBar.css turns teal. These
+                three are real pages, so the highlight is always accurate. */}
             <Nav className="mx-auto align-items-center">
-              <Link className="nav-link me-4" to={`/`}>
+              <NavLink className="nav-link me-4" to={`/`} end aria-label="Home">
                 <AiOutlineHome size={35} />
-              </Link>
+              </NavLink>
               {shopId && tableId ? (
-                <Link
+                <NavLink
                   className="cart-link nav-link mx-5"
                   to={`/shops/${shopId}/tables/${tableId}/cart`}
+                  aria-label={
+                    itemsQty > 0 ? `Cart, ${itemsQty} items` : "Cart"
+                  }
                 >
                   <IoCartOutline className="mt-1" size={35} />
                   {itemsQty > 0 && (
-                    <span className="qty-indicator text-primary">
+                    <Badge pill bg="primary" className="qty-indicator">
                       {itemsQty}
-                    </span>
+                    </Badge>
                   )}
-                </Link>
+                </NavLink>
               ) : (
                 <span className="cart-link nav-link mx-5">
                   <IoCartOutline className="mt-1" size={35} />
                 </span>
               )}
-              <Link className="nav-link ms-4" to={`/myAccount`}>
+              <NavLink
+                className="nav-link ms-4"
+                to={`/myAccount`}
+                aria-label="Account"
+              >
                 <FaRegUserCircle size={30} />
-              </Link>
+              </NavLink>
             </Nav>
           </Container>
         </Navbar>

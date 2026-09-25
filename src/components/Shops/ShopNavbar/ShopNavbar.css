@@ -30,10 +30,32 @@
   pointer-events: none;
 }
 
-/* Deliberately no .active rule. Shop Details / Menu / Tables are hash anchors into one
- * page, so a "current section" weight would be set on click and never corrected as the
- * user scrolls — wrong more often than right, and a stale highlight is worse than none.
- * :active below is the momentary pressed state, which is always accurate. */
+/* No "current section" state for Shop Details / Menu / Tables. They are hash anchors
+ * into one page, so a highlight would be set on click and never corrected as the user
+ * scrolls — wrong more often than right, and a stale highlight is worse than none.
+ * :active below is the momentary pressed state, which is always accurate. The real
+ * pages (My Shops, the account icon) are NavLinks, so their .active IS accurate and
+ * turns them teal via --bs-navbar-active-color.
+ *
+ * Teal marks meaning only: resting links keep Bootstrap's navbar grey, and the link
+ * you point at, focus or press turns teal as well as semibold. Hover is gated on
+ * (hover: hover) because touch screens apply :hover on tap and keep it. Teal is 6.10:1
+ * on the white bar. */
+.navbar.ShopNavbar {
+  --bs-navbar-active-color: var(--bs-primary);
+}
+
+@media (hover: hover) {
+  .navbar.ShopNavbar {
+    --bs-navbar-hover-color: var(--bs-primary);
+  }
+}
+
+.ShopNavbar .nav-link:focus-visible,
+.ShopNavbar .nav-link:active {
+  color: var(--bs-primary);
+}
+
 .ShopNavbar .nav-link:hover,
 .ShopNavbar .nav-link:focus-visible,
 .ShopNavbar .nav-link:active {

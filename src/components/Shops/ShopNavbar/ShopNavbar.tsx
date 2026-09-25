@@ -1,6 +1,6 @@
 import { Container, Nav, Navbar } from "react-bootstrap";
 import { FaRegUserCircle } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAppSelector } from "../../../redux/app/hooks";
 import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import { selectSelectedShop } from "../../../redux/slices/shopSlice";
@@ -29,9 +29,11 @@ const ShopNavbar = () => {
                 : "w-100 justify-content-between align-items-center"
             }
           >
-            <Link className="nav-link" data-label="My Shops" to={`/`}>
+            {/* NavLink: teal while you're on the page (ShopNavbar.css). The
+                three hash links below are plain anchors on purpose; see there. */}
+            <NavLink className="nav-link" data-label="My Shops" to={`/`} end>
               My Shops
-            </Link>
+            </NavLink>
             {shop?._id && (
               <>
                 <Nav.Link href="#shopDetails" data-label="Shop Details">Shop Details</Nav.Link>
@@ -39,9 +41,13 @@ const ShopNavbar = () => {
                 <Nav.Link href="#tableList" data-label="Tables">Tables</Nav.Link>
               </>
             )}
-            <Link className="nav-link" to={`/myAccount`}>
+            <NavLink
+              className="nav-link"
+              to={`/myAccount`}
+              aria-label="Account"
+            >
               <FaRegUserCircle size={30} />
-            </Link>
+            </NavLink>
           </Nav>
         </Container>
       </Navbar>

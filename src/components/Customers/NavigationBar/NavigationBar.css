@@ -1,10 +1,26 @@
+/* Resting icons stay Bootstrap's navbar grey; teal marks meaning only. The page
+ * you're on is teal (NavLink sets .active), and on a device that can hover, so is
+ * the icon under the pointer. Hover is gated on (hover: hover) because phones apply
+ * :hover on tap and keep it, which would leave a tapped icon teal after you've
+ * navigated away from its page. Teal is 6.10:1 on the white bar. */
+.NavigationBar .navbar {
+  --bs-navbar-active-color: var(--bs-primary);
+}
+
+@media (hover: hover) {
+  .NavigationBar .navbar {
+    --bs-navbar-hover-color: var(--bs-primary);
+  }
+}
+
 .NavigationBar .cart-link {
   position: relative;
 }
 
+/* A filled pill so the count reads as a count, not stray text by the icon. */
 .NavigationBar .cart-link .qty-indicator {
   position: absolute;
-  top: 0px;
-  right: 0px;
-  font-weight: 600;
+  top: 2px;
+  right: -6px;
+  font-size: 0.72rem;
 }

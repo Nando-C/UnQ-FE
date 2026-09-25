@@ -3,7 +3,11 @@ import { Card, Col, Container, Image, Row, Button } from "react-bootstrap";
 import { IoArrowBack } from "react-icons/io5";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { getTableCart, selectCartsData } from "../../../redux/slices/cartSlice";
+import {
+  getTableCart,
+  selectCartsData,
+  storeCartPointers,
+} from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
   selectSelectedShop,
@@ -28,6 +32,13 @@ const Cart = () => {
       dispatch(getTableCart(tableId));
     }
   }, [dispatch, tableId]);
+
+  // The bottom bar only links to (and highlights) the cart once it knows the
+  // table. TableMenu records it, but a cart page opened directly or refreshed
+  // never passes through the menu, which left the cart icon dead.
+  useEffect(() => {
+    dispatch(storeCartPointers({ shopId, tableId }));
+  }, [dispatch, shopId, tableId]);
 
   useEffect(() => {
     if (shopId && !shop) {
