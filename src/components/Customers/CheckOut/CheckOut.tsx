@@ -12,6 +12,7 @@ import {
   getTableCart,
   selectCartsData,
 } from "../../../redux/slices/cartSlice";
+import { REFUNDED_MARKER } from "../../../lib/cart";
 
 interface CheckOutProps {
   show: boolean;
@@ -73,7 +74,20 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                     const rejection = err as
                       | { status?: number; message?: string }
                       | undefined;
-                    if (rejection?.status === 409) {
+                    if (
+                      rejection?.status === 409 &&
+                      rejection.message &&
+                      !rejection.message.includes(REFUNDED_MARKER)
+                    ) {
+                      // Refused BEFORE capture (an item sold out, the
+                      // selection changed, or the units are gone): nothing
+                      // was charged or refunded. The refreshed cart shows why.
+                      handleShowFbk(
+                        "failure",
+                        `${rejection.message} — nothing was charged.`
+                      );
+                      dispatch(getTableCart(cart.tableId));
+                    } else if (rejection?.status === 409) {
                       // A concurrent payer took the units after capture — the
                       // BE has already refunded automatically.
                       handleShowFbk(
@@ -82,6 +96,7 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                           ? `${rejection.message} — you've been refunded automatically.`
                           : "Someone else claimed those units first — you've been refunded automatically."
                       );
+                      dispatch(getTableCart(cart.tableId));
                     } else if (rejection?.status === 402) {
                       handleShowFbk(
                         "failure",

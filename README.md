@@ -106,6 +106,7 @@ This started as a solo capstone project for Strive School's Full Stack Master Ca
 
 - **QR-driven table menus** — each table gets its own QR code; scanning it opens that shop's menu scoped to that table.
 - **Shared table cart with per-item bill splitting** — anyone at the table can add items to the same cart and choose exactly which items (and quantities) they're paying for.
+- **Sold-out items** — an item the manager marks unavailable is shown greyed out with a "Sold out" badge and can't be ordered; if it sells out after it was added, it stays in the cart flagged, is never charged, and has to be removed before the rest can be paid for.
 - **Checkout** — PayPal (sandbox) via `@paypal/react-paypal-js`, with server-created and server-captured payments: the back end mints the order for the buyer's DB-priced split total and captures it itself after approval, so the client never handles money — a post-capture conflict is refunded automatically.
 - **Auth** — email/password and Google OAuth, JWT access + refresh tokens in httpOnly cookies, with silent refresh-on-401 so a 15-minute access token never logs the user out mid-session.
 - **Manager dashboard** — CRUD for shops, menu items (with per-item availability toggle), and tables; QR-code generation per table via `qr-code-styling`; images are uploaded through the back end to Cloudinary.
@@ -141,7 +142,7 @@ flowchart LR
     BE --> Google["Google OAuth"]
 ```
 
-- **Entry**: `src/index.tsx` → `src/App.tsx`, which owns routing (`react-router-dom` v6) and switches between the customer `NavigationBar` and the manager `ShopNavbar`.
+- **Entry**: `src/index.tsx` → `src/App.tsx`, which owns routing (`react-router-dom` v7) and switches between the customer `NavigationBar` and the manager `ShopNavbar`.
 - **State**: Redux Toolkit, one slice per domain — `user` (auth/profile + `status: "idle" | "loading" | "authenticated" | "guest"`), `shops` (venues, menu items, tables), `carts` (table cart + per-item split state). Components read/dispatch through the typed hooks in `redux/app/hooks.ts` (`useAppDispatch`/`useAppSelector`) rather than the bare react-redux hooks.
 - **API access**: exclusively through the axios instance in `src/backend/backend.ts` (`withCredentials: true` — auth lives in httpOnly cookies, never in JS-readable storage). A response interceptor there transparently refreshes an expired access token on a 401 (single-flighted, so concurrent 401s share one refresh call) and replays the original request once.
 - **Shared types**: `src/typings/`.

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Card, ListGroup, Row, Button, Form, Col } from "react-bootstrap";
+import { Alert, Card, ListGroup, Row, Button, Form, Col } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
@@ -10,7 +10,7 @@ import {
 } from "../../../redux/slices/cartSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
 import { IItem } from "../../../typings/cart";
-import { availableQty, menuIdOf } from "../../../lib/cart";
+import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
 import PaymentFeedback from "../PaymentFeedback/PaymentFeedback";
@@ -53,11 +53,20 @@ const CartListItems = () => {
 
   // An item fully claimed by other diners (nothing left for me, and I hold no
   // split of my own) must not count against "Select All" — otherwise one
-  // contested item would make the header permanently un-tickable.
+  // contested item would make the header permanently un-tickable. Nor must a
+  // sold-out one: it can't be selected, and trying would only earn a 409.
   const selectableItems = visibleItems.filter((i) => {
+    if (isSoldOut(i)) return false;
     const mine = mySplitFor(i);
     return mine || availableQty(i, cart.split, myUser._id) > 0;
   });
+
+  const soldOutCount = visibleItems.filter(isSoldOut).length;
+  // Holding a split on a sold-out item blocks the whole checkout (the BE
+  // refuses it), so say so on the button instead of letting PayPal open.
+  const holdsSoldOut = visibleItems.some(
+    (i) => isSoldOut(i) && !!mySplitFor(i)
+  );
 
   // "Select All" is derived, never stored: checked exactly when every
   // selectable unpaid item has an open split of mine. Toggling it dispatches
@@ -83,9 +92,9 @@ const CartListItems = () => {
       // Give unselected items whatever's still available to me (total minus
       // paid minus other diners' open splits); items someone already split
       // (partially or fully, including a full claim by another diner) are
-      // left as they are.
+      // left as they are, and sold-out items are skipped.
       for (const item of visibleItems) {
-        if (!mySplitFor(item)) {
+        if (!mySplitFor(item) && !isSoldOut(item)) {
           const remaining = availableQty(item, cart.split, myUser._id);
           if (remaining <= 0) continue;
           await dispatch(
@@ -105,12 +114,19 @@ const CartListItems = () => {
     }
   };
 
+  // A sold-out item's unpaid units will never be charged, so they are left out
+  // of what the table still owes; its paid units still count, both here and in
+  // Total Payed. Open splits on it are left out too, so Remaining stays
+  // Cart Total minus paid minus selected.
   const totalCart = cart.items.reduce(
-    (total, item) => total + item.qty * (item.menuId?.price ?? 0),
+    (total, item) =>
+      total +
+      (isSoldOut(item) ? item.qtyPayed ?? 0 : item.qty) *
+        (item.menuId?.price ?? 0),
     0
   );
   const totalSplit = cart.split
-    .filter((split) => split.splitStatus === "open")
+    .filter((split) => split.splitStatus === "open" && !isSoldOut(split))
     .reduce((total, split) => total + split.qty * (split.menuId?.price ?? 0), 0);
 
   const totalSplitPayed = cart.split
@@ -181,6 +197,13 @@ const CartListItems = () => {
           </Row>
         </Col>
       </Row>
+      {soldOutCount > 0 && (
+        <Alert variant="warning" className="mt-2 mb-1">
+          {soldOutCount === 1
+            ? "1 item sold out after it was added. It won't be charged — remove it to pay for the rest."
+            : `${soldOutCount} items sold out after they were added. They won't be charged — remove them to pay for the rest.`}
+        </Alert>
+      )}
       <ListGroup className="px-0" variant="flush">
         {visibleItems.map((item) => (
           <ListGroup.Item key={item._id} className="px-0 menu-item">
@@ -190,9 +213,15 @@ const CartListItems = () => {
       </ListGroup>
 
       <Row className="mx-1 py-5">
-        <Button onClick={handleShow} className="mb-3">
-          CheckOut <strong>£{totalSplit}</strong>{" "}
-        </Button>
+        {holdsSoldOut ? (
+          <Button disabled className="mb-3">
+            Remove sold-out items to check out
+          </Button>
+        ) : (
+          <Button onClick={handleShow} className="mb-3">
+            CheckOut <strong>£{totalSplit}</strong>{" "}
+          </Button>
+        )}
       </Row>
       <CheckOut
         show={show}

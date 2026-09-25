@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Card, Col, Image, Row, Button } from "react-bootstrap";
+import { useEffect, useRef, useState } from "react";
+import { Badge, Card, Col, Image, Row, Button } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { addToCart } from "../../../redux/slices/cartSlice";
@@ -24,10 +24,9 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
     qty: 1,
   });
 
+  // The shop (and so this card's data) is fetched once by TableMenu; every
+  // card used to refetch the whole shop on mount as well.
   const dispatch = useAppDispatch();
-  useEffect(() => {
-    dispatch(fetchSingleShop(shopId));
-  }, [dispatch, shopId]);
 
   const shop = useAppSelector(selectSelectedShop);
   const menuItem = shop?.menu.find((item) => item._id === itemId);
@@ -36,12 +35,32 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
     setItem((prev) => ({ ...prev, menuId: menuItem }));
   }, [menuItem]);
 
+  const soldOut = menuItem?.available === false;
+
+  // Why an "Add" didn't go through. Before this a failed add was silently
+  // ignored, so a customer whose page predated the item selling out just saw
+  // nothing happen. Cleared on the next interaction or after a few seconds.
+  const [addError, setAddError] = useState<string | null>(null);
+  const addErrorTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const clearAddError = () => {
+    if (addErrorTimeoutRef.current) clearTimeout(addErrorTimeoutRef.current);
+    setAddError(null);
+  };
+  const showAddError = (message: string) => {
+    clearAddError();
+    setAddError(message);
+    addErrorTimeoutRef.current = setTimeout(() => setAddError(null), 5000);
+  };
+  useEffect(() => () => clearTimeout(addErrorTimeoutRef.current), []);
+
   const increment = () => {
+    clearAddError();
     const newQty = item.qty + 1;
     setItem({ ...item, qty: newQty });
   };
 
   const decrement = () => {
+    clearAddError();
     const newQty = item.qty - 1;
     if (newQty >= 0) {
       setItem({ ...item, qty: newQty });
@@ -55,13 +74,25 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
 
   const addItemToCart = async () => {
     if (user._id) {
-      dispatch(
-        addToCart({
-          shopId: shopId,
-          tableId: tableId,
-          item: item,
-        })
-      );
+      clearAddError();
+      try {
+        await dispatch(
+          addToCart({
+            shopId: shopId,
+            tableId: tableId,
+            item: item,
+          })
+        ).unwrap();
+      } catch (err) {
+        const rejection = err as { status?: number } | undefined;
+        if (rejection?.status === 409) {
+          showAddError(`Sorry — ${menuItem?.name} just sold out.`);
+          // Pull the fresh menu so this card turns into its sold-out state.
+          dispatch(fetchSingleShop(shopId));
+        } else {
+          showAddError("Couldn't add this to your cart — please try again.");
+        }
+      }
     } else {
       navigate("/login");
     }
@@ -69,7 +100,10 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
 
   return (
     <>
-      <Card className="MenuItem">
+      <Card
+        className={soldOut ? "MenuItem sold-out" : "MenuItem"}
+        aria-disabled={soldOut || undefined}
+      >
         <Row>
           <Col
             xs={8}
@@ -94,7 +128,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
                 </Card.Body>
               </Col>
               <Col xs={5}>
-                {tableId && (
+                {tableId && !soldOut && (
                   <Row className="quantity-wrapper text-center align-items-center">
                     <Col className="px-0">
                       <Button className="" size="sm" onClick={decrement}>
@@ -116,6 +150,13 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
               </Col>
               <Col xs={2}></Col>
             </Row>
+            {/* Always mounted (a live region inserted along with its text is
+                often not announced); empty and zero-height otherwise. */}
+            <div className="add-error ms-3" role="status" aria-live="polite">
+              {addError && (
+                <small className="text-danger d-block pb-2">{addError}</small>
+              )}
+            </div>
           </Col>
           <Col className="image-col ps-0" xs={4}>
             <Image
@@ -125,7 +166,14 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
               className="w-100 h-100"
             />
             <div className="image-overlayer"></div>
-            {tableId && (
+            {/* In the Add button's place, so it replaces the action the
+                customer would reach for. Shown with or without a table. */}
+            {soldOut && (
+              <Badge bg="secondary" className="sold-out-badge">
+                Sold out
+              </Badge>
+            )}
+            {tableId && !soldOut && (
               <Button
                 className="add-button"
                 // variant="outline-primary"

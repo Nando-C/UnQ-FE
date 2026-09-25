@@ -1,4 +1,4 @@
-import { Card, Col, Row, Button, Image, Form } from "react-bootstrap";
+import { Badge, Card, Col, Row, Button, Image, Form } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
@@ -10,7 +10,7 @@ import {
   selectCartsData,
 } from "../../../redux/slices/cartSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
-import { availableQty, menuIdOf } from "../../../lib/cart";
+import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
 import { RiDeleteBinLine } from "react-icons/ri";
 import "./CartItem.css";
 
@@ -41,6 +41,11 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
   const fullyClaimed = avail <= 0 && !splitItem;
 
   const selected = !!splitItem;
+  // Sold out after it was added: it stays listed until someone removes it, but
+  // can't be (newly) selected or paid for. A selection made before it sold out
+  // can still be cleared, so the checkbox only locks once it is unticked.
+  const soldOut = isSoldOut(cartItem);
+  const paidQty = cartItem?.qtyPayed ?? 0;
 
   const dispatch = useAppDispatch();
 
@@ -130,10 +135,11 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
             <Form.Check
               type="checkbox"
               checked={selected}
-              disabled={fullyClaimed}
+              disabled={fullyClaimed || (soldOut && !selected)}
               onChange={handleSelect}
+              aria-label={`Select ${cartItem.menuId?.name ?? "item"} to pay`}
             />
-            {fullyClaimed && (
+            {fullyClaimed && !soldOut && (
               <Form.Text muted className="d-block">
                 claimed by others
               </Form.Text>
@@ -141,7 +147,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
           </Form.Group>
         </Col>
         <Col xs={11}>
-          <Card className="CartItem">
+          <Card className={soldOut ? "CartItem sold-out" : "CartItem"}>
             <Row>
               <Col className="image-col pe-0 " xs={4}>
                 <Image
@@ -156,7 +162,18 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                   <Col>
                     <Card.Subtitle className="ms-3">
                       {cartItem?.menuId?.name}
+                      {soldOut && (
+                        <Badge bg="secondary" className="ms-2 align-middle">
+                          Sold out
+                        </Badge>
+                      )}
                     </Card.Subtitle>
+                    {soldOut && (
+                      <small className="sold-out-note d-block ms-3 mt-1">
+                        No longer available — you won't be charged for it.
+                        {paidQty > 0 && ` ${paidQty} already paid.`}
+                      </small>
+                    )}
                   </Col>
                   <Col xs="auto">
                     <span className="cart-qty-span">
@@ -175,7 +192,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                   <Col xs={6}>
                     <Row className="quantity-wrapper text-center align-items-center">
                       <Col className="px-0">
-                        {selected ? (
+                        {selected && !soldOut ? (
                           <Button active size="sm" onClick={decrement}>
                             <strong>-</strong>
                           </Button>
@@ -189,7 +206,10 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                         </Card.Body>
                       </Col>
                       <Col className="px-0">
-                        {selected ? (
+                        {/* Removing is the way forward for a sold-out row, so
+                            its bin shows even while it's selected; + would
+                            only be refused by the BE. */}
+                        {selected && !soldOut ? (
                           remaining <= 0 ? (
                             <Button disabled size="sm" onClick={increment}>
                               <strong>+</strong>
@@ -204,6 +224,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                             size="sm"
                             variant="danger"
                             onClick={deleteItemFromCart}
+                            aria-label={`Remove ${cartItem.menuId?.name ?? "item"} from the cart`}
                           >
                             <RiDeleteBinLine />
                           </Button>

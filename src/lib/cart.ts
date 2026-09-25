@@ -24,3 +24,17 @@ export const availableQty = (
     .reduce((sum, s) => sum + s.qty, 0);
   return (item?.qty ?? 0) - (item?.qtyPayed ?? 0) - heldByOthers;
 };
+
+// A menu item the shop has marked unavailable. Only a populated menuId can
+// say so; a bare id string (or a missing one) is treated as still available.
+// The BE refuses to add, newly split or charge a sold-out item, so the UI
+// greys it out and keeps it out of totals rather than letting a click 409.
+export const isSoldOut = (x: IItem | ISplitItem | undefined) =>
+  typeof x?.menuId === "object" && x.menuId?.available === false;
+
+// The one 409 from captureCheckout that comes AFTER the money moved: a
+// concurrent payer took the units and the BE refunded the capture. Every other
+// 409 there (sold out, selection changed, not enough units left) is raised
+// before capture, so nothing was charged. Matched by substring because the
+// BE's message is the only thing that tells them apart.
+export const REFUNDED_MARKER = "your payment was refunded";

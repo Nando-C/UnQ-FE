@@ -36,10 +36,24 @@ const toCartPayload = (item: IItem) => ({
     qty: item.qty,
 })
 
-export const addToCart = createAsyncThunk("cart/addToCart", async ({shopId, tableId, item}: AddToCartProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/addItem`, toCartPayload(item))
-    return data
-})
+export const addToCart = createAsyncThunk(
+    "cart/addToCart",
+    async ({shopId, tableId, item}: AddToCartProps, { rejectWithValue }) => {
+        try {
+            const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/addItem`, toCartPayload(item))
+            return data
+        } catch (err) {
+            // The menu card tells a sold-out 409 apart from any other failure.
+            if (axios.isAxiosError(err)) {
+                return rejectWithValue({
+                    status: err.response?.status,
+                    message: err.response?.data?.message,
+                })
+            }
+            throw err
+        }
+    }
+)
 export const addToSplit = createAsyncThunk("cart/addToSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
     const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/addSplitItem`, toCartPayload(item))
     return data
