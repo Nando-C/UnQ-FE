@@ -10,3 +10,13 @@
   top: 5px;
   right: 5px;
 }
+
+/* The code is a 250px bitmap; on screen it shrinks to fit a narrower card (four
+ * to a row in the 60rem shop page leaves ~216px) and stays square and centred.
+ * Print sets its own size in mm (TableList.css). */
+.SingleTable canvas {
+  display: block;
+  max-width: calc(100% - 2rem);
+  height: auto;
+  margin: 0 auto 1rem;
+}

@@ -133,11 +133,11 @@ function audit() {
     if (!visible(box)) continue
     const b = box.getBoundingClientRect()
     for (const el of box.querySelectorAll("*")) {
-      // Only what can be seen counts: text, controls, images. Layout boxes
+      // Only what can be seen counts: text, controls, images, canvases. Layout boxes
       // poke out harmlessly (a Bootstrap .row's negative margins are cancelled
       // by its columns' padding).
       if (!visible(el) || getComputedStyle(el).position === "fixed") continue
-      if (!hasOwnText(el) && !el.matches("button, input, select, textarea, img, svg, a")) continue
+      if (!hasOwnText(el) && !el.matches("button, input, select, textarea, img, svg, canvas, video, a")) continue
       let scroller = false
       for (let p = el.parentElement; p && p !== box; p = p.parentElement)
         if (getComputedStyle(p).overflowX !== "visible") { scroller = true; break }
