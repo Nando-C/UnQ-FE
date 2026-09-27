@@ -131,3 +131,30 @@ code {
   text-align: center;
   font-weight: 600;
 }
+
+/* Shop cards (customer home, manager's My Shops): one column on phones, two
+ * from 768px, three from 1200px. The whole card is the link. */
+.shop-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .shop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .shop-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.shop-grid .shop-link {
+  display: block;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}

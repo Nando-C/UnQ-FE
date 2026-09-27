@@ -59,9 +59,11 @@ html {
 /* On a shop's page the tabs lead the right-hand group, so the auto margin moves to
  * them (two auto margins would split the space and strand the tabs mid-bar). A short
  * divider then sets the account icon apart: next to it, the tabs could otherwise read
- * as account options rather than this shop's sections. Wide screens only; on a phone
- * the tabs are on their own row. */
-@media (min-width: 768px) {
+ * as account options rather than this shop's sections. From 640px, so most landscape
+ * phones (640-932px) get one 55px bar instead of 102px: the first width at which the
+ * shop's name still keeps ~100px beside the tabs. Below that the tabs have their own
+ * row. */
+@media (min-width: 640px) {
   .ShopNavbar .ShopSectionNav {
     margin-left: auto;
   }
@@ -84,11 +86,11 @@ html {
   }
 }
 
-/* Below 768px the tabs don't fit beside the breadcrumb, so they take a second row of
+/* Below 640px the tabs don't fit beside the breadcrumb, so they take a second row of
  * their own, spanning the bar edge to edge (the negative margins undo the container's
  * gutter) with the three tabs sharing it evenly for bigger touch targets. The
  * breadcrumb row keeps its layout; the shop's name gets whatever width is left. */
-@media (max-width: 767.98px) {
+@media (max-width: 639.98px) {
   .navbar.ShopNavbar .shop-bar {
     flex-wrap: wrap;
     column-gap: 0.75rem;
@@ -113,6 +115,14 @@ html {
 
   .ShopNavbar .ShopSectionNav .nav-link {
     flex: 1 1 0;
+  }
+}
+
+/* Below 768px the bar uses the whole screen width rather than Bootstrap's 540px
+ * container, which on a 740px landscape phone left the shop's name 30px. */
+@media (max-width: 767.98px) {
+  .navbar.ShopNavbar .shop-bar {
+    max-width: none;
   }
 }
 

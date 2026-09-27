@@ -12,7 +12,7 @@ import "./ShopNavbar.css";
 // The manager header. One row: the logo, a breadcrumb ("My Shops" on its own, or
 // "My Shops › First Shop" on a shop's page), that shop's section tabs, and the account
 // icon pinned to the right. Everything flows from the left, so the tabs and the shop's
-// name appearing never move My Shops or the account icon. Below 768px there is no room
+// name appearing never move My Shops or the account icon. Below 640px there is no room
 // for the tabs beside the breadcrumb, so they wrap onto a second row of their own
 // (ShopNavbar.css); the breadcrumb row reads the same at every width.
 const ShopNavbar = () => {

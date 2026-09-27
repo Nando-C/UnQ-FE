@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import axios from "axios";
 import { FloatingLabel, Form, Modal, Button, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
@@ -31,6 +31,7 @@ const TableModal = ({
   show,
   handleClose,
 }: TableModalProps) => {
+  const formId = useId();
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
   );
@@ -103,12 +104,18 @@ const TableModal = ({
 
   return (
     <>
-      <Modal className="ShopModal" show={show} onHide={handleClose}>
+      <Modal
+        className="ShopModal"
+        show={show}
+        onHide={handleClose}
+        fullscreen="sm-down"
+        scrollable
+      >
         <Modal.Header closeButton>
           <Modal.Title>Table</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form onSubmit={(e) => updateTable(e)}>
+          <Form id={formId} onSubmit={(e) => updateTable(e)}>
             <Form.Group className="mb-3" controlId="formBasicEmail">
               <FloatingLabel controlId="floatingInput" label="Name">
                 <Form.Control
@@ -123,32 +130,29 @@ const TableModal = ({
                 {error}
               </Alert>
             )}
-            {tableId !== "new" ? (
-              <Form.Group className="d-flex justify-content-between">
-                <Button
-                  variant="outline-danger"
-                  className="my-2"
-                  onClick={deleteTable}
-                >
-                  Delete Table
-                </Button>
-                <Button className="my-2" variant="primary" type="submit">
-                  Save Changes
-                </Button>
-              </Form.Group>
-            ) : (
-              <Form.Group className="d-flex justify-content-end">
-                <Button
-                  className="my-2"
-                  variant="primary"
-                  onClick={createTable}
-                >
-                  Create Table
-                </Button>
-              </Form.Group>
-            )}
           </Form>
         </Modal.Body>
+        {/* Outside the scrolling body, so the actions stay in view however
+            long the form is. The submit button reaches the form through its
+            form attribute. */}
+        <Modal.Footer
+          className={tableId !== "new" ? "justify-content-between" : undefined}
+        >
+          {tableId !== "new" ? (
+            <>
+              <Button variant="outline-danger" onClick={deleteTable}>
+                Delete Table
+              </Button>
+              <Button variant="primary" type="submit" form={formId}>
+                Save Changes
+              </Button>
+            </>
+          ) : (
+            <Button variant="primary" onClick={createTable}>
+              Create Table
+            </Button>
+          )}
+        </Modal.Footer>
       </Modal>
     </>
   );

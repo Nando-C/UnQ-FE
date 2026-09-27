@@ -15,12 +15,16 @@
  * stays level with the name when a long one wraps. */
 .Item .item-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--item-gap);
 }
 
+/* Below 10rem beside the thumbnail (large text sizes) the text moves under it
+ * and takes the card's full width, instead of breaking the name letter by
+ * letter and pushing the switch past the card's edge. */
 .Item .item-main {
-  flex: 1 1 auto;
+  flex: 1 1 10rem;
   min-width: 0;
 }
 

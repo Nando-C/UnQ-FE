@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState, useId } from "react";
 import axios from "axios";
 import { Modal, Button, Form, FloatingLabel, Image, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
@@ -26,6 +26,7 @@ interface ItemModalProps {
 }
 
 const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
+  const formId = useId();
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
   );
@@ -148,12 +149,19 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
 
   return (
     <>
-      <Modal className="ShopModal" show={show} onHide={handleClose} size="lg">
+      <Modal
+        className="ShopModal"
+        show={show}
+        onHide={handleClose}
+        size="lg"
+        fullscreen="sm-down"
+        scrollable
+      >
         <Modal.Header closeButton>
           <Modal.Title>Menu Item</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form onSubmit={(e) => updateItem(e)}>
+          <Form id={formId} onSubmit={(e) => updateItem(e)}>
             <Form.Group className="my-2">
               <Form.Control
                 type="file"
@@ -169,7 +177,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 }
                 height="200px"
                 alt="cover"
-                className="d-block mb-2"
+                className="preview d-block mb-2"
               />
               <Button
                 variant="dark"
@@ -268,28 +276,29 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 {error}
               </Alert>
             )}
-            {itemId !== "new" ? (
-              <Form.Group className="d-flex justify-content-between">
-                <Button
-                  variant="outline-danger"
-                  className="my-2"
-                  onClick={deleteItem}
-                >
-                  Delete Item
-                </Button>
-                <Button className="my-2" variant="primary" type="submit">
-                  Save Changes
-                </Button>
-              </Form.Group>
-            ) : (
-              <Form.Group className="d-flex justify-content-end">
-                <Button className="my-2" variant="primary" onClick={createItem}>
-                  Create Item
-                </Button>
-              </Form.Group>
-            )}
           </Form>
         </Modal.Body>
+        {/* Outside the scrolling body, so the actions stay in view however
+            long the form is. The submit button reaches the form through its
+            form attribute. */}
+        <Modal.Footer
+          className={itemId !== "new" ? "justify-content-between" : undefined}
+        >
+          {itemId !== "new" ? (
+            <>
+              <Button variant="outline-danger" onClick={deleteItem}>
+                Delete Item
+              </Button>
+              <Button variant="primary" type="submit" form={formId}>
+                Save Changes
+              </Button>
+            </>
+          ) : (
+            <Button variant="primary" onClick={createItem}>
+              Create Item
+            </Button>
+          )}
+        </Modal.Footer>
       </Modal>
     </>
   );

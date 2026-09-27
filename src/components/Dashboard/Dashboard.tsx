@@ -6,6 +6,7 @@ import ShopList from "../Shops/ShopList/ShopList";
 import { fetchShopList } from "../../redux/slices/shopSlice";
 import ShopModal from "../Shops/ShopModal/ShopModal";
 import AllShopsList from "../Customers/AllShopsList/AllShopsList";
+import "./Dashboard.css";
 
 const Dashboard = () => {
   const dispatch = useAppDispatch();
@@ -30,11 +31,10 @@ const Dashboard = () => {
   return (
     <>
       {isManager ? (
-        <Container className="pt-5">
-          <div className="my-4 px-3 d-flex justify-content-end">
-            <Button className="me-3" onClick={handleShow}>
-              Add Shop
-            </Button>
+        <Container className="MyShops">
+          <div className="page-head">
+            <h1>My Shops</h1>
+            <Button onClick={handleShow}>Add Shop</Button>
           </div>
           <ShopList />
           <ShopModal show={show} handleClose={handleClose} shopId={"new"} />

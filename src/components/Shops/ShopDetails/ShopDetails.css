@@ -6,6 +6,13 @@
   padding-top: var(--unq-header-h, 3rem);
 }
 
+/* Readable on wide screens: menu rows kept their price and switch ~1,000px from
+ * the name at 1440px. .container.: Bootstrap's own max-widths load after this
+ * file. */
+.container.ShopDetails {
+  max-width: 60rem;
+}
+
 .ShopDetails .list-group-item {
   border: none;
 }

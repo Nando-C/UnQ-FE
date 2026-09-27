@@ -12,7 +12,7 @@ const SECTIONS = [
 ];
 
 // A shop's section tabs, in the manager header on that shop's page: beside the
-// breadcrumb on wide screens, on a row of their own below 768px (ShopNavbar.css). The
+// breadcrumb on wide screens, on a row of their own below 640px (ShopNavbar.css). The
 // tab for the section you are reading follows the scroll, so unlike a highlight set on
 // click it can't go stale.
 const ShopSectionNav = () => {

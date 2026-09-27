@@ -60,4 +60,53 @@ describe("ItemModal", () => {
     ).toBeInTheDocument()
     expect(createSpy).not.toHaveBeenCalled()
   })
+
+  it("submits the edit form from Save Changes in the dialog's footer", async () => {
+    // The button sits outside the <form> (so it stays in view while the body
+    // scrolls) and reaches it through its form attribute.
+    let body: Record<string, unknown> | undefined
+    server.use(
+      http.put(`${BASE}/shops/s1/menu/m1`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ _id: "m1" })
+      }),
+      http.get(`${BASE}/shops/me`, () => HttpResponse.json([]))
+    )
+    const shop = {
+      _id: "s1",
+      name: "Shop",
+      menu: [
+        {
+          _id: "m1",
+          name: "Latte",
+          image: "",
+          short_description: "",
+          description: "",
+          price: 3,
+          available: true,
+          category: "drinks",
+        },
+      ],
+      tables: [],
+    }
+    const { user } = renderWithProviders(
+      <ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />,
+      {
+        preloadedState: {
+          shops: { data: [shop], selected: null, selectedMenu: null },
+        },
+      } as unknown as Parameters<typeof renderWithProviders>[1]
+    )
+
+    const price = screen.getByPlaceholderText("Price")
+    await user.clear(price)
+    await user.type(price, "3.5")
+    const save = screen.getByRole("button", { name: "Save Changes" })
+    expect(save.closest("form")).toBeNull()
+    await user.click(save)
+
+    await waitFor(() => expect(body).toBeDefined())
+    expect(body?.price).toBe(3.5)
+    expect(body?.name).toBe("Latte")
+  })
 })
