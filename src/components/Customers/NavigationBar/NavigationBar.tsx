@@ -47,10 +47,12 @@ const NavigationBar = () => {
                 three are real pages, so the highlight is always accurate. */}
             {/* Three equal cells, each at least 44px, instead of fixed
                 margins between the icons (at large text sizes those margins
-                pushed the account icon off the screen). */}
+                pushed the account icon off the screen). Icons are sized in em
+                (35px and 30px at the default 16px), so they grow with the
+                phone's text size like everything else. */}
             <Nav className="bottom-tabs flex-nowrap">
               <NavLink className="nav-link" to={`/`} end aria-label="Home">
-                <AiOutlineHome size={35} />
+                <AiOutlineHome size="2.2em" />
               </NavLink>
               {shopId && tableId ? (
                 <NavLink
@@ -61,7 +63,7 @@ const NavigationBar = () => {
                   }
                 >
                   <span className="cart-icon">
-                    <IoCartOutline className="mt-1" size={35} />
+                    <IoCartOutline className="mt-1" size="2.2em" />
                     {itemsQty > 0 && (
                       <Badge pill bg="primary" className="qty-indicator">
                         {itemsQty}
@@ -72,7 +74,7 @@ const NavigationBar = () => {
               ) : (
                 <span className="cart-link nav-link">
                   <span className="cart-icon">
-                    <IoCartOutline className="mt-1" size={35} />
+                    <IoCartOutline className="mt-1" size="2.2em" />
                   </span>
                 </span>
               )}
@@ -81,7 +83,7 @@ const NavigationBar = () => {
                 to={`/myAccount`}
                 aria-label="Account"
               >
-                <FaRegUserCircle size={30} />
+                <FaRegUserCircle size="1.9em" />
               </NavLink>
             </Nav>
           </Container>

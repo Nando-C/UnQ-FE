@@ -60,7 +60,13 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
         <Card>
           <Card.Title className="mt-3">{table?.name}</Card.Title>
           <div ref={qrRef} />
-          <Button size={"lg"} className="d-print-none" onClick={handleShow}>
+          <Button
+            variant="link"
+            size="lg"
+            className="table-edit d-print-none"
+            onClick={handleShow}
+            aria-label={`Edit table ${table?.name ?? ""}`.trim()}
+          >
             <GrEdit />
           </Button>
         </Card>

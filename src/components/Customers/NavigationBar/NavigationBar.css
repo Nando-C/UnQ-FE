@@ -39,5 +39,6 @@
   position: absolute;
   top: 2px;
   right: -6px;
-  font-size: 0.72rem;
+  /* 12px at the default text size, the smallest the audit accepts. */
+  font-size: 0.75rem;
 }

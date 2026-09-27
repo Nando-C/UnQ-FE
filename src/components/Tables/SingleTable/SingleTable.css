@@ -3,9 +3,9 @@
   box-shadow: 0 6px 6px -4px #5c5c5c38;
 }
 
-.SingleTable > .card .btn {
-  background-color: rgba(255, 255, 255, 0);
-  border: none;
+/* A teal pencil in the card's corner. variant="link" gives it the primary
+ * colour; as a transparent btn-primary it was white on the white card. */
+.SingleTable > .card .table-edit {
   position: absolute;
   top: 5px;
   right: 5px;

@@ -58,7 +58,7 @@ const Cart = () => {
       <Container className="Cart phone-column bg-light">
         <Row className="align-items-center pt-3">
           <Col xs={2}>
-            <Button className="hit-44" onClick={goBack}>
+            <Button className="hit-44" onClick={goBack} aria-label="Back">
               <IoArrowBack size={25} />
             </Button>
             {/* <span>Back</span> */}
