@@ -15,6 +15,16 @@ code {
     monospace;
 }
 
+/* Bootstrap gives buttons, inputs and nav links a teal focus glow but leaves a
+ * plain link (the logo, a shop card, a web address) to the browser, whose ring
+ * is Chrome's blue. Same glow here. Buttons and nav links keep their own rules,
+ * which outrank this one. The radius matches a card's corners. */
+a:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 var(--bs-focus-ring-width) var(--bs-focus-ring-color);
+  border-radius: var(--bs-border-radius);
+}
+
 /* Tap area of at least 44×44 for a control that looks smaller (−/+, bin,
  * checkboxes, every sheet's and dialog's ×): an invisible ::before centred on
  * it takes the taps. The look and the layout don't change. Keep 44px between
