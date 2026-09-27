@@ -77,6 +77,26 @@ code {
   border-top-right-radius: 20px;
 }
 
+/* On tablets and desktops a sheet stays phone-sized and centred instead of
+ * running edge to edge. Auto side margins centre a fixed box between left: 0
+ * and right: 0; transform stays free for the slide-in animation. */
+@media (min-width: 768px) {
+  .offcanvas.offcanvas-bottom.bottom-sheet {
+    max-width: 30rem;
+    margin-inline: auto;
+  }
+}
+
+/* The customer app is phone-first (you arrive from a QR code at the table), so
+ * on tablets and desktops its pages keep a phone-width column in the middle
+ * rather than stretching rows across the screen. */
+@media (min-width: 768px) {
+  .phone-column {
+    max-width: 40rem;
+    margin-inline: auto;
+  }
+}
+
 /* Quantity stepper (menu card and cart row): one outlined control the height
  * of a regular button (38px), so a filled button beside it reads as the action
  * and the stepper as its setting. The −/+ tap areas reach 44px via .hit-44. */

@@ -64,7 +64,7 @@ const TableMenu = () => {
         className="w-100"
         style={{ objectFit: "cover", maxHeight: "30vh" }}
       />
-      <Container>
+      <Container className="phone-column">
         <div className="text-center">
           <Card.Title className={!tableId ? "pt-4 pt-md-5" : "py-4 pt-md-5"}>
             {shop?.name}

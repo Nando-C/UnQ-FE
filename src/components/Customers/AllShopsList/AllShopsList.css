@@ -1,3 +1,32 @@
+.AllShopsList .shop-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .AllShopsList .shop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .AllShopsList .shop-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* The whole card is the link; it shouldn't look like underlined link text. */
+.AllShopsList .shop-link {
+  display: block;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Not scoped, and other screens rely on it (manager shop details, the
+ * choose-table panel): every list group item is borderless and transparent.
+ * Kept as it was; the shop list itself no longer uses a list group. */
 .list-group > .list-group-item {
   border: none;
   background-color: rgba(255, 255, 255, 0);

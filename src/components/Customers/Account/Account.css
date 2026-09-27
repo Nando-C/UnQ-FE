@@ -16,3 +16,12 @@
   top: 10px;
   right: 10px;
 }
+
+/* A portrait-sized avatar at every width (it filled half the card on a
+ * desktop), square-cropped so a non-square photo stays a circle. */
+.Account .avatar {
+  width: 100%;
+  max-width: 10rem;
+  aspect-ratio: 1;
+  object-fit: cover;
+}

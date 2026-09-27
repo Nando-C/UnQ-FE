@@ -1,4 +1,4 @@
-import { Card, Container, Image, Button, Row, Col } from "react-bootstrap";
+import { Card, Container, Image, Button } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { logOut, selectUserData, selectUserStatus } from "../../../redux/slices/userSlice";
 import { GrEdit } from "react-icons/gr";
@@ -26,22 +26,21 @@ const Account = () => {
   return (
     <>
       {status === "authenticated" ? (
-        <Container className="Account px-2 pb-2 text-center">
+        <Container className="Account phone-column px-2 pb-2 text-center">
           <Card className="p-2">
-            <Row className="align-items-center">
-              <Col sm={12} md={6}>
-                <Image className="p-5" src={user.avatar} fluid roundedCircle />
-              </Col>
-              <Col sm={12} md={6}>
-                <Card.Title className="mt-3">
-                  {user.name} {user.surname}
-                </Card.Title>
-                <Card.Body>
-                  <Card.Text>email: {user.email}</Card.Text>
-                  <Card.Text>Role: {user.role}</Card.Text>
-                </Card.Body>
-              </Col>
-            </Row>
+            {/* One column at every width (the page is a phone-width column
+                on wide screens too), so the corner edit button never sits
+                over the name. */}
+            <div>
+              <Image className="avatar my-4" src={user.avatar} alt="" roundedCircle />
+            </div>
+            <Card.Title>
+              {user.name} {user.surname}
+            </Card.Title>
+            <Card.Body>
+              <Card.Text className="text-break">email: {user.email}</Card.Text>
+              <Card.Text>Role: {user.role}</Card.Text>
+            </Card.Body>
             <Button
               className="edit-profile"
               variant="link"

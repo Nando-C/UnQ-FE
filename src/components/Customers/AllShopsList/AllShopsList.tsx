@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Col, FloatingLabel, Form, ListGroup, Row } from "react-bootstrap";
+import { Col, FloatingLabel, Form, Row } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useAppSelector } from "../../../redux/app/hooks";
 import { selectShopsData } from "../../../redux/slices/shopSlice";
@@ -26,7 +26,8 @@ const AllShopsList = () => {
           </Form.Group>
         </Col>
       </Row>
-      <ListGroup className="ShopList mb-5" variant="flush">
+      {/* One column on phones, two from 768px, three from 1200px. */}
+      <ul className="shop-grid list-unstyled mb-5">
         {shopList
           .filter(
             (shop) =>
@@ -37,18 +38,17 @@ const AllShopsList = () => {
               )
           )
           .map((shop) => (
-            <ListGroup.Item className="px-0" key={shop._id}>
-              <Link to={`/customer/shop/${shop._id}`}>
+            <li key={shop._id}>
+              <Link className="shop-link" to={`/customer/shop/${shop._id}`}>
                 <CustomerShopCard
-                  // _id={shop._id}
                   name={shop.name}
                   cover={shop.cover}
                   bio={shop.bio}
                 />
               </Link>
-            </ListGroup.Item>
+            </li>
           ))}
-      </ListGroup>
+      </ul>
     </div>
   );
 };

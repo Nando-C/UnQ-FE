@@ -55,7 +55,7 @@ const Cart = () => {
 
   return (
     <>
-      <Container className="Cart bg-light">
+      <Container className="Cart phone-column bg-light">
         <Row className="align-items-center pt-3">
           <Col xs={2}>
             <Button className="hit-44" onClick={goBack}>
