@@ -18,7 +18,7 @@ const PaymentFeedback = ({
   return (
     <>
       <div className="CheckOut">
-        <Offcanvas placement="bottom" show={showFbk} onHide={handleCloseFbk}>
+        <Offcanvas className="bottom-sheet" placement="bottom" show={showFbk} onHide={handleCloseFbk}>
           <Offcanvas.Header closeButton>
             <Offcanvas.Title>
               {variant === "success" ? "Success!" : "Payment not completed"}

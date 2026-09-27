@@ -136,8 +136,8 @@ function audit() {
       const l = label.getBoundingClientRect()
       w = Math.max(w, l.width); h = Math.max(h, l.height)
     }
-    for (const ps of ["::before", "::after"]) {
-      const cs = getComputedStyle(el, ps)
+    for (const [node, ps] of [el, label].filter(Boolean).flatMap((n) => [[n, "::before"], [n, "::after"]])) {
+      const cs = getComputedStyle(node, ps)
       if (cs.content === "none" || cs.content === "normal" || cs.position !== "absolute") continue
       w = Math.max(w, parseFloat(cs.width) || 0); h = Math.max(h, parseFloat(cs.height) || 0)
     }

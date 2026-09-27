@@ -26,7 +26,7 @@ const Account = () => {
   return (
     <>
       {status === "authenticated" ? (
-        <Container className="Account p-2 text-center">
+        <Container className="Account px-2 pb-2 text-center">
           <Card className="p-2">
             <Row className="align-items-center">
               <Col sm={12} md={6}>
@@ -42,7 +42,13 @@ const Account = () => {
                 </Card.Body>
               </Col>
             </Row>
-            <Button size={"lg"} onClick={handleShow}>
+            <Button
+              className="edit-profile"
+              variant="link"
+              size="lg"
+              onClick={handleShow}
+              aria-label="Edit profile"
+            >
               <GrEdit />
             </Button>
           </Card>

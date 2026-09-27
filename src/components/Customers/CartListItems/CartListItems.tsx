@@ -165,17 +165,14 @@ const CartListItems = () => {
     <>
       <Row className="justify-content-between align-items-center">
         <Col xs={4}>
-          <Form.Group
-            className="ms-2 text-center"
-            controlId="formBasicCheckbox"
-          >
-            <Form.Check
+          <label className="check-label hit-44 ms-2">
+            <Form.Check.Input
               type="checkbox"
               checked={allSelected}
               onChange={handleToggleAll}
-              label="Select All"
             />
-          </Form.Group>
+            Select All
+          </label>
         </Col>
         <Col xs={8}>
           <Row className="text-end">

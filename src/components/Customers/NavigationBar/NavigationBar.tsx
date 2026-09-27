@@ -45,32 +45,39 @@ const NavigationBar = () => {
             {/* NavLink marks the page you're on (class "active" plus
                 aria-current="page"), which NavigationBar.css turns teal. These
                 three are real pages, so the highlight is always accurate. */}
-            <Nav className="mx-auto align-items-center">
-              <NavLink className="nav-link me-4" to={`/`} end aria-label="Home">
+            {/* Three equal cells, each at least 44px, instead of fixed
+                margins between the icons (at large text sizes those margins
+                pushed the account icon off the screen). */}
+            <Nav className="bottom-tabs flex-nowrap">
+              <NavLink className="nav-link" to={`/`} end aria-label="Home">
                 <AiOutlineHome size={35} />
               </NavLink>
               {shopId && tableId ? (
                 <NavLink
-                  className="cart-link nav-link mx-5"
+                  className="cart-link nav-link"
                   to={`/shops/${shopId}/tables/${tableId}/cart`}
                   aria-label={
                     itemsQty > 0 ? `Cart, ${itemsQty} items` : "Cart"
                   }
                 >
-                  <IoCartOutline className="mt-1" size={35} />
-                  {itemsQty > 0 && (
-                    <Badge pill bg="primary" className="qty-indicator">
-                      {itemsQty}
-                    </Badge>
-                  )}
+                  <span className="cart-icon">
+                    <IoCartOutline className="mt-1" size={35} />
+                    {itemsQty > 0 && (
+                      <Badge pill bg="primary" className="qty-indicator">
+                        {itemsQty}
+                      </Badge>
+                    )}
+                  </span>
                 </NavLink>
               ) : (
-                <span className="cart-link nav-link mx-5">
-                  <IoCartOutline className="mt-1" size={35} />
+                <span className="cart-link nav-link">
+                  <span className="cart-icon">
+                    <IoCartOutline className="mt-1" size={35} />
+                  </span>
                 </span>
               )}
               <NavLink
-                className="nav-link ms-4"
+                className="nav-link"
                 to={`/myAccount`}
                 aria-label="Account"
               >

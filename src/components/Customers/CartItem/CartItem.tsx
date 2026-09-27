@@ -128,23 +128,23 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
     <>
       <Row className="align-items-center">
         <Col className="d-flex p-0" xs={1}>
-          <Form.Group
-            className="ms-3 text-center"
-            controlId="formBasicCheckbox"
-          >
-            <Form.Check
-              type="checkbox"
-              checked={selected}
-              disabled={fullyClaimed || (soldOut && !selected)}
-              onChange={handleSelect}
-              aria-label={`Select ${cartItem.menuId?.name ?? "item"} to pay`}
-            />
+          <div className="ms-2 text-center">
+            {/* The label around the box gives it a 44px tap area. */}
+            <label className="check-label hit-44">
+              <Form.Check.Input
+                type="checkbox"
+                checked={selected}
+                disabled={fullyClaimed || (soldOut && !selected)}
+                onChange={handleSelect}
+                aria-label={`Select ${cartItem.menuId?.name ?? "item"} to pay`}
+              />
+            </label>
             {fullyClaimed && !soldOut && (
               <Form.Text muted className="d-block">
                 claimed by others
               </Form.Text>
             )}
-          </Form.Group>
+          </div>
         </Col>
         <Col xs={11}>
           <Card className={soldOut ? "CartItem sold-out" : "CartItem"}>
@@ -193,7 +193,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                     <Row className="quantity-wrapper text-center align-items-center">
                       <Col className="px-0">
                         {selected && !soldOut ? (
-                          <Button active size="sm" onClick={decrement}>
+                          <Button className="hit-44" active size="sm" onClick={decrement}>
                             <strong>-</strong>
                           </Button>
                         ) : (
@@ -211,16 +211,17 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                             only be refused by the BE. */}
                         {selected && !soldOut ? (
                           remaining <= 0 ? (
-                            <Button disabled size="sm" onClick={increment}>
+                            <Button className="hit-44" disabled size="sm" onClick={increment}>
                               <strong>+</strong>
                             </Button>
                           ) : (
-                            <Button active size="sm" onClick={increment}>
+                            <Button className="hit-44" active size="sm" onClick={increment}>
                               <strong>+</strong>
                             </Button>
                           )
                         ) : (
                           <Button
+                            className="hit-44"
                             size="sm"
                             variant="danger"
                             onClick={deleteItemFromCart}

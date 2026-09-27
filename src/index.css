@@ -14,3 +14,65 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
+
+/* Tap area of at least 44×44 for a control that looks smaller (−/+, bin,
+ * checkboxes, every sheet's and dialog's ×): an invisible ::before centred on
+ * it takes the taps. The look and the layout don't change. Keep 44px between
+ * neighbouring centres so the areas don't overlap, and don't put it inside
+ * anything with overflow: hidden. */
+.hit-44,
+.offcanvas-header .btn-close,
+.modal-header .btn-close {
+  position: relative;
+}
+
+.hit-44::before,
+.offcanvas-header .btn-close::before,
+.modal-header .btn-close::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
+/* A checkbox inside its own <label>, so the label (and its hit area) toggles it.
+ * The box is a little larger than Bootstrap's 1em. */
+.check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.check-label .form-check-input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* A labelled box sits at its label's left edge; reach 12px past both ends so a
+ * tap just beside the box still counts. */
+.check-label.hit-44::before {
+  width: max(100% + 1.5rem, 44px);
+}
+
+.check-label:has(.form-check-input:disabled) {
+  cursor: default;
+}
+
+/* Bottom sheets (checkout, payment result) are as tall as what they hold, up to
+ * most of the screen, and scroll inside beyond that. A fixed height hid PayPal's
+ * card button on landscape phones. Three classes to beat Bootstrap's
+ * .offcanvas.offcanvas-bottom height. */
+.offcanvas.offcanvas-bottom.bottom-sheet {
+  height: auto;
+  max-height: 85vh;
+  max-height: min(85dvh, 36rem);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}

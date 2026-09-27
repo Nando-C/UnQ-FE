@@ -119,37 +119,44 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
                 </Card.Body>
               </Col>
             </Row>
-            <Row className="pb-2 align-items-center">
-              <Col xs={5}>
-                <Card.Body className="p-0 ms-3">
-                  <span className="price text-primary">
-                    £ {menuItem?.price}
-                  </span>
-                </Card.Body>
-              </Col>
-              <Col xs={5}>
-                {tableId && !soldOut && (
-                  <Row className="quantity-wrapper text-center align-items-center">
-                    <Col className="px-0">
-                      <Button className="" size="sm" onClick={decrement}>
-                        <strong>-</strong>
-                      </Button>
-                    </Col>
-                    <Col className="px-0">
-                      <Card.Body className="p-0">
-                        <small>{item.qty}</small>
-                      </Card.Body>
-                    </Col>
-                    <Col className="px-0">
-                      <Button className="" size="sm" onClick={increment}>
-                        <strong>+</strong>
-                      </Button>
-                    </Col>
-                  </Row>
-                )}
-              </Col>
-              <Col xs={2}></Col>
-            </Row>
+            {/* Price, quantity and Add in one row, so ordering is one tap
+                and doesn't depend on hover (phones only emulate it on tap).
+                Wraps under the price when the card is too narrow. */}
+            <div className="actions d-flex flex-wrap align-items-center column-gap-3 row-gap-2 ms-3 pb-2">
+              <span className="price text-primary">£ {menuItem?.price}</span>
+              {tableId && !soldOut && (
+                <div className="d-flex flex-wrap align-items-center column-gap-3 row-gap-2">
+                  {/* One outlined control, as tall as Add, so the filled Add
+                      reads as the action and the stepper as its setting. */}
+                  <div className="stepper" role="group" aria-label="Quantity">
+                    <Button
+                      variant="link"
+                      className="hit-44"
+                      onClick={decrement}
+                      aria-label="Decrease quantity"
+                    >
+                      −
+                    </Button>
+                    <span className="qty">{item.qty}</span>
+                    <Button
+                      variant="link"
+                      className="hit-44"
+                      onClick={increment}
+                      aria-label="Increase quantity"
+                    >
+                      +
+                    </Button>
+                  </div>
+                  <Button
+                    className="add-button"
+                    onClick={addItemToCart}
+                    disabled={item.qty < 1}
+                  >
+                    Add
+                  </Button>
+                </div>
+              )}
+            </div>
             {/* Always mounted (a live region inserted along with its text is
                 often not announced); empty and zero-height otherwise. */}
             <div className="add-error ms-3" role="status" aria-live="polite">
@@ -166,25 +173,14 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
               className="w-100 h-100"
             />
             <div className="image-overlayer"></div>
-            {/* In the Add button's place, so it replaces the action the
-                customer would reach for. Shown with or without a table. Light
-                with dark text: a mid-grey pill is hard to tell from the teal
-                buttons for red-blind customers, so it differs by brightness. */}
+            {/* On the photo, where it can't be missed. Shown with or without a
+                table. Light with dark text: a mid-grey pill is hard to tell
+                from the teal buttons for red-blind customers, so it differs
+                by brightness. */}
             {soldOut && (
               <Badge bg="light" text="dark" className="sold-out-badge border">
                 Sold out
               </Badge>
-            )}
-            {tableId && !soldOut && (
-              <Button
-                className="add-button"
-                // variant="outline-primary"
-                size="sm"
-                onClick={addItemToCart}
-                disabled={item.qty < 1}
-              >
-                <strong>Add</strong>
-              </Button>
             )}
           </Col>
         </Row>

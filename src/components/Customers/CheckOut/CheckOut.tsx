@@ -1,6 +1,5 @@
 import { useRef } from "react";
 import { Offcanvas } from "react-bootstrap";
-import "./CheckOut.css";
 import {
   PayPalButtons,
   PayPalScriptProvider,
@@ -29,7 +28,7 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
 
   return (
     <div className="CheckOut">
-      <Offcanvas placement="bottom" show={show} onHide={handleClose}>
+      <Offcanvas className="bottom-sheet" placement="bottom" show={show} onHide={handleClose}>
         <Offcanvas.Header closeButton>
           <Offcanvas.Title>Select Payment Type</Offcanvas.Title>
         </Offcanvas.Header>

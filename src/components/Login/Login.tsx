@@ -98,8 +98,11 @@ const Login = () => {
             </Form.Group>
             <Form.Group className="my-3">
               <p>
-                Don't have an account?
-                <a href={`/register`}> SignUp</a>
+                Don't have an account?{" "}
+                {/* Padded to a 24px+ tap height; still reads as a link. */}
+                <a href={`/register`} className="d-inline-block py-1">
+                  SignUp
+                </a>
               </p>
             </Form.Group>
             {error && (

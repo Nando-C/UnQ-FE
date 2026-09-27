@@ -62,7 +62,7 @@ describe("menu card", () => {
 
     expect(screen.getByText("Sold out")).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /add/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "+" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Increase quantity" })).not.toBeInTheDocument()
     expect(screen.getByText("item-m1").closest(".MenuItem")).toHaveAttribute(
       "aria-disabled",
       "true"
