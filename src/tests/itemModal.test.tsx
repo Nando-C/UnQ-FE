@@ -109,4 +109,26 @@ describe("ItemModal", () => {
     expect(body?.price).toBe(3.5)
     expect(body?.name).toBe("Latte")
   })
+
+  it("shows Reset Image only after a photo is picked, and clears the pick", async () => {
+    // jsdom has no object URLs; the preview only needs a string.
+    const createObjectURL = vi
+      .spyOn(URL, "createObjectURL")
+      .mockReturnValue("blob:preview")
+    const { user, container } = renderNewItemModal()
+
+    expect(screen.queryByRole("button", { name: "Reset Image" })).toBeNull()
+
+    const input = container.ownerDocument.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement
+    await user.upload(input, new File(["x"], "latte.png", { type: "image/png" }))
+
+    await user.click(await screen.findByRole("button", { name: "Reset Image" }))
+
+    expect(screen.queryByRole("button", { name: "Reset Image" })).toBeNull()
+    // Cleared, so choosing the same file again fires a change.
+    expect(input.value).toBe("")
+    createObjectURL.mockRestore()
+  })
 })

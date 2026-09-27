@@ -7,7 +7,6 @@ import {
   Offcanvas,
   Button,
   FloatingLabel,
-  Row,
 } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
@@ -108,27 +107,36 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                     ? URL.createObjectURL(imageFile)
                     : user?.avatar || placeholder
                 }
-                height="200px"
-                alt="cover"
-                className="d-block mx-auto pb-5"
+                width={200}
+                height={200}
+                alt=""
+                className="avatar-preview d-block mx-auto mb-4"
                 roundedCircle
               />
-              <Row className="mx-5">
+              <div className="d-grid gap-2 mx-5">
+                {/* Secondary: a teal outline, so the filled Save stays the one
+                    action that stands out. */}
                 <Button
-                  variant="dark"
-                  className=""
+                  variant="outline-primary"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   Upload Image
                 </Button>
-                <Button
-                  variant="outline-dark"
-                  className="my-2"
-                  onClick={() => setImageFile(null)}
-                >
-                  Reset Image
-                </Button>
-              </Row>
+                {/* Only once a new photo has been picked: it undoes that
+                    pick. The input is cleared too, or picking the same file
+                    again would fire no change. */}
+                {imageFile && (
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => {
+                      setImageFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                  >
+                    Reset Image
+                  </Button>
+                )}
+              </div>
             </Form.Group>
             <Form.Group className="mb-3" controlId="formBasicEmail">
               <FloatingLabel controlId="floatingInput" label="Name">

@@ -179,20 +179,31 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 alt="cover"
                 className="preview d-block mb-2"
               />
-              <Button
-                variant="dark"
-                className="me-2"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Upload Image
-              </Button>
-              <Button
-                variant="outline-dark"
-                className="my-2"
-                onClick={() => setImageFile(null)}
-              >
-                Reset Image
-              </Button>
+              {/* A fixed gap, so the form doesn't shift when Reset appears. */}
+              <div className="d-flex flex-wrap gap-2">
+                {/* Secondary: a teal outline, so the filled Save stays the one
+                    action that stands out. */}
+                <Button
+                  variant="outline-primary"
+                                onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload Image
+                </Button>
+                {/* Only once a new photo has been picked: it undoes that pick. The
+                    input is cleared too, or picking the same file again would fire
+                    no change. */}
+                {imageFile && (
+                  <Button
+                    variant="outline-secondary"
+                                  onClick={() => {
+                      setImageFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                  >
+                    Reset Image
+                  </Button>
+                )}
+              </div>
             </Form.Group>
             <Form.Group className="mb-3" controlId="formBasicEmail">
               <FloatingLabel controlId="floatingInput" label="Name">
