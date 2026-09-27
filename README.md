@@ -216,6 +216,8 @@ Local development reproduces the same shape through Vite's dev-server proxy (`vi
 
 The suite is written with Vitest, React Testing Library, and msw (mocking the back end at the network layer, no real requests). It covers the auth forms' validation and error mapping, the silent-refresh interceptor, cart total math, the navbar order badge, and the manager item form's category/price validation.
 
+Layout is checked separately: `npm run audit:responsive` renders the main customer and manager screens at seven sizes from 320px phones to 1440px desktops, plus a phone with text at 200%, in headless Chrome against a mocked API, and writes a report with screenshots to `responsive-report/` (needs Google Chrome installed; `--screens=` and `--viewports=` narrow the run).
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- USAGE EXAMPLES -->

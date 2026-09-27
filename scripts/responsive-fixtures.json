@@ -1,0 +1,343 @@
+{
+  "//": "Mock API data for scripts/responsive-audit.mjs. Deliberately awkward: a 45-character shop name, a 47-character dish name with a long description, one sold-out item (m1), and a cart with a paid unit, another diner's open split and one of mine. Image URLs are placeholders the script answers with generated SVGs, so the audit never touches the network for them.",
+  "users": {
+    "customer": {
+      "_id": "u1",
+      "name": "Alexandra",
+      "surname": "Montgomery-Smith",
+      "email": "manager.longaddress@example.com",
+      "avatar": "https://img.fixtures.test/600x600/200.svg",
+      "role": "customer"
+    },
+    "shopMg": {
+      "_id": "u1",
+      "name": "Alexandra",
+      "surname": "Montgomery-Smith",
+      "email": "manager.longaddress@example.com",
+      "avatar": "https://img.fixtures.test/600x600/200.svg",
+      "role": "shopMg"
+    }
+  },
+  "shops": [
+    {
+      "_id": "s1",
+      "name": "The Corner Café & Bakery on the High Street",
+      "bio": "Neighbourhood café with sourdough, pastries and good coffee since 2012.",
+      "cover": "https://img.fixtures.test/1600x900/30.svg",
+      "open_times": "Mon–Sat 8:00–18:00",
+      "phone": 447700900123,
+      "web_URL": "https://cornercafe.example.com",
+      "menu": [
+        {
+          "_id": "m0",
+          "name": "Pancake 🥞",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 9.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/20.svg"
+        },
+        {
+          "_id": "m1",
+          "name": "Burguer 🍔",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 10.5,
+          "available": false,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/70.svg"
+        },
+        {
+          "_id": "m2",
+          "name": "Hand-crafted pesto pasta with toasted pine nuts",
+          "short_description": "Fresh basil pesto, parmesan, pine nuts and a drizzle of our own olive oil",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 11.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/120.svg"
+        },
+        {
+          "_id": "m3",
+          "name": "Salad",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 12.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/170.svg"
+        },
+        {
+          "_id": "m4",
+          "name": "Soup of the day",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 13.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/220.svg"
+        },
+        {
+          "_id": "m5",
+          "name": "Tart",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 14.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/270.svg"
+        }
+      ],
+      "tables": [
+        {
+          "_id": "t1",
+          "name": "1",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t1"
+        },
+        {
+          "_id": "t2",
+          "name": "2",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t2"
+        },
+        {
+          "_id": "t3",
+          "name": "3",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t3"
+        },
+        {
+          "_id": "t4",
+          "name": "4",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t4"
+        },
+        {
+          "_id": "t5",
+          "name": "5",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t5"
+        }
+      ],
+      "shopMg": [
+        "u1"
+      ]
+    },
+    {
+      "_id": "s2",
+      "name": "First Shop",
+      "bio": "Neighbourhood café with sourdough, pastries and good coffee since 2012.",
+      "cover": "https://img.fixtures.test/1600x900/170.svg",
+      "open_times": "Mon–Sat 8:00–18:00",
+      "phone": 447700900123,
+      "web_URL": "https://cornercafe.example.com",
+      "menu": [
+        {
+          "_id": "m0",
+          "name": "Pancake 🥞",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 9.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/20.svg"
+        },
+        {
+          "_id": "m1",
+          "name": "Burguer 🍔",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 10.5,
+          "available": false,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/70.svg"
+        },
+        {
+          "_id": "m2",
+          "name": "Hand-crafted pesto pasta with toasted pine nuts",
+          "short_description": "Fresh basil pesto, parmesan, pine nuts and a drizzle of our own olive oil",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 11.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/120.svg"
+        },
+        {
+          "_id": "m3",
+          "name": "Salad",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 12.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/170.svg"
+        },
+        {
+          "_id": "m4",
+          "name": "Soup of the day",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 13.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/220.svg"
+        },
+        {
+          "_id": "m5",
+          "name": "Tart",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 14.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/270.svg"
+        }
+      ],
+      "tables": [
+        {
+          "_id": "t1",
+          "name": "1",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t1"
+        },
+        {
+          "_id": "t2",
+          "name": "2",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t2"
+        },
+        {
+          "_id": "t3",
+          "name": "3",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t3"
+        },
+        {
+          "_id": "t4",
+          "name": "4",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t4"
+        },
+        {
+          "_id": "t5",
+          "name": "5",
+          "Qr_Url": "https://un-q.vercel.app/shops/s1/tables/t5"
+        }
+      ],
+      "shopMg": [
+        "u1"
+      ]
+    }
+  ],
+  "cart": {
+    "_id": "c1",
+    "userId": "u1",
+    "tableId": "t1",
+    "status": "open",
+    "items": [
+      {
+        "_id": "i1",
+        "menuId": {
+          "_id": "m0",
+          "name": "Pancake 🥞",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 9.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/20.svg"
+        },
+        "qty": 2,
+        "qtyPayed": 0
+      },
+      {
+        "_id": "i2",
+        "menuId": {
+          "_id": "m1",
+          "name": "Burguer 🍔",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 10.5,
+          "available": false,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/70.svg"
+        },
+        "qty": 3,
+        "qtyPayed": 1
+      },
+      {
+        "_id": "i3",
+        "menuId": {
+          "_id": "m2",
+          "name": "Hand-crafted pesto pasta with toasted pine nuts",
+          "short_description": "Fresh basil pesto, parmesan, pine nuts and a drizzle of our own olive oil",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 11.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/120.svg"
+        },
+        "qty": 1,
+        "qtyPayed": 0
+      },
+      {
+        "_id": "i4",
+        "menuId": {
+          "_id": "m3",
+          "name": "Salad",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 12.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/170.svg"
+        },
+        "qty": 4,
+        "qtyPayed": 0
+      }
+    ],
+    "split": [
+      {
+        "_id": "sp1",
+        "userId": "u2",
+        "menuId": {
+          "_id": "m1",
+          "name": "Burguer 🍔",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 10.5,
+          "available": false,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/70.svg"
+        },
+        "qty": 1,
+        "splitStatus": "closed"
+      },
+      {
+        "_id": "sp3",
+        "userId": "u1",
+        "menuId": {
+          "_id": "m0",
+          "name": "Pancake 🥞",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 9.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/20.svg"
+        },
+        "qty": 2,
+        "splitStatus": "open"
+      },
+      {
+        "_id": "sp4",
+        "userId": "u2",
+        "menuId": {
+          "_id": "m3",
+          "name": "Salad",
+          "short_description": "House favourite",
+          "description": "Made in house every morning with local ingredients.",
+          "price": 12.5,
+          "available": true,
+          "category": "food",
+          "image": "https://img.fixtures.test/800x600/170.svg"
+        },
+        "qty": 1,
+        "splitStatus": "open"
+      }
+    ]
+  }
+}
