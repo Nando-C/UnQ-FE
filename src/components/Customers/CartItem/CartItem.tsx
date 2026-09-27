@@ -1,4 +1,4 @@
-import { Badge, Card, Col, Row, Button, Image, Form } from "react-bootstrap";
+import { Badge, Card, Button, Image, Form } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
@@ -12,6 +12,7 @@ import {
 import { selectUserData } from "../../../redux/slices/userSlice";
 import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
 import { RiDeleteBinLine } from "react-icons/ri";
+import { formatPrice } from "../../../lib/price";
 import "./CartItem.css";
 
 interface CartItemProps {
@@ -124,122 +125,87 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
 
   if (!cartItem) return null;
 
+  const name = cartItem.menuId?.name ?? "item";
+
   return (
-    <>
-      <Row className="align-items-center">
-        <Col className="d-flex p-0" xs={1}>
-          <div className="ms-2 text-center">
-            {/* The label around the box gives it a 44px tap area. */}
-            <label className="check-label hit-44">
-              <Form.Check.Input
-                type="checkbox"
-                checked={selected}
-                disabled={fullyClaimed || (soldOut && !selected)}
-                onChange={handleSelect}
-                aria-label={`Select ${cartItem.menuId?.name ?? "item"} to pay`}
-              />
-            </label>
-            {fullyClaimed && !soldOut && (
-              <Form.Text muted className="d-block">
-                claimed by others
-              </Form.Text>
+    <div className="CartRow">
+      {/* A 44px cell; the label around the box gives it a 44px tap area. */}
+      <div className="cart-check">
+        <label className="check-label hit-44">
+          <Form.Check.Input
+            type="checkbox"
+            checked={selected}
+            disabled={fullyClaimed || (soldOut && !selected)}
+            onChange={handleSelect}
+            aria-label={`Select ${name} to pay`}
+          />
+        </label>
+      </div>
+      <Card className={soldOut ? "CartItem sold-out" : "CartItem"}>
+        <Image className="cart-thumb" src={cartItem.menuId?.image} alt="" rounded />
+        <div className="cart-body">
+          <Card.Subtitle>
+            {cartItem.menuId?.name}
+            {soldOut && (
+              <Badge bg="light" text="dark" className="ms-2 align-middle border">
+                Sold out
+              </Badge>
+            )}
+          </Card.Subtitle>
+          <small className="cart-meta d-block">
+            in cart: {remaining}
+            {fullyClaimed && !soldOut && " · claimed by others"}
+          </small>
+          {soldOut && (
+            <small className="sold-out-note d-block">
+              No longer available — you won't be charged for it.
+              {paidQty > 0 && ` ${paidQty} already paid.`}
+            </small>
+          )}
+          {/* Price left, controls right; the controls drop under the price
+              when the row is too narrow for both. */}
+          <div className="cart-line">
+            <span className="price text-primary text-nowrap">
+              {formatPrice(cartItem.menuId?.price)}
+            </span>
+            {/* Removing is the way forward for a sold-out row, so its bin
+                shows even while it's selected; + would only be refused by
+                the BE. */}
+            {selected && !soldOut ? (
+              <div className="stepper" role="group" aria-label={`Quantity of ${name} to pay`}>
+                <Button
+                  variant="link"
+                  className="hit-44"
+                  onClick={decrement}
+                  aria-label="Decrease quantity"
+                >
+                  −
+                </Button>
+                <span className="qty">{splitItem?.qty}</span>
+                <Button
+                  variant="link"
+                  className="hit-44"
+                  onClick={increment}
+                  disabled={remaining <= 0}
+                  aria-label="Increase quantity"
+                >
+                  +
+                </Button>
+              </div>
+            ) : (
+              <Button
+                className="hit-44"
+                variant="danger"
+                onClick={deleteItemFromCart}
+                aria-label={`Remove ${name} from the cart`}
+              >
+                <RiDeleteBinLine />
+              </Button>
             )}
           </div>
-        </Col>
-        <Col xs={11}>
-          <Card className={soldOut ? "CartItem sold-out" : "CartItem"}>
-            <Row>
-              <Col className="image-col pe-0 " xs={4}>
-                <Image
-                  src={cartItem?.menuId?.image}
-                  rounded
-                  fluid
-                  className="w-100 h-100"
-                />
-              </Col>
-              <Col xs={8} className="text-start ps-2">
-                <Row className="my-3">
-                  <Col>
-                    <Card.Subtitle className="ms-3">
-                      {cartItem?.menuId?.name}
-                      {soldOut && (
-                        <Badge bg="light" text="dark" className="ms-2 align-middle border">
-                          Sold out
-                        </Badge>
-                      )}
-                    </Card.Subtitle>
-                    {soldOut && (
-                      <small className="sold-out-note d-block ms-3 mt-1">
-                        No longer available — you won't be charged for it.
-                        {paidQty > 0 && ` ${paidQty} already paid.`}
-                      </small>
-                    )}
-                  </Col>
-                  <Col xs="auto">
-                    <span className="cart-qty-span">
-                      <small>in cart: {remaining}</small>
-                    </span>
-                  </Col>
-                </Row>
-                <Row className="pb-1 align-items-center">
-                  <Col className="p-0" xs={4}>
-                    <Card.Body className="p-0 ms-3">
-                      <span className="price text-primary">
-                        £ {cartItem?.menuId?.price}
-                      </span>
-                    </Card.Body>
-                  </Col>
-                  <Col xs={6}>
-                    <Row className="quantity-wrapper text-center align-items-center">
-                      <Col className="px-0">
-                        {selected && !soldOut ? (
-                          <Button className="hit-44" active size="sm" onClick={decrement}>
-                            <strong>-</strong>
-                          </Button>
-                        ) : (
-                          <></>
-                        )}
-                      </Col>
-                      <Col className="px-0">
-                        <Card.Body className="p-0">
-                          <small>{splitItem?.qty}</small>
-                        </Card.Body>
-                      </Col>
-                      <Col className="px-0">
-                        {/* Removing is the way forward for a sold-out row, so
-                            its bin shows even while it's selected; + would
-                            only be refused by the BE. */}
-                        {selected && !soldOut ? (
-                          remaining <= 0 ? (
-                            <Button className="hit-44" disabled size="sm" onClick={increment}>
-                              <strong>+</strong>
-                            </Button>
-                          ) : (
-                            <Button className="hit-44" active size="sm" onClick={increment}>
-                              <strong>+</strong>
-                            </Button>
-                          )
-                        ) : (
-                          <Button
-                            className="hit-44"
-                            size="sm"
-                            variant="danger"
-                            onClick={deleteItemFromCart}
-                            aria-label={`Remove ${cartItem.menuId?.name ?? "item"} from the cart`}
-                          >
-                            <RiDeleteBinLine />
-                          </Button>
-                        )}
-                      </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Col>
-            </Row>
-          </Card>
-        </Col>
-      </Row>
-    </>
+        </div>
+      </Card>
+    </div>
   );
 };
 

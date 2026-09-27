@@ -6,6 +6,7 @@ import placeholder from "../../../assets/placeholder.svg";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { setMenuItemAvailability } from "../../../redux/slices/shopSlice";
 import ItemModal from "../ItemModal/ItemModal";
+import { formatPrice } from "../../../lib/price";
 import "./Item.css";
 
 interface ItemProps {
@@ -103,7 +104,7 @@ const Item = ({ itemId, shopId }: ItemProps) => {
                 </div>
                 <div className="item-meta">
                   <span className="price text-primary">
-                    £{menuItem.price.toFixed(2)}
+                    {formatPrice(menuItem.price)}
                   </span>
                   <Form.Check
                     type="switch"

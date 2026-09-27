@@ -65,12 +65,12 @@ describe("CartListItems totals", () => {
 
     // Once any open split exists the header switches to "Remaining Cart Total".
     expect(await screen.findByText(/Remaining Cart Total/)).toHaveTextContent(
-      "£ 4.5"
+      "£4.50"
     )
-    expect(screen.getByText(/Total Payed/)).toHaveTextContent("£ 3")
+    expect(screen.getByText(/Total Payed/)).toHaveTextContent("£3.00")
     // CheckOut button shows the open-split total.
     expect(screen.getByRole("button", { name: /CheckOut/ })).toHaveTextContent(
-      "£4.5"
+      "£4.50"
     )
   })
 })

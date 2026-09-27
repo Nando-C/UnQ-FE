@@ -10,6 +10,7 @@
 // responsive-report/report.md, report.json and one screenshot per screen and
 // viewport. Exits 1 when an error-level check fails:
 //   - overflow: something sticks out sideways past the screen edge
+//   - spill:    something sticks out of the card, sheet or dialog it sits in
 //   - target:   a control under 24px (WCAG 2.5.8), links inside a sentence excepted
 //   - covered:  content hidden under a fixed header or bottom bar
 // Warnings (reported, never fatal): controls under 44×32 (both sides under
@@ -125,6 +126,28 @@ function audit() {
     if ((r.right > vw + 1 || r.left < -1) && !over.some((o) => o.el.contains(el))) over.push({ el, r })
   }
 
+  // Spills: something wider than the card, sheet or dialog it sits in (still on
+  // screen, so the overflow check misses it), e.g. a stepper past a card edge.
+  const spills = []
+  for (const box of scope.querySelectorAll(".card, .modal-content, .offcanvas")) {
+    if (!visible(box)) continue
+    const b = box.getBoundingClientRect()
+    for (const el of box.querySelectorAll("*")) {
+      // Only what can be seen counts: text, controls, images. Layout boxes
+      // poke out harmlessly (a Bootstrap .row's negative margins are cancelled
+      // by its columns' padding).
+      if (!visible(el) || getComputedStyle(el).position === "fixed") continue
+      if (!hasOwnText(el) && !el.matches("button, input, select, textarea, img, svg, a")) continue
+      let scroller = false
+      for (let p = el.parentElement; p && p !== box; p = p.parentElement)
+        if (getComputedStyle(p).overflowX !== "visible") { scroller = true; break }
+      if (scroller) continue
+      const r = el.getBoundingClientRect()
+      if ((r.right > b.right + 1 || r.left < b.left - 1) && !spills.some((s) => s.el.contains(el)))
+        spills.push({ el, text: `${desc(el)} sticks out of its ${box.classList.contains("card") ? "card" : "panel"} (${Math.round(r.left)}..${Math.round(r.right)}px, box ${Math.round(b.left)}..${Math.round(b.right)}px)` })
+    }
+  }
+
   // Tap targets. The size that counts is what responds to a tap: the element,
   // a <label> wrapped around an input, or an absolutely positioned ::before or
   // ::after used to enlarge the hit area.
@@ -171,10 +194,16 @@ function audit() {
   for (const im of scope.querySelectorAll("img")) {
     if (!visible(im) || !im.naturalWidth) continue
     if (["cover", "contain", "scale-down"].includes(getComputedStyle(im).objectFit)) continue
+    // The picture fills the content box; padding and border are around it.
     const r = im.getBoundingClientRect()
-    const drawn = r.width / r.height, own = im.naturalWidth / im.naturalHeight
+    const cs = getComputedStyle(im)
+    const px = (...props) => props.reduce((sum, p) => sum + (parseFloat(cs[p]) || 0), 0)
+    const w = r.width - px("paddingLeft", "paddingRight", "borderLeftWidth", "borderRightWidth")
+    const h = r.height - px("paddingTop", "paddingBottom", "borderTopWidth", "borderBottomWidth")
+    if (w <= 0 || h <= 0) continue
+    const drawn = w / h, own = im.naturalWidth / im.naturalHeight
     if (Math.abs(drawn / own - 1) > 0.05)
-      distorted.push(`${desc(im)} drawn ${Math.round(r.width)}×${Math.round(r.height)} (ratio ${drawn.toFixed(2)}, image ${own.toFixed(2)})`)
+      distorted.push(`${desc(im)} drawn ${Math.round(w)}×${Math.round(h)} (ratio ${drawn.toFixed(2)}, image ${own.toFixed(2)})`)
   }
 
   // A sheet or dialog whose content doesn't fit and has to be scrolled.
@@ -187,6 +216,7 @@ function audit() {
 
   return {
     vw, vh, docW: document.documentElement.scrollWidth, layer: !!layer, clippedBody,
+    spills: spills.slice(0, 6).map((x) => x.text),
     overflow: over.slice(0, 6).map(({ el, r }) => `${desc(el)} spans ${Math.round(r.left)}..${Math.round(r.right)}px of ${vw}`),
     targets, tiny, distorted,
   }
@@ -334,6 +364,7 @@ const run = async ([id, role, url, action], vp) => {
     const a = await page.evaluate(audit)
     if (a.docW > a.vw + 1 || a.overflow.length)
       r.errors.push({ kind: "overflow", text: a.overflow.length ? a.overflow.join("; ") : `page is ${a.docW}px wide on a ${a.vw}px screen` })
+    for (const t of a.spills) r.errors.push({ kind: "spill", text: t })
     for (const t of a.targets)
       (t.level === "error" ? r.errors : r.warnings).push({
         kind: "target",
@@ -412,7 +443,7 @@ const lines = [
   "",
   `${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC · ${screens.length} screens × ${viewports.length} viewports`,
   "",
-  "✗ errors (overflow, control under 24px, content under a fixed bar) · ⚠ warnings (control under 44×32: both sides under 44px or one under 32px, inline link under 24px, text under 12px, stretched image, sheet or dialog content scrolled out of view, page error). Counts are distinct findings.",
+  "✗ errors (overflow, spill out of a card/sheet/dialog, control under 24px, content under a fixed bar) · ⚠ warnings (control under 44×32: both sides under 44px or one under 32px, inline link under 24px, text under 12px, stretched image, sheet or dialog content scrolled out of view, page error). Counts are distinct findings.",
   "",
   `| Screen | ${viewports.map((v) => v.name).join(" | ")} |`,
   `|---|${viewports.map(() => "---").join("|")}|`,

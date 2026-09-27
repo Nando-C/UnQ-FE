@@ -24,3 +24,9 @@
   font-weight: 600;
   letter-spacing: -1.5px;
 } */
+
+/* A URL has no spaces to wrap at; let it break anywhere rather than widen the
+ * page on narrow screens or at large text. */
+.ShopDetails .shop-url {
+  overflow-wrap: anywhere;
+}

@@ -46,7 +46,7 @@ describe("menu card on a touch screen", () => {
     })
 
     const add = screen.getByRole("button", { name: "Add" })
-    expect(add.closest(".image-col")).toBeNull()
+    expect(add.closest(".menu-photo")).toBeNull()
     expect(add.closest(".actions")).not.toBeNull()
     // Same row as the quantity stepper.
     expect(add.closest(".actions")).toContainElement(

@@ -1,3 +1,14 @@
-/* .row>.card-body {
-    font-size: 1.5rem;
-} */
+.cart-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 0 0.5rem 0.75rem;
+}
+
+/* Right-aligned, and still on the right after wrapping under Select All. */
+.cart-totals {
+  margin-left: auto;
+  text-align: right;
+}

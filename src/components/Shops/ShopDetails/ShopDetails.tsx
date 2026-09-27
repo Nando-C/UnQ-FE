@@ -61,7 +61,10 @@ const ShopDetails = () => {
                 </ListGroup.Item>
                 <ListGroup.Item>
                   <FcAddressBook className="me-2" size={25} />
-                  <Card.Link className="d-inline-block py-1" href={shop?.web_URL}>
+                  <Card.Link
+                    className="shop-url d-inline-block py-1"
+                    href={shop?.web_URL}
+                  >
                     {shop?.web_URL}
                   </Card.Link>
                 </ListGroup.Item>

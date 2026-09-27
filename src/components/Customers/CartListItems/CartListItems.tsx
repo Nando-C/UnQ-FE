@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Card, ListGroup, Row, Button, Form, Col } from "react-bootstrap";
+import { Alert, ListGroup, Row, Button, Form } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
@@ -11,6 +11,7 @@ import {
 import { selectUserData } from "../../../redux/slices/userSlice";
 import { IItem } from "../../../typings/cart";
 import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
+import { formatPrice } from "../../../lib/price";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
 import PaymentFeedback from "../PaymentFeedback/PaymentFeedback";
@@ -163,37 +164,30 @@ const CartListItems = () => {
 
   return (
     <>
-      <Row className="justify-content-between align-items-center">
-        <Col xs={4}>
-          <label className="check-label hit-44 ms-2">
-            <Form.Check.Input
-              type="checkbox"
-              checked={allSelected}
-              onChange={handleToggleAll}
-            />
-            Select All
-          </label>
-        </Col>
-        <Col xs={8}>
-          <Row className="text-end">
-            {remainingCartTotal !== totalCart ? (
-              <Card.Body className="pb-1">
-                Remaining Cart Total <strong> £ {remainingCartTotal}</strong>
-              </Card.Body>
-            ) : (
-              <Card.Body className="pb-1">
-                Cart Total <strong> £ {totalCart}</strong>
-              </Card.Body>
-            )}
-            {/* <Card.Body>
-                    Cart Total <strong> £ {totalCart}</strong>
-                </Card.Body> */}
-            <Card.Body className="pt-1">
-              Total Payed <strong> £ {totalSplitPayed}</strong>
-            </Card.Body>
-          </Row>
-        </Col>
-      </Row>
+      {/* Select All on the left, totals on the right; the totals move under
+          it when both don't fit on one line. */}
+      <div className="cart-header">
+        <label className="check-label hit-44">
+          <Form.Check.Input
+            type="checkbox"
+            checked={allSelected}
+            onChange={handleToggleAll}
+          />
+          Select All
+        </label>
+        <div className="cart-totals">
+          <div>
+            {remainingCartTotal !== totalCart ? "Remaining Cart Total" : "Cart Total"}{" "}
+            <strong className="text-nowrap">
+              {formatPrice(remainingCartTotal !== totalCart ? remainingCartTotal : totalCart)}
+            </strong>
+          </div>
+          <div>
+            Total Payed{" "}
+            <strong className="text-nowrap">{formatPrice(totalSplitPayed)}</strong>
+          </div>
+        </div>
+      </div>
       {soldOutCount > 0 && (
         <Alert variant="warning" className="mt-2 mb-1">
           {soldOutCount === 1
@@ -216,7 +210,7 @@ const CartListItems = () => {
           </Button>
         ) : (
           <Button onClick={handleShow} className="mb-3">
-            CheckOut <strong>£{totalSplit}</strong>{" "}
+            CheckOut <strong>{formatPrice(totalSplit)}</strong>
           </Button>
         )}
       </Row>
