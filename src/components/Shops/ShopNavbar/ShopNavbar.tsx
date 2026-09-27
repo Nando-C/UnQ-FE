@@ -1,18 +1,53 @@
-import { Container, Nav, Navbar } from "react-bootstrap";
+import { useEffect, useRef } from "react";
+import { Container, Navbar } from "react-bootstrap";
 import { FaRegUserCircle } from "react-icons/fa";
-import { NavLink } from "react-router-dom";
-import { useAppSelector } from "../../../redux/app/hooks";
+import { NavLink, useMatch } from "react-router-dom";
 import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
+import { useAppSelector } from "../../../redux/app/hooks";
 import { selectSelectedShop } from "../../../redux/slices/shopSlice";
+import ShopSectionNav from "../ShopSectionNav/ShopSectionNav";
+import ShopName from "./ShopName";
 import "./ShopNavbar.css";
 
+// The manager header. One row: the logo, a breadcrumb ("My Shops" on its own, or
+// "My Shops › First Shop" on a shop's page), that shop's section tabs, and the account
+// icon pinned to the right. Everything flows from the left, so the tabs and the shop's
+// name appearing never move My Shops or the account icon. Below 768px there is no room
+// for the tabs beside the breadcrumb, so they wrap onto a second row of their own
+// (ShopNavbar.css); the breadcrumb row reads the same at every width.
 const ShopNavbar = () => {
+  // Keyed on the route, not on the selected shop in the store: the store keeps the
+  // last shop after you go back to My Shops.
+  const shopPage = useMatch("/shop/:shopId");
   const shop = useAppSelector(selectSelectedShop);
+  // While a newly opened shop loads, the store still holds the previous one; show no
+  // name rather than the wrong one.
+  const shopName =
+    shop && shop._id === shopPage?.params.shopId ? shop.name : null;
+
+  // The header's height changes with the tabs row (phones only) and the viewport, so
+  // it is measured and published as --unq-header-h. ShopNavbar.css turns that into
+  // the page's scroll padding, so jumping to a section never lands it under the header;
+  // ShopDetails pads its top by it; ShopSectionNav uses it to follow the scroll.
+  const headerRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header || typeof ResizeObserver === "undefined") return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() =>
+      root.style.setProperty("--unq-header-h", `${header.offsetHeight}px`)
+    );
+    observer.observe(header);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--unq-header-h");
+    };
+  }, []);
 
   return (
-    <>
-      <Navbar className="ShopNavbar bg-white border-bottom py-1" fixed="top">
-        <Container>
+    <header ref={headerRef} className="ShopHeader fixed-top">
+      <Navbar className="ShopNavbar bg-white border-bottom py-1">
+        <Container className="shop-bar">
           <Navbar.Brand href="#home">
             <img
               src={wordmark}
@@ -22,25 +57,22 @@ const ShopNavbar = () => {
               alt="UnQ"
             />
           </Navbar.Brand>
-          <Nav
-            className={
-              shop?._id
-                ? "w-100 justify-content-around align-items-center"
-                : "w-100 justify-content-between align-items-center"
-            }
-          >
-            {/* NavLink: teal while you're on the page (ShopNavbar.css). The
-                three hash links below are plain anchors on purpose; see there. */}
+          {/* navbar-nav for the navbar's link colours (ShopNavbar.css). */}
+          <nav className="crumbs navbar-nav" aria-label="Breadcrumb">
             <NavLink className="nav-link" data-label="My Shops" to={`/`} end>
               My Shops
             </NavLink>
-            {shop?._id && (
+            {shopName && (
               <>
-                <Nav.Link href="#shopDetails" data-label="Shop Details">Shop Details</Nav.Link>
-                <Nav.Link href="#shopMenu" data-label="Menu">Menu</Nav.Link>
-                <Nav.Link href="#tableList" data-label="Tables">Tables</Nav.Link>
+                <span className="crumb-sep" aria-hidden="true">
+                  ›
+                </span>
+                <ShopName name={shopName} />
               </>
             )}
+          </nav>
+          {shopPage && <ShopSectionNav />}
+          <div className="account navbar-nav">
             <NavLink
               className="nav-link"
               to={`/myAccount`}
@@ -48,10 +80,10 @@ const ShopNavbar = () => {
             >
               <FaRegUserCircle size={30} />
             </NavLink>
-          </Nav>
+          </div>
         </Container>
       </Navbar>
-    </>
+    </header>
   );
 };
 

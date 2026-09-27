@@ -35,7 +35,7 @@ const ShopDetails = () => {
   const handleShow = () => setShow(true);
 
   return (
-    <Container id="shopDetails" className="ShopDetails pt-5 text-center">
+    <Container id="shopDetails" className="ShopDetails text-center">
       <Card.Title className="m-5">SHOP DETAILS</Card.Title>
       <Card className="my-5">
         <Row className="align-items-center">

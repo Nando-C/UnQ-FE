@@ -1,13 +1,167 @@
-/* Nav links thicken to semibold when hovered, focused or pressed.
+/* Jumping to a section (a tab in ShopSectionNav, or any #anchor) scrolls it to the
+ * bottom edge of the fixed header instead of underneath it. --unq-header-h is measured
+ * by ShopNavbar and removed when it unmounts, so the customer side is unaffected. */
+html {
+  scroll-padding-top: var(--unq-header-h, 0px);
+}
+
+/* ---- Layout ------------------------------------------------------------------------
+ * One row: the logo and breadcrumb on the left (where you are), the shop's section
+ * tabs and the account icon on the right (what you can do). The right-hand group is
+ * pushed over by an auto margin, never by justify-content, so the tabs and the shop's
+ * name appearing never move My Shops or the account icon. .navbar.ShopNavbar to
+ * outrank Bootstrap's `.navbar > .container` (space-between), which loads later. */
+.navbar.ShopNavbar .shop-bar {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  column-gap: 1.5rem;
+}
+
+.ShopNavbar .navbar-brand {
+  margin-right: 0;
+}
+
+.ShopNavbar .crumbs {
+  flex: 0 1 auto;
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+}
+
+.ShopNavbar .crumbs .nav-link {
+  flex: none;
+}
+
+/* The separator's own padding is the gap on both sides of it. My Shops' right padding
+ * (Bootstrap's navbar link padding) sat on top of that on the left only, so the "›"
+ * had twice the space before it as after. And its text is set against the "›" side of
+ * its bold-width reserve (see Links below) rather than centred in it, so no sliver of
+ * that reserve opens up before the "›" and the gap stays the same when it turns bold.
+ * .navbar.ShopNavbar to outrank Bootstrap's `.navbar-expand .navbar-nav .nav-link`,
+ * which loads later. */
+.navbar.ShopNavbar .crumbs .nav-link {
+  padding-right: 0;
+  text-align: right;
+}
+
+.ShopNavbar .crumb-sep {
+  flex: none;
+  padding-inline: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+.ShopNavbar .account {
+  margin-left: auto;
+  flex-direction: row;
+  align-items: center;
+}
+
+/* On a shop's page the tabs lead the right-hand group, so the auto margin moves to
+ * them (two auto margins would split the space and strand the tabs mid-bar). A short
+ * divider then sets the account icon apart: next to it, the tabs could otherwise read
+ * as account options rather than this shop's sections. Wide screens only; on a phone
+ * the tabs are on their own row. */
+@media (min-width: 768px) {
+  .ShopNavbar .ShopSectionNav {
+    margin-left: auto;
+  }
+
+  .ShopNavbar .ShopSectionNav + .account {
+    margin-left: 0;
+  }
+
+  /* Equal space on both sides, measured on the ink. The icon side is the 1.5rem
+   * margin plus the account link's own 0.5rem padding; the tabs side is the 1.5rem
+   * column gap, so it gets that 0.5rem too, less the 1.5px by which "Tables" already
+   * sits inside its bold-width reserve (32.4px and 32.5px). */
+  .ShopNavbar .ShopSectionNav + .account::before {
+    content: "";
+    width: 1px;
+    height: 1.5rem;
+    margin-left: calc(0.5rem - 1.5px);
+    margin-right: 1.5rem;
+    background-color: var(--bs-border-color);
+  }
+}
+
+/* Below 768px the tabs don't fit beside the breadcrumb, so they take a second row of
+ * their own, spanning the bar edge to edge (the negative margins undo the container's
+ * gutter) with the three tabs sharing it evenly for bigger touch targets. The
+ * breadcrumb row keeps its layout; the shop's name gets whatever width is left. */
+@media (max-width: 767.98px) {
+  .navbar.ShopNavbar .shop-bar {
+    flex-wrap: wrap;
+    column-gap: 0.75rem;
+  }
+
+  .ShopNavbar .crumb-sep {
+    padding-inline: 0.5rem;
+  }
+
+  .ShopNavbar .crumbs {
+    flex: 1 1 0;
+  }
+
+  .ShopNavbar .ShopSectionNav {
+    order: 1;
+    flex: 0 0 calc(100% + var(--bs-gutter-x));
+    margin-inline: calc(var(--bs-gutter-x) * -0.5);
+    margin-top: 0.25rem;
+    border-top: 1px solid var(--bs-border-color);
+    --bs-nav-underline-gap: 0;
+  }
+
+  .ShopNavbar .ShopSectionNav .nav-link {
+    flex: 1 1 0;
+  }
+}
+
+/* ---- The shop's name ---------------------------------------------------------------
+ * The one item allowed to give way. A long name scrolls sideways under a finger or a
+ * trackpad rather than being cut off (ShopName.tsx), with no visible scrollbar, and a
+ * fade on each edge that still has text past it. overscroll-behavior stops a swipe
+ * that reaches the end from turning into the browser's back gesture. On wide screens
+ * it may use the whole middle of the bar; flex-shrink stops it at the tabs. */
+.ShopNavbar .shop-name {
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  font-weight: 600;
+  color: var(--bs-emphasis-color);
+  --fade: 1.5rem;
+}
+
+.ShopNavbar .shop-name::-webkit-scrollbar {
+  display: none;
+}
+
+.ShopNavbar .shop-name[data-fade-end] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--fade)), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--fade)), transparent);
+}
+
+.ShopNavbar .shop-name[data-fade-start] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade));
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade));
+}
+
+.ShopNavbar .shop-name[data-fade-start][data-fade-end] {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+}
+
+/* ---- Links -------------------------------------------------------------------------
+ * Nav links thicken to semibold when hovered, focused or pressed.
  *
  * Weight 600 because index.html loads Georama at 400/600/800 — it is a real face, not a
  * synthetically emboldened 400. (500 is NOT loaded and measures identical to 400, so it
  * would look like nothing happened.)
  *
- * The ::after is the whole trick. Bolding a flex item widens it — "Shop Details" goes
- * from 87.2px to 91.5px — and because this row is justify-content-around/between, that
- * 4.4px shoves every sibling sideways, so sweeping the mouse across the navbar makes the
- * whole row twitch. The pseudo-element holds a zero-height, invisible copy of the label
+ * The ::after keeps that from moving anything. Bolding a flex item widens it, which
+ * shoves its siblings sideways, so sweeping the mouse along a row of links makes the
+ * row twitch. The pseudo-element holds a zero-height, invisible copy of the label
  * already set in semibold, so each link is ALWAYS as wide as its bold state and the
  * visible weight change costs no layout. It reads its text from data-label on the anchor.
  */
@@ -16,11 +170,11 @@
  * start edge — so without this the label would appear to grow only rightwards. Centring
  * it inside the box splits the difference, and the label thickens symmetrically about
  * its own midpoint instead of creeping in one direction. */
-.ShopNavbar .nav-link {
+.ShopNavbar .navbar-nav .nav-link {
   text-align: center;
 }
 
-.ShopNavbar .nav-link::after {
+.ShopNavbar .navbar-nav .nav-link::after {
   content: attr(data-label);
   display: block;
   height: 0;
@@ -30,17 +184,14 @@
   pointer-events: none;
 }
 
-/* No "current section" state for Shop Details / Menu / Tables. They are hash anchors
- * into one page, so a highlight would be set on click and never corrected as the user
- * scrolls — wrong more often than right, and a stale highlight is worse than none.
- * :active below is the momentary pressed state, which is always accurate. The real
- * pages (My Shops, the account icon) are NavLinks, so their .active IS accurate and
- * turns them teal via --bs-navbar-active-color.
+/* My Shops and the account icon go to real pages, so NavLink's .active is always
+ * accurate and turns the current one teal via --bs-navbar-active-color.
  *
  * Teal marks meaning only: resting links keep Bootstrap's navbar grey, and the link
  * you point at, focus or press turns teal as well as semibold. Hover is gated on
  * (hover: hover) because touch screens apply :hover on tap and keep it. Teal is 6.10:1
- * on the white bar. */
+ * on the white bar. Selectors are .navbar.ShopNavbar because Bootstrap's own .navbar
+ * rule sets the same variables and is loaded after this file. */
 .navbar.ShopNavbar {
   --bs-navbar-active-color: var(--bs-primary);
 }
@@ -51,13 +202,14 @@
   }
 }
 
-.ShopNavbar .nav-link:focus-visible,
-.ShopNavbar .nav-link:active {
+.ShopNavbar .navbar-nav .nav-link:focus-visible,
+.ShopNavbar .navbar-nav .nav-link:active {
   color: var(--bs-primary);
+  font-weight: 600;
 }
 
-.ShopNavbar .nav-link:hover,
-.ShopNavbar .nav-link:focus-visible,
-.ShopNavbar .nav-link:active {
-  font-weight: 600;
+@media (hover: hover) {
+  .ShopNavbar .navbar-nav .nav-link:hover {
+    font-weight: 600;
+  }
 }

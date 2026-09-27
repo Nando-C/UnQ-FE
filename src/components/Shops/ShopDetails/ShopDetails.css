@@ -1,3 +1,11 @@
+/* Clears the fixed manager header, which is taller on this page (it adds the shop's
+ * section bar) and changes height with the viewport, so the measured --unq-header-h
+ * (set by ShopNavbar) replaces the fixed pt-5 this page used when the header was a
+ * single 55px bar. The fallback matches that old padding. */
+.ShopDetails {
+  padding-top: var(--unq-header-h, 3rem);
+}
+
 .ShopDetails .list-group-item {
   border: none;
 }

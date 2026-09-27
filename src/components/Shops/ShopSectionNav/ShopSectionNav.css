@@ -1,0 +1,61 @@
+/* Bootstrap's underline tabs, in the palette: grey at rest, teal for the section you
+ * are in and (on devices that hover) the tab under the pointer. Hover is gated on
+ * (hover: hover) because phones keep :hover after a tap. Teal is 6.10:1 on white. */
+.ShopSectionNav.nav-underline {
+  flex: none;
+  flex-wrap: nowrap;
+  --bs-nav-link-color: var(--bs-secondary-color);
+  --bs-nav-underline-link-active-color: var(--bs-primary);
+  --bs-nav-underline-gap: 1.25rem;
+}
+
+@media (hover: hover) {
+  .ShopSectionNav.nav-underline {
+    --bs-nav-link-hover-color: var(--bs-primary);
+  }
+}
+
+.ShopSectionNav .nav-link:focus-visible {
+  color: var(--bs-primary);
+}
+
+/* Semibold, not Bootstrap's 700: Georama is loaded at 400/600/800, so 700 would fall
+ * through to the heavy 800. */
+.ShopSectionNav.nav-underline .nav-link.active {
+  font-weight: 600;
+}
+
+/* The current tab changes as you scroll, and bolding widens a label, which would nudge
+ * the tabs after it each time. Same fix as the top bar: an invisible semibold copy of
+ * the label (from data-label) keeps every tab as wide as its bold state. */
+.ShopSectionNav .nav-link {
+  text-align: center;
+}
+
+.ShopSectionNav .nav-link::after {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Bootstrap underlines a tab on :hover and on :focus. A tapped tab keeps focus, and a
+ * phone keeps :hover after a tap, so the tab you last tapped kept a grey underline
+ * next to the teal one of the section you're in. Only the current section, a mouse
+ * hover and keyboard focus draw the line. */
+.ShopSectionNav.nav-underline .nav-link:not(.active) {
+  border-bottom-color: transparent;
+}
+
+@media (hover: hover) {
+  .ShopSectionNav.nav-underline .nav-link:hover {
+    border-bottom-color: currentcolor;
+  }
+}
+
+.ShopSectionNav.nav-underline .nav-link:focus-visible {
+  border-bottom-color: currentcolor;
+}
