@@ -1,8 +1,9 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
+import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit"
 import { ICart, ICartStore, IItem } from "../../typings/cart"
 import backend from "../../backend/backend"
 import axios, { AxiosResponse } from "axios"
-import { RootState } from "../app/store"
+import type { AppThunk, RootState } from "../app/store"
+import { menuIdOf } from "../../lib/cart"
 
 const initialState: ICartStore = {
     data: {
@@ -54,10 +55,24 @@ export const addToCart = createAsyncThunk(
         }
     }
 )
-export const addToSplit = createAsyncThunk("cart/addToSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/addSplitItem`, toCartPayload(item))
-    return data
-})
+export const addToSplit = createAsyncThunk(
+    "cart/addToSplit",
+    async ({shopId, tableId, cartId, item}: AddToSplitProps, { rejectWithValue }) => {
+        try {
+            const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/addSplitItem`, toCartPayload(item))
+            return data
+        } catch (err) {
+            // A 409 means the units were claimed first (or it sold out).
+            if (axios.isAxiosError(err)) {
+                return rejectWithValue({
+                    status: err.response?.status,
+                    message: err.response?.data?.message,
+                })
+            }
+            throw err
+        }
+    }
+)
 export const decreaseSplit = createAsyncThunk("cart/ decreaseSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
     const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/decreaseSplitItem`, toCartPayload(item))
     return data
@@ -132,7 +147,20 @@ export const cartsSlice = createSlice({
             const { shopId, tableId } = action.payload
             state.pointers.shopId = shopId
             state.pointers.tableId = tableId
-        }
+        },
+        wantSplit(state, action: PayloadAction<{ menuId: string; qty: number }>) {
+            const { menuId, qty } = action.payload
+            state.pending = { ...state.pending, [menuId]: qty }
+            if (state.splitErrors) delete state.splitErrors[menuId]
+        },
+        splitSettled(state, action: PayloadAction<string>) {
+            if (state.pending) delete state.pending[action.payload]
+        },
+        splitFailed(state, action: PayloadAction<{ menuId: string; message: string }>) {
+            const { menuId, message } = action.payload
+            if (state.pending) delete state.pending[menuId]
+            state.splitErrors = { ...state.splitErrors, [menuId]: message }
+        },
     },
     extraReducers: (builder) => {
         builder.addCase(addToCart.fulfilled, (state, action) => {
@@ -163,7 +191,92 @@ export const cartsSlice = createSlice({
 })
 
 export const { storeCartPointers } = cartsSlice.actions
+const { wantSplit, splitSettled, splitFailed } = cartsSlice.actions
 export const selectCartsData = (state: RootState) => state.carts.data
 export const selectCartPointers = (state: RootState) => state.carts.pointers
+
+const NO_PENDING: Record<string, number> = {}
+const NO_ERRORS: Record<string, string> = {}
+export const selectPendingSplit = (state: RootState) => state.carts.pending ?? NO_PENDING
+export const selectSplitErrors = (state: RootState) => state.carts.splitErrors ?? NO_ERRORS
+
+// ---- Optimistic split quantities ---------------------------------------------
+// A tap on −/+ (or a checkbox, or Select All) sets how many units of an item I
+// want in my open split, and the cart shows that at once. A loop per item then
+// brings the BE round to it, one request at a time: it reads the wanted count
+// afresh after every answer, so taps made meanwhile are folded in and a burst
+// of + becomes one addSplitItem for the difference. Nothing is ever sent past
+// what the row allowed, and a request never races another for the same item.
+// On failure the wanted count is dropped, the cart refetched, and the row says
+// why; the display falls back to what the BE holds.
+
+interface SplitTarget {
+    shopId: string
+    tableId: string
+    cartId: string
+    menuId: string
+}
+
+// Items with a loop running. Module-level because a loop outlives the row that
+// started it (it finishes even if the diner leaves the cart page).
+const syncing = new Set<string>()
+
+const myHeldQty = (state: RootState, menuId: string) =>
+    state.carts.data.split.find(
+        (s) =>
+            s.splitStatus === "open" &&
+            s.userId === state.user.data._id &&
+            menuIdOf(s) === menuId
+    )?.qty ?? 0
+
+const syncSplit = ({ shopId, tableId, cartId, menuId }: SplitTarget): AppThunk<Promise<void>> =>
+    async (dispatch, getState) => {
+        if (syncing.has(menuId)) return
+        syncing.add(menuId)
+        let adding = false
+        try {
+            for (;;) {
+                const state = getState()
+                const wanted = state.carts.pending?.[menuId]
+                if (wanted === undefined) return
+                const held = myHeldQty(state, menuId)
+                const item = state.carts.data.items.find((i) => menuIdOf(i) === menuId)
+                if (!item || wanted === held) {
+                    dispatch(splitSettled(menuId))
+                    return
+                }
+                const target = { shopId, tableId, cartId, item }
+                adding = wanted > held
+                if (adding) {
+                    await dispatch(addToSplit({ ...target, item: { ...item, qty: wanted - held } })).unwrap()
+                } else if (wanted === 0) {
+                    await dispatch(removeFromSplit(target)).unwrap()
+                } else {
+                    // The BE only takes one unit off per call.
+                    await dispatch(decreaseSplit(target)).unwrap()
+                }
+                // A request that "worked" but moved nothing would loop forever.
+                if (myHeldQty(getState(), menuId) === held) throw new Error("split unchanged")
+            }
+        } catch (err) {
+            const status = (err as { status?: number } | undefined)?.status
+            dispatch(splitFailed({
+                menuId,
+                message: adding && status === 409
+                    ? "Not enough left, someone else just took it."
+                    : "Couldn't update that, please try again.",
+            }))
+            await dispatch(getTableCart(tableId))
+        } finally {
+            syncing.delete(menuId)
+        }
+    }
+
+export const setSplitQty = (target: SplitTarget & { qty: number }): AppThunk =>
+    (dispatch) => {
+        const { qty, ...rest } = target
+        dispatch(wantSplit({ menuId: rest.menuId, qty }))
+        void dispatch(syncSplit(rest))
+    }
 
 export default cartsSlice.reducer

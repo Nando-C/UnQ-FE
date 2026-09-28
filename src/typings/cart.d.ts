@@ -33,4 +33,9 @@ export interface ICartStore {
         shopId: string
         tableId: string
     }
+    // What I've asked my open split to hold, per menu item id, while the BE
+    // catches up (see setSplitQty). Absent once it agrees.
+    pending?: Record<string, number>
+    // Why the last change to an item's split was undone, per menu item id.
+    splitErrors?: Record<string, string>
 }

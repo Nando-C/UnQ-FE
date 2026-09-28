@@ -3,10 +3,10 @@ import { Alert, ListGroup, Row, Button, Form } from "react-bootstrap";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
-  addToSplit,
   getTableCart,
-  removeFromSplit,
   selectCartsData,
+  selectPendingSplit,
+  setSplitQty,
 } from "../../../redux/slices/cartSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
 import { IItem } from "../../../typings/cart";
@@ -43,14 +43,27 @@ const CartListItems = () => {
   const cart = useAppSelector(selectCartsData);
   const myUser = useAppSelector(selectUserData);
 
+  const pending = useAppSelector(selectPendingSplit);
+  // Changes still on their way to the BE; checkout waits for them.
+  const syncing = Object.keys(pending).length > 0;
+
   const visibleItems = cart.items.filter((i) => (i.qtyPayed ?? 0) < i.qty);
-  const mySplitFor = (item: IItem) =>
-    cart.split.find(
-      (s) =>
-        s.splitStatus === "open" &&
-        s.userId === myUser._id &&
-        menuIdOf(s) === menuIdOf(item)
+  // How many units of an item I hold, counting what I've just asked for
+  // (setSplitQty) ahead of the BE's answer, as the rows do.
+  const myQtyFor = (item: IItem) => {
+    const menuId = menuIdOf(item);
+    const wanted = menuId ? pending[menuId] : undefined;
+    if (wanted !== undefined) return wanted;
+    return (
+      cart.split.find(
+        (s) =>
+          s.splitStatus === "open" &&
+          s.userId === myUser._id &&
+          menuIdOf(s) === menuId
+      )?.qty ?? 0
     );
+  };
+  const mySplitFor = (item: IItem) => myQtyFor(item) > 0;
 
   // An item fully claimed by other diners (nothing left for me, and I hold no
   // split of my own) must not count against "Select All" — otherwise one
@@ -76,41 +89,22 @@ const CartListItems = () => {
     selectableItems.length > 0 &&
     selectableItems.every((i) => !!mySplitFor(i));
 
-  const handleToggleAll = async () => {
-    if (allSelected) {
-      for (const item of visibleItems) {
-        if (mySplitFor(item)) {
-          await dispatch(
-            removeFromSplit({ shopId, tableId, cartId: cart._id, item })
-          )
-            .unwrap()
-            .catch(() => {
-              dispatch(getTableCart(tableId));
-            });
-        }
-      }
-    } else {
-      // Give unselected items whatever's still available to me (total minus
-      // paid minus other diners' open splits); items someone already split
-      // (partially or fully, including a full claim by another diner) are
-      // left as they are, and sold-out items are skipped.
-      for (const item of visibleItems) {
-        if (!mySplitFor(item) && !isSoldOut(item)) {
-          const remaining = availableQty(item, cart.split, myUser._id);
-          if (remaining <= 0) continue;
-          await dispatch(
-            addToSplit({
-              shopId,
-              tableId,
-              cartId: cart._id,
-              item: { ...item, qty: remaining },
-            })
-          )
-            .unwrap()
-            .catch(() => {
-              dispatch(getTableCart(tableId));
-            });
-        }
+  // Sets every row's wanted count at once; each row's own loop then brings
+  // the BE round to it, so a second click before they land just changes the
+  // target again instead of claiming everything twice.
+  const handleToggleAll = () => {
+    for (const item of visibleItems) {
+      const menuId = menuIdOf(item);
+      if (!menuId) continue;
+      const target = { shopId, tableId, cartId: cart._id, menuId };
+      if (allSelected) {
+        if (mySplitFor(item)) dispatch(setSplitQty({ ...target, qty: 0 }));
+      } else if (!mySplitFor(item) && !isSoldOut(item)) {
+        // Whatever's still available to me (total minus paid minus other
+        // diners' open splits); items I already hold some of are left as they
+        // are, and sold-out items are skipped.
+        const remaining = availableQty(item, cart.split, myUser._id);
+        if (remaining > 0) dispatch(setSplitQty({ ...target, qty: remaining }));
       }
     }
   };
@@ -126,9 +120,19 @@ const CartListItems = () => {
         (item.menuId?.price ?? 0),
     0
   );
-  const totalSplit = cart.split
-    .filter((split) => split.splitStatus === "open" && !isSoldOut(split))
+  // Other diners' open splits as the BE has them, mine as I've asked for them.
+  const othersSplit = cart.split
+    .filter(
+      (split) =>
+        split.splitStatus === "open" &&
+        split.userId !== myUser._id &&
+        !isSoldOut(split)
+    )
     .reduce((total, split) => total + split.qty * (split.menuId?.price ?? 0), 0);
+  const mySplit = cart.items
+    .filter((item) => !isSoldOut(item))
+    .reduce((total, item) => total + myQtyFor(item) * (item.menuId?.price ?? 0), 0);
+  const totalSplit = othersSplit + mySplit;
 
   const totalSplitPayed = cart.split
     .filter((split) => split.splitStatus === "closed")
@@ -209,7 +213,7 @@ const CartListItems = () => {
             Remove sold-out items to check out
           </Button>
         ) : (
-          <Button onClick={handleShow} className="mb-3">
+          <Button onClick={handleShow} disabled={syncing} className="mb-3">
             CheckOut <strong>{formatPrice(totalSplit)}</strong>
           </Button>
         )}

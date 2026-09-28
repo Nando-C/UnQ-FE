@@ -1,13 +1,13 @@
+import { useState } from "react";
 import { Badge, Card, Button, Image, Form } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
-  addToSplit,
-  decreaseSplit,
   deleteFromCart,
-  getTableCart,
-  removeFromSplit,
   selectCartsData,
+  selectPendingSplit,
+  selectSplitErrors,
+  setSplitQty,
 } from "../../../redux/slices/cartSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
 import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
@@ -29,19 +29,27 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
   const cart = useAppSelector(selectCartsData);
   const myUser = useAppSelector(selectUserData);
   const cartItem = cart.items.find((item) => item._id === itemId);
+  const menuId = menuIdOf(cartItem);
   const splitItem = cart.split.find(
     (s) =>
       s.splitStatus === "open" &&
       s.userId === myUser._id &&
-      menuIdOf(s) === menuIdOf(cartItem)
+      menuIdOf(s) === menuId
   );
+  // What I've asked for wins over what the BE holds until the two agree
+  // (setSplitQty), so −/+ answer on the tap rather than after a round trip.
+  const pending = useAppSelector(selectPendingSplit);
+  const splitError = useAppSelector(selectSplitErrors)[menuId ?? ""];
+  const wanted = menuId ? pending[menuId] : undefined;
+  const qty = wanted ?? splitItem?.qty ?? 0;
   // How much of this (shared) item is still up for grabs: total minus paid
   // minus whatever OTHER diners at the table already hold in an open split.
+  // It caps + so a tap can never ask for more than exists.
   const avail = availableQty(cartItem, cart.split, myUser._id);
-  const remaining = splitItem?.qty ? avail - splitItem.qty : avail;
-  const fullyClaimed = avail <= 0 && !splitItem;
+  const remaining = avail - qty;
+  const selected = qty > 0;
+  const fullyClaimed = avail <= 0 && !selected;
 
-  const selected = !!splitItem;
   // Sold out after it was added: it stays listed until someone removes it, but
   // can't be (newly) selected or paid for. A selection made before it sold out
   // can still be cleared, so the checkbox only locks once it is unticked.
@@ -50,77 +58,38 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
 
   const dispatch = useAppDispatch();
 
-  const handleSelect = () => {
-    if (splitItem) {
-      removeItemFromSplit();
-    } else {
-      increment();
-    }
-  };
-
-  const increment = () => {
-    //<====================   adds one unit of the item to the SPLIT
-    if (!cartItem?.menuId) return;
-
-    const plusItem = {
-      ...cartItem,
-      qty: 1,
-    };
-
+  const want = (next: number) => {
+    if (!menuId) return;
     dispatch(
-      addToSplit({
-        shopId: shopId,
-        tableId: tableId,
-        cartId: cartId,
-        item: plusItem,
-      })
-    )
-      .unwrap()
-      .catch(() => {
-        // A 409 means someone else claimed the unit first — the refreshed
-        // cart is the feedback, no toast needed.
-        dispatch(getTableCart(tableId));
-      });
-  };
-
-  const decrement = () => {
-    if (!cartItem?.menuId) return;
-
-    dispatch(
-      decreaseSplit({
-        shopId: shopId,
-        tableId: tableId,
-        cartId: cartId,
-        item: cartItem,
+      setSplitQty({
+        shopId,
+        tableId,
+        cartId,
+        menuId,
+        qty: Math.max(0, Math.min(next, avail)),
       })
     );
   };
 
-  const removeItemFromSplit = () => {
-    if (!cartItem?.menuId) return;
-    dispatch(
-      removeFromSplit({
-        shopId: shopId,
-        tableId: tableId,
-        cartId: cartId,
-        item: cartItem,
-      })
-    )
-      .unwrap()
-      .catch(() => {
-        dispatch(getTableCart(tableId));
-      });
+  const handleSelect = () => want(selected ? 0 : 1);
+  const increment = () => {
+    if (remaining > 0) want(qty + 1);
   };
+  const decrement = () => want(qty - 1);
 
+  // The bin removes the item for the whole table, so a double tap mustn't
+  // send it twice.
+  const [deleting, setDeleting] = useState(false);
   const deleteItemFromCart = () => {
-    if (!cartItem?.menuId) return;
+    if (!cartItem?.menuId || deleting) return;
+    setDeleting(true);
     dispatch(
       deleteFromCart({
         shopId: shopId,
         tableId: tableId,
         item: cartItem,
       })
-    );
+    ).finally(() => setDeleting(false));
   };
 
   if (!cartItem) return null;
@@ -156,6 +125,12 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
             in cart: {remaining}
             {fullyClaimed && !soldOut && " · claimed by others"}
           </small>
+          {/* Why a change was undone (the count has already snapped back).
+              Always mounted: a live region inserted with its text is often
+              not announced. */}
+          <small className="split-error d-block text-danger" role="status">
+            {splitError}
+          </small>
           {soldOut && (
             <small className="sold-out-note d-block">
               No longer available — you won't be charged for it.
@@ -172,7 +147,11 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                 shows even while it's selected; + would only be refused by
                 the BE. */}
             {selected && !soldOut ? (
-              <div className="stepper" role="group" aria-label={`Quantity of ${name} to pay`}>
+              <div
+                className="stepper"
+                role="group"
+                aria-label={`Quantity of ${name} to pay`}
+              >
                 <Button
                   variant="link"
                   className="hit-44"
@@ -181,7 +160,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                 >
                   −
                 </Button>
-                <span className="qty">{splitItem?.qty}</span>
+                <span className="qty">{qty}</span>
                 <Button
                   variant="link"
                   className="hit-44"
@@ -197,6 +176,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                 className="hit-44"
                 variant="danger"
                 onClick={deleteItemFromCart}
+                disabled={deleting}
                 aria-label={`Remove ${name} from the cart`}
               >
                 <RiDeleteBinLine />
