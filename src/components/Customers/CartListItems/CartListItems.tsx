@@ -213,8 +213,11 @@ const CartListItems = () => {
             Remove sold-out items to check out
           </Button>
         ) : (
-          <Button onClick={handleShow} disabled={syncing} className="mb-3">
-            CheckOut <strong>{formatPrice(totalSplit)}</strong>
+          // Only my own selection is charged (the BE totals my open splits), so
+          // that's the amount shown, and with nothing selected there's nothing
+          // to pay.
+          <Button onClick={handleShow} disabled={syncing || mySplit <= 0} className="mb-3">
+            CheckOut <strong>{formatPrice(mySplit)}</strong>
           </Button>
         )}
       </Row>

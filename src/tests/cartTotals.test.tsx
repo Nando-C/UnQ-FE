@@ -57,6 +57,10 @@ describe("CartListItems totals", () => {
 
     renderWithProviders(<CartListItems />, {
       preloadedState: {
+        user: {
+          data: { _id: "u1", name: "A", surname: "B", email: "a@b.c", avatar: "", role: "customer" },
+          status: "authenticated",
+        },
         carts: { data: fixtureCart, pointers: { shopId: "s1", tableId: "t1" } },
       },
       route: "/shops/s1/tables/t1/cart",
@@ -68,7 +72,7 @@ describe("CartListItems totals", () => {
       "£4.50"
     )
     expect(screen.getByText(/Total Payed/)).toHaveTextContent("£3.00")
-    // CheckOut button shows the open-split total.
+    // CheckOut button shows my own open-split total (all of it is mine here).
     expect(screen.getByRole("button", { name: /CheckOut/ })).toHaveTextContent(
       "£4.50"
     )

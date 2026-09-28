@@ -38,4 +38,6 @@ export interface ICartStore {
     pending?: Record<string, number>
     // Why the last change to an item's split was undone, per menu item id.
     splitErrors?: Record<string, string>
+    // The latest getTableCart request; answers to older ones are ignored.
+    cartRequestId?: string
 }

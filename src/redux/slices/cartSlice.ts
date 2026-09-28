@@ -92,10 +92,22 @@ export const removeFromSplit = createAsyncThunk("cart/removeFromSplit", async ({
     return data
 })
 
-export const getTableCart = createAsyncThunk("cart/getTableCart", async (tableId: string)=> {
-    const { data }: AxiosResponse<ICart> = await backend.get(`carts/tables/${tableId}`)
-    return data
-})
+export const getTableCart = createAsyncThunk(
+    "cart/getTableCart",
+    async (tableId: string, { rejectWithValue }) => {
+        try {
+            const { data }: AxiosResponse<ICart> = await backend.get(`carts/tables/${tableId}`)
+            return data
+        } catch (err) {
+            // A 404 means the table has no open cart (none yet, or it was paid
+            // off); the reducer tells that apart from a failed request.
+            if (axios.isAxiosError(err)) {
+                return rejectWithValue({ status: err.response?.status })
+            }
+            throw err
+        }
+    }
+)
 interface CheckOutProps {
     tableId: string
     cartId: string
@@ -139,6 +151,14 @@ export const captureCheckout = createAsyncThunk(
     }
 )
 
+// Back to no cart: also drops selections still on their way (their sync loops
+// see nothing wanted and stop) and the notes about failed ones.
+const clearCart = (state: ICartStore) => {
+    state.data = initialState.data
+    delete state.pending
+    delete state.splitErrors
+}
+
 export const cartsSlice = createSlice({
     name: "carts",
     initialState,
@@ -181,8 +201,27 @@ export const cartsSlice = createSlice({
         builder.addCase(removeFromSplit.fulfilled, (state, action) => {
             state.data = action.payload
         })
+        // The cart shown must be the one for the table asked about, as the BE
+        // has it now. Moving to another table clears the old cart at once, so it
+        // is never shown (or acted on) under the new one. Only the latest fetch
+        // counts; an older answer arriving late is dropped. A 404 (no open cart:
+        // none yet, or everything was paid) empties the cart; any other failure
+        // keeps the last good one, as the cart is probably still there.
+        builder.addCase(getTableCart.pending, (state, action) => {
+            state.cartRequestId = action.meta.requestId
+            if (state.data.tableId && state.data.tableId !== action.meta.arg) {
+                clearCart(state)
+            }
+        })
         builder.addCase(getTableCart.fulfilled, (state, action) => {
+            if (action.meta.requestId !== state.cartRequestId) return
             state.data = action.payload
+        })
+        builder.addCase(getTableCart.rejected, (state, action) => {
+            if (action.meta.requestId !== state.cartRequestId) return
+            if ((action.payload as { status?: number } | undefined)?.status === 404) {
+                clearCart(state)
+            }
         })
         builder.addCase(captureCheckout.fulfilled, (state, action) => {
             state.data = action.payload

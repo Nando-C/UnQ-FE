@@ -343,7 +343,9 @@ describe("clicking faster than the BE answers", () => {
     fireEvent.click(selectAll)
     expect(boxes()[0]).not.toBeChecked()
 
-    await waitFor(() => expect(checkout()).toBeEnabled())
+    // Settled once both releases are in; with nothing selected, checkout stays off.
+    await waitFor(() => expect(removed).toHaveLength(2))
+    expect(checkout()).toBeDisabled()
     // Each item claimed once, then released: nothing held, nothing doubled.
     expect(added).toEqual([
       { menuId: "m1", qty: 2 },

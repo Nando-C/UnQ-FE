@@ -169,7 +169,8 @@ describe("cart with a sold-out item", () => {
     renderWithProviders(<CartListItems />, {
       preloadedState: {
         user: { data: me, status: "authenticated" },
-        carts: { data: cartState, pointers: { shopId: "s1", tableId: "t1" } },
+        // A copy: the store freezes what it's given, and the mock mutates cartState.
+        carts: { data: structuredClone(cartState), pointers: { shopId: "s1", tableId: "t1" } },
       },
       route: "/shops/s1/tables/t1/cart",
       path: "/shops/:shopId/tables/:tableId/cart",
@@ -245,6 +246,7 @@ describe("cart with a sold-out item", () => {
   })
 
   it("disables checkout with an explanation while I hold a sold-out selection", async () => {
+    cartState.split.push({ _id: "s-m1", userId: "u1", menuId: menu("m1", 4.5), qty: 1, splitStatus: "open" })
     cartState.split.push({ _id: "s-m2", userId: "u1", menuId: menu("m2", 3, false), qty: 2, splitStatus: "open" })
     const { user } = renderCart()
 
