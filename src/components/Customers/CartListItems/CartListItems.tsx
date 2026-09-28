@@ -15,6 +15,7 @@ import { formatPrice } from "../../../lib/price";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
 import PaymentFeedback from "../PaymentFeedback/PaymentFeedback";
+import CartNotices from "../CartNotices/CartNotices";
 import "./CartListItems.css";
 
 const CartListItems = () => {
@@ -199,6 +200,7 @@ const CartListItems = () => {
           </div>
         </div>
       </div>
+      <CartNotices notices={cart.notices} />
       {soldOutCount > 0 && (
         <Alert variant="warning" className="mt-2 mb-1">
           {soldOutCount === 1

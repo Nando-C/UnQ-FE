@@ -14,9 +14,11 @@ interface TableProps {
   tableId: string;
   shopId: string;
   status?: ITableStatus;
+  // After the table sheet changed the table, to refresh every card's status.
+  onChanged?: () => void;
 }
 
-const SingleTable = ({ tableId, shopId, status }: TableProps) => {
+const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
   );
@@ -98,6 +100,7 @@ const SingleTable = ({ tableId, shopId, status }: TableProps) => {
           status={status}
           show={showSheet}
           handleClose={() => setShowSheet(false)}
+          onChanged={onChanged}
         />
       </div>
     </>

@@ -338,6 +338,18 @@
         "qty": 1,
         "splitStatus": "open"
       }
+    ],
+    "notices": [
+      {
+        "_id": "n2",
+        "at": "2026-09-28T12:05:00.000Z",
+        "message": "The staff released your selection of 2× Pancake 🥞, 1× Hand-crafted pesto pasta with toasted pine nuts."
+      },
+      {
+        "_id": "n1",
+        "at": "2026-09-28T12:00:00.000Z",
+        "message": "The staff removed 1× Burguer 🍔 from this table's cart."
+      }
     ]
   },
   "tableStatus": [

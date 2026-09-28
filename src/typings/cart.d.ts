@@ -31,6 +31,15 @@ export interface ICart {
     status: string
     items: IItem[]
     split: ISplitItem[]
+    // Notes from the staff about changes to this cart, newest first (the BE
+    // sends the recent ones meant for this diner or the whole table).
+    notices?: ICartNotice[]
+}
+
+export interface ICartNotice {
+    _id: string
+    at: string
+    message: string
 }
 
 export interface ICartStore {

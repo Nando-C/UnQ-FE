@@ -81,6 +81,7 @@ const TableList = ({ shopId }: ShopMenuProps) => {
               shopId={shopId}
               tableId={table._id}
               status={statuses[table._id]}
+              onChanged={loadStatuses}
             />
           </Col>
         ))}
