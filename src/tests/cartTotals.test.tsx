@@ -29,7 +29,8 @@ const fixtureCart: ICart = {
   status: "open",
   items: [
     { _id: "i1", menuId: menu("m1", 4.5), qty: 2, qtyPayed: undefined },
-    { _id: "i2", menuId: menu("m2", 3), qty: 1, qtyPayed: 0 },
+    // Paid (the closed split s2), so qtyPayed is 1, as a settled checkout leaves it.
+    { _id: "i2", menuId: menu("m2", 3), qty: 1, qtyPayed: 1 },
   ],
   split: [
     {

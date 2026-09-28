@@ -49,6 +49,7 @@ const SCREENS = [
   ["m-shop-edit", "shopMg", "/shop/s1", "editShop"],
   ["m-item-add", "shopMg", "/shop/s1", "addItem"],
   ["m-table-add", "shopMg", "/shop/s1", "addTable"],
+  ["m-table-sheet", "shopMg", "/shop/s1", "viewTable"],
   ["m-account", "shopMg", "/myAccount", null],
 ]
 
@@ -71,6 +72,7 @@ const ACTIONS = {
   editShop: (p) => p.getByRole("button", { name: /edit details/i }).first(),
   addItem: (p) => p.getByRole("button", { name: /add menu item/i }).first(),
   addTable: (p) => p.getByRole("button", { name: /add table/i }).first(),
+  viewTable: (p) => p.getByRole("button", { name: /view table/i }).first(),
 }
 
 const arg = (name) => {
@@ -297,6 +299,8 @@ const mockApi = (route, role) => {
   if (p === "/auth/refreshToken") return json({ message: "No refresh token" }, 401)
   if (p === "/shops/s1") return json(s1)
   if (p === "/shops/s2") return json(s2)
+  if (p === "/shops/s1/tables/status") return json(fixtures.tableStatus)
+  if (/^\/shops\/s1\/tables\/[^/]+\/carts$/.test(p)) return json(fixtures.tableCarts)
   if (p.startsWith("/shops")) return json(fixtures.shops)
   if (p === "/carts/tables/t1") return json(fixtures.cart)
   return json({ message: "Not mocked" }, 404)

@@ -109,18 +109,29 @@ const CartListItems = () => {
     }
   };
 
-  // A sold-out item's unpaid units will never be charged, so they are left out
-  // of what the table still owes; its paid units still count, both here and in
-  // Total Payed. Open splits on it are left out too, so Remaining stays
-  // Cart Total minus paid minus selected.
-  const totalCart = cart.items.reduce(
-    (total, item) =>
-      total +
-      (isSoldOut(item) ? item.qtyPayed ?? 0 : item.qty) *
-        (item.menuId?.price ?? 0),
-    0
-  );
+  // What's been paid, at the price each unit was paid at, so a later menu price
+  // edit doesn't change it (payments from before the BE recorded prices use
+  // today's price).
+  const totalSplitPayed = cart.split
+    .filter((split) => split.splitStatus === "closed")
+    .reduce(
+      (total, split) =>
+        total + split.qty * (split.unitPrice ?? split.menuId?.price ?? 0),
+      0
+    );
+  // What's still to pay, at today's prices. A sold-out item's unpaid units will
+  // never be charged, so they are left out.
+  const totalUnpaid = cart.items
+    .filter((item) => !isSoldOut(item))
+    .reduce(
+      (total, item) =>
+        total + (item.qty - (item.qtyPayed ?? 0)) * (item.menuId?.price ?? 0),
+      0
+    );
+  const totalCart = totalSplitPayed + totalUnpaid;
+
   // Other diners' open splits as the BE has them, mine as I've asked for them.
+  // Open splits on a sold-out item are left out, like its unpaid units.
   const othersSplit = cart.split
     .filter(
       (split) =>
@@ -134,11 +145,7 @@ const CartListItems = () => {
     .reduce((total, item) => total + myQtyFor(item) * (item.menuId?.price ?? 0), 0);
   const totalSplit = othersSplit + mySplit;
 
-  const totalSplitPayed = cart.split
-    .filter((split) => split.splitStatus === "closed")
-    .reduce((total, split) => total + split.qty * (split.menuId?.price ?? 0), 0);
-
-  const remainingCartTotal = totalCart - totalSplitPayed - totalSplit;
+  const remainingCartTotal = totalUnpaid - totalSplit;
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);

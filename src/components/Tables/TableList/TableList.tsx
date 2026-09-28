@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Button, Card, Row, Col } from "react-bootstrap";
 import { FaPrint } from "react-icons/fa";
 import { useAppSelector } from "../../../redux/app/hooks";
+import backend from "../../../backend/backend";
+import { useVisiblePolling } from "../../../lib/useVisiblePolling";
+import { ITableStatus } from "../../../typings/tables";
 import SingleTable from "../SingleTable/SingleTable";
 import TableModal from "../TableModal/TableModal";
 import "./TableList.css";
@@ -16,6 +19,20 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   );
 
   const tableCount = shop?.tables.length ?? 0;
+
+  // Each table's state for its card, refreshed every 30 s while the page is in
+  // view. A failed refresh keeps the last one; with none yet, the cards simply
+  // show no status.
+  const [statuses, setStatuses] = useState<Record<string, ITableStatus>>({});
+  const loadStatuses = useCallback(() => {
+    backend
+      .get<ITableStatus[]>(`/shops/${shopId}/tables/status`)
+      .then(({ data }) =>
+        setStatuses(Object.fromEntries(data.map((s) => [s.tableId, s])))
+      )
+      .catch(() => {});
+  }, [shopId]);
+  useVisiblePolling(loadStatuses, 30_000, tableCount > 0);
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
@@ -60,7 +77,11 @@ const TableList = ({ shopId }: ShopMenuProps) => {
       <Row>
         {shop?.tables.map((table) => (
           <Col key={table._id} className="mb-4" sm={12} md={6} lg={4} xl={3}>
-            <SingleTable shopId={shopId} tableId={table._id} />
+            <SingleTable
+              shopId={shopId}
+              tableId={table._id}
+              status={statuses[table._id]}
+            />
           </Col>
         ))}
       </Row>

@@ -1,0 +1,15 @@
+/* Rows of the table sheet's lists: a hairline between entries, roomy enough to
+ * scan on a phone. */
+.TableSheet .sheet-list > li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--bs-border-color-translucent);
+}
+
+.TableSheet .sheet-list > li:last-child {
+  border-bottom: 0;
+}
+
+.TableSheet summary {
+  cursor: pointer;
+  padding: 0.5rem 0;
+}

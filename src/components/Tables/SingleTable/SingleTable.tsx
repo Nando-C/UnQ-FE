@@ -5,14 +5,18 @@ import { GrEdit } from "react-icons/gr";
 import { useAppSelector } from "../../../redux/app/hooks";
 import placeholder from "../../../assets/placeholder.svg";
 import TableModal from "../TableModal/TableModal";
+import TableStatus from "../TableStatus/TableStatus";
+import TableSheet from "../TableSheet/TableSheet";
+import { ITableStatus } from "../../../typings/tables";
 import "./SingleTable.css";
 
 interface TableProps {
   tableId: string;
   shopId: string;
+  status?: ITableStatus;
 }
 
-const SingleTable = ({ tableId, shopId }: TableProps) => {
+const SingleTable = ({ tableId, shopId, status }: TableProps) => {
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
   );
@@ -54,12 +58,23 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
+  const [showSheet, setShowSheet] = useState(false);
+
   return (
     <>
-      <div className="SingleTable text-center">
-        <Card>
+      <div className="SingleTable text-center h-100">
+        <Card className="h-100">
           <Card.Title className="mt-3">{table?.name}</Card.Title>
-          <div ref={qrRef} />
+          {status && <TableStatus status={status} />}
+          <div ref={qrRef} className="mt-2" />
+          <Button
+            variant="outline-primary"
+            className="mx-auto mt-auto mb-3 d-print-none"
+            onClick={() => setShowSheet(true)}
+            aria-label={`View table ${table?.name ?? ""}`.trim()}
+          >
+            View table
+          </Button>
           <Button
             variant="link"
             size="lg"
@@ -75,6 +90,14 @@ const SingleTable = ({ tableId, shopId }: TableProps) => {
           show={show}
           handleClose={handleClose}
           tableId={tableId}
+        />
+        <TableSheet
+          shopId={shopId}
+          tableId={tableId}
+          tableName={table?.name ?? ""}
+          status={status}
+          show={showSheet}
+          handleClose={() => setShowSheet(false)}
         />
       </div>
     </>

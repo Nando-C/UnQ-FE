@@ -14,6 +14,12 @@ export interface ISplitItem {
     menuId: IMenu | null | undefined
     qty: number
     splitStatus: string
+    // Once paid: the price each unit was charged at, and when (payments from
+    // before the BE recorded prices have neither).
+    unitPrice?: number
+    paidAt?: string
+    // When the diner first selected it.
+    claimedAt?: string
     // total_price_items: number
 }
 

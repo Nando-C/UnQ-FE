@@ -339,5 +339,209 @@
         "splitStatus": "open"
       }
     ]
+  },
+  "tableStatus": [
+    {
+      "tableId": "t1",
+      "name": "1",
+      "state": "waitingToPay",
+      "owed": 1234.5,
+      "paid": 45,
+      "heldSince": "2026-09-28T16:37:54.000Z",
+      "attention": [
+        "soldOut",
+        "staleSelection",
+        "duplicateCarts"
+      ]
+    },
+    {
+      "tableId": "t2",
+      "name": "2",
+      "state": "ordering",
+      "owed": 21,
+      "paid": 0,
+      "attention": []
+    },
+    {
+      "tableId": "t3",
+      "name": "3",
+      "state": "partlyPaid",
+      "owed": 9.5,
+      "paid": 19,
+      "attention": []
+    },
+    {
+      "tableId": "t4",
+      "name": "4",
+      "state": "free",
+      "owed": 0,
+      "paid": 0,
+      "attention": []
+    },
+    {
+      "tableId": "t5",
+      "name": "5",
+      "state": "free",
+      "owed": 0,
+      "paid": 0,
+      "attention": []
+    }
+  ],
+  "tableCarts": {
+    "open": [
+      {
+        "_id": "c1",
+        "tableId": "t1",
+        "status": "open",
+        "items": [
+          {
+            "_id": "i1",
+            "menuId": {
+              "_id": "m0",
+              "name": "Pancake 🥞",
+              "short_description": "House favourite",
+              "description": "Made in house every morning with local ingredients.",
+              "price": 9.5,
+              "available": true,
+              "category": "food",
+              "image": "https://img.fixtures.test/800x600/20.svg"
+            },
+            "qty": 12,
+            "qtyPayed": 3
+          },
+          {
+            "_id": "i2",
+            "menuId": {
+              "_id": "m1",
+              "name": "Burguer 🍔",
+              "short_description": "House favourite",
+              "description": "Made in house every morning with local ingredients.",
+              "price": 10.5,
+              "available": false,
+              "category": "food",
+              "image": "https://img.fixtures.test/800x600/70.svg"
+            },
+            "qty": 2,
+            "qtyPayed": 0
+          }
+        ],
+        "split": [
+          {
+            "_id": "s1",
+            "userId": {
+              "_id": "u9",
+              "name": "Maximiliana-Alexandrina"
+            },
+            "menuId": {
+              "_id": "m0",
+              "name": "Pancake 🥞",
+              "short_description": "House favourite",
+              "description": "Made in house every morning with local ingredients.",
+              "price": 9.5,
+              "available": true,
+              "category": "food",
+              "image": "https://img.fixtures.test/800x600/20.svg"
+            },
+            "qty": 4,
+            "splitStatus": "open",
+            "claimedAt": "2026-09-28T14:54:54.000Z"
+          },
+          {
+            "_id": "s2",
+            "userId": {
+              "_id": "u8",
+              "name": "Bo"
+            },
+            "menuId": {
+              "_id": "m0",
+              "name": "Pancake 🥞",
+              "short_description": "House favourite",
+              "description": "Made in house every morning with local ingredients.",
+              "price": 9.5,
+              "available": true,
+              "category": "food",
+              "image": "https://img.fixtures.test/800x600/20.svg"
+            },
+            "qty": 1,
+            "splitStatus": "open",
+            "claimedAt": "2026-09-28T16:56:54.000Z"
+          },
+          {
+            "_id": "s3",
+            "userId": {
+              "_id": "u9",
+              "name": "Maximiliana-Alexandrina"
+            },
+            "menuId": {
+              "_id": "m0",
+              "name": "Pancake 🥞",
+              "short_description": "House favourite",
+              "description": "Made in house every morning with local ingredients.",
+              "price": 9.5,
+              "available": true,
+              "category": "food",
+              "image": "https://img.fixtures.test/800x600/20.svg"
+            },
+            "qty": 3,
+            "splitStatus": "closed",
+            "unitPrice": 9.5
+          },
+          {
+            "_id": "s4",
+            "userId": {
+              "_id": "u7",
+              "name": "Cy"
+            },
+            "menuId": {
+              "_id": "m1",
+              "name": "Burguer 🍔",
+              "short_description": "House favourite",
+              "description": "Made in house every morning with local ingredients.",
+              "price": 10.5,
+              "available": false,
+              "category": "food",
+              "image": "https://img.fixtures.test/800x600/70.svg"
+            },
+            "qty": 1,
+            "splitStatus": "closed"
+          }
+        ],
+        "payments": [
+          {
+            "_id": "p1",
+            "provider": "paypal",
+            "providerCheckoutId": "O1",
+            "providerPaymentId": "C1",
+            "currency": "GBP",
+            "userId": {
+              "_id": "u9",
+              "name": "Maximiliana-Alexandrina"
+            },
+            "paidAt": "2026-09-28T16:19:54.000Z",
+            "amount": 28.5,
+            "lines": [
+              {
+                "menuId": "m0",
+                "name": "Pancake 🥞",
+                "qty": 3,
+                "unitPrice": 9.5,
+                "refundedQty": 0
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "recentlyClosed": [
+      {
+        "_id": "c0",
+        "tableId": "t1",
+        "status": "closed",
+        "items": [],
+        "split": [],
+        "payments": [],
+        "updatedAt": "2026-09-28T11:59:54.000Z"
+      }
+    ]
   }
 }
