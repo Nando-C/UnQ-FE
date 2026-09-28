@@ -102,11 +102,16 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                         "Payment could not be completed — nothing was charged. Please try again."
                       );
                     } else {
+                      // The BE's own message already asks the diner to
+                      // contact staff and gives them the order id they need;
+                      // show it as it is.
                       handleShowFbk(
                         "failure",
-                        rejection?.message
-                          ? `Payment received, but the server rejected it (${rejection.message}) — please contact staff.`
-                          : "Payment received, but confirming it with the server failed — please contact staff."
+                        rejection?.message?.includes("contact staff")
+                          ? rejection.message
+                          : rejection?.message
+                            ? `Payment received, but the server rejected it (${rejection.message}) — please contact staff.`
+                            : "Payment received, but confirming it with the server failed — please contact staff."
                       );
                     }
                     return;

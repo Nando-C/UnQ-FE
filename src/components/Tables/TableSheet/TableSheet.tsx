@@ -7,7 +7,7 @@ import { useVisiblePolling } from "../../../lib/useVisiblePolling";
 import { formatPrice } from "../../../lib/price";
 import { menuIdOf } from "../../../lib/cart";
 import { clockTime, heldFor, STATE_CLASS, STATE_LABEL } from "../../../lib/tables";
-import { IManagerCart, IManagerSplit, ITableCarts, ITableStatus } from "../../../typings/tables";
+import { IManagerCart, IManagerSplit, IPayment, ITableCarts, ITableStatus } from "../../../typings/tables";
 import "./TableSheet.css";
 
 // How often an open sheet refreshes (the table cards refresh every 30 s).
@@ -126,6 +126,8 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
     `/shops/${shopId}/tables/${tableId}/carts/${cartId}/${action}`;
   const post = (cartId: string, action: string, body: object = {}) => () =>
     backend.post(cartUrl(cartId, action), body);
+  const sendRefund: SendRefund = (cartId, body) => () =>
+    backend.post(`/shops/${shopId}/carts/${cartId}/refunds`, body);
 
   const open = carts?.open ?? [];
   const closed = carts?.recentlyClosed ?? [];
@@ -190,7 +192,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 {i === 0 ? " (the one diners see)" : " (not shown to diners)"}
               </h3>
             )}
-            <CartDetails cart={cart} ask={ask} post={post} disabled={busy || !!pending} />
+            <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} disabled={busy || !!pending} />
             <div className="d-flex flex-wrap gap-2 mt-3">
               {i > 0 && (
                 <Button
@@ -228,7 +230,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 <h3 className="h6">
                   Closed {cart.updatedAt ? clockTime(cart.updatedAt) : ""}
                 </h3>
-                <Payments cart={cart} />
+                <Payments cart={cart} ask={ask} sendRefund={sendRefund} disabled={busy || !!pending} />
               </section>
             ))}
           </details>
@@ -287,14 +289,20 @@ const closeAction = (
 
 // ---------------------------------------------------------------------------
 
+type SendRefund = (
+  cartId: string,
+  body: { paymentId: string; lines: { menuId: string; qty: number }[] }
+) => PendingAction["send"];
+
 interface CartDetailsProps {
   cart: IManagerCart;
   ask: Ask;
   post: (cartId: string, action: string, body?: object) => PendingAction["send"];
+  sendRefund: SendRefund;
   disabled: boolean;
 }
 
-const CartDetails = ({ cart, ask, post, disabled }: CartDetailsProps) => {
+const CartDetails = ({ cart, ask, post, sendRefund, disabled }: CartDetailsProps) => {
   const selections = cart.split.filter((s) => s.splitStatus === "open");
   const selectedOf = (menuId: string | undefined) =>
     selections
@@ -418,16 +426,26 @@ const CartDetails = ({ cart, ask, post, disabled }: CartDetailsProps) => {
         </ul>
       )}
 
-      <Payments cart={cart} />
+      <Payments cart={cart} ask={ask} sendRefund={sendRefund} disabled={disabled} />
     </>
   );
 };
 
-// Payments on a cart: the recorded ones in full, and any paid units from before
-// payments were recorded as one "details unavailable" line.
-const Payments = ({ cart }: { cart: IManagerCart }) => {
+// Payments on a cart: the recorded ones in full, each with what's been refunded
+// and a way to refund more, and any paid units from before payments were
+// recorded as one "details unavailable" line (refunded from PayPal).
+interface PaymentsProps {
+  cart: IManagerCart;
+  ask: Ask;
+  sendRefund: SendRefund;
+  disabled: boolean;
+}
+
+const Payments = ({ cart, ask, sendRefund, disabled }: PaymentsProps) => {
   const payments = cart.payments ?? [];
+  const refunds = cart.refunds ?? [];
   const legacy = cart.split.filter((s) => s.splitStatus === "closed" && s.unitPrice === undefined);
+  const [refunding, setRefunding] = useState<string | null>(null);
 
   return (
     <>
@@ -436,30 +454,176 @@ const Payments = ({ cart }: { cart: IManagerCart }) => {
         <p className="text-body-secondary small">No payments yet.</p>
       ) : (
         <ul className="list-unstyled sheet-list">
-          {payments.map((p) => (
-            <li key={p._id}>
-              <div className="d-flex flex-wrap justify-content-between gap-1">
-                <span>
-                  {p.userId?.name ?? "A diner"} · {clockTime(p.paidAt)}
-                </span>
-                <strong className="text-nowrap">{formatPrice(p.amount)}</strong>
-              </div>
-              <div className="small text-body-secondary">
-                {p.lines.map((l) => units(l.qty, l.name)).join(", ")}
-              </div>
-            </li>
-          ))}
+          {payments.map((p) => {
+            const mine = refunds.filter((r) => r.paymentId === p._id);
+            const refunded = mine
+              .filter((r) => r.status === "completed")
+              .reduce((sum, r) => sum + r.amount, 0);
+            const inProgress = mine.some((r) => r.status === "pending");
+            // Per line, what can still be refunded: paid, less refunded, less
+            // refunds under way.
+            const leftOf = (line: IPayment["lines"][number]) =>
+              line.qty -
+              line.refundedQty -
+              mine
+                .filter((r) => r.status === "pending")
+                .flatMap((r) => r.lines)
+                .filter((l) => l.menuId === line.menuId)
+                .reduce((sum, l) => sum + l.qty, 0);
+            const refundable = p.lines.some((l) => leftOf(l) > 0);
+            return (
+              <li key={p._id}>
+                <div className="d-flex flex-wrap justify-content-between gap-1">
+                  <span>
+                    {p.userId?.name ?? "A diner"} · {clockTime(p.paidAt)}
+                  </span>
+                  <strong className="text-nowrap">{formatPrice(p.amount)}</strong>
+                </div>
+                <div className="small text-body-secondary">
+                  {p.lines.map((l) => units(l.qty, l.name)).join(", ")}
+                </div>
+                {refunded > 0 && (
+                  <div className="small">
+                    Refunded <strong className="text-nowrap">{formatPrice(refunded)}</strong>
+                  </div>
+                )}
+                {inProgress && (
+                  <div className="small text-danger-emphasis">
+                    <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
+                    Refund in progress: check PayPal before refunding again.
+                  </div>
+                )}
+                {!p.providerPaymentId ? (
+                  <div className="small text-body-secondary">Refund this payment from PayPal.</div>
+                ) : refunding === p._id ? (
+                  <RefundPicker
+                    payment={p}
+                    leftOf={leftOf}
+                    onCancel={() => setRefunding(null)}
+                    onReview={(lines, amount) => {
+                      const who = p.userId?.name ?? "the diner";
+                      const what = lines
+                        .map((l) => units(l.qty, p.lines.find((pl) => pl.menuId === l.menuId)?.name))
+                        .join(", ");
+                      setRefunding(null);
+                      ask({
+                        message:
+                          `Refund ${formatPrice(amount)} to ${who} for ${what}? PayPal returns it to their account, ` +
+                          `the items are removed from the table's cart, and ${who} will see a note. This can't be undone.`,
+                        confirmLabel: `Refund ${formatPrice(amount)} to ${who}`,
+                        danger: true,
+                        send: sendRefund(cart._id, { paymentId: p._id, lines }),
+                        done: () => `Refunded ${formatPrice(amount)} to ${who}.`,
+                      });
+                    }}
+                  />
+                ) : (
+                  refundable &&
+                  !inProgress && (
+                    <Button
+                      variant="outline-danger"
+                      className="mt-2"
+                      disabled={disabled}
+                      onClick={() => setRefunding(p._id)}
+                      aria-label={`Refund items from ${p.userId?.name ?? "a diner"}'s payment of ${formatPrice(p.amount)}`}
+                    >
+                      Refund…
+                    </Button>
+                  )
+                )}
+              </li>
+            );
+          })}
           {legacy.length > 0 && (
             <li>
               <div>Paid, details unavailable</div>
               <div className="small text-body-secondary">
                 {legacy.map((s) => units(s.qty, s.menuId?.name)).join(", ")}
               </div>
+              <div className="small text-body-secondary">Refund these from PayPal.</div>
             </li>
           )}
         </ul>
       )}
     </>
+  );
+};
+
+// Step 1 of a refund: how many of each item, up to what's left, with the total
+// at the prices paid. Step 2 is the confirmation in the sheet's footer.
+interface RefundPickerProps {
+  payment: IPayment;
+  leftOf: (line: IPayment["lines"][number]) => number;
+  onCancel: () => void;
+  onReview: (lines: { menuId: string; qty: number }[], amount: number) => void;
+}
+
+const RefundPicker = ({ payment, leftOf, onCancel, onReview }: RefundPickerProps) => {
+  const [picks, setPicks] = useState<Record<string, number>>({});
+  const lines = payment.lines.filter((l) => leftOf(l) > 0);
+  const amount =
+    Math.round(lines.reduce((sum, l) => sum + (picks[l.menuId] ?? 0) * l.unitPrice, 0) * 100) / 100;
+  const set = (menuId: string, qty: number) => setPicks((p) => ({ ...p, [menuId]: qty }));
+
+  return (
+    <div className="refund-picker mt-2 p-2 rounded border" role="group" aria-label="Choose what to refund">
+      {lines.map((l) => {
+        const qty = picks[l.menuId] ?? 0;
+        const left = leftOf(l);
+        return (
+          <div key={l.menuId} className="d-flex flex-wrap justify-content-between align-items-center gap-2 py-1">
+            <span>
+              {l.name} <span className="small text-body-secondary text-nowrap">{formatPrice(l.unitPrice)} each · {left} left</span>
+            </span>
+            <div className="stepper" role="group" aria-label={`${l.name} to refund`}>
+              <Button
+                variant="link"
+                className="hit-44"
+                disabled={qty <= 0}
+                onClick={() => set(l.menuId, qty - 1)}
+                aria-label={`Refund one fewer ${l.name}`}
+              >
+                −
+              </Button>
+              <span className="qty">{qty}</span>
+              <Button
+                variant="link"
+                className="hit-44"
+                disabled={qty >= left}
+                onClick={() => set(l.menuId, qty + 1)}
+                aria-label={`Refund one more ${l.name}`}
+              >
+                +
+              </Button>
+            </div>
+          </div>
+        );
+      })}
+      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2">
+        <span>
+          Refund <strong className="text-nowrap">{formatPrice(amount)}</strong>
+        </span>
+        <div className="d-flex gap-2">
+          <Button variant="outline-secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            disabled={amount <= 0}
+            onClick={() =>
+              onReview(
+                lines
+                  .filter((l) => (picks[l.menuId] ?? 0) > 0)
+                  .map((l) => ({ menuId: l.menuId, qty: picks[l.menuId] })),
+                amount
+              )
+            }
+          >
+            Review refund
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 

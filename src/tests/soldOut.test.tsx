@@ -301,6 +301,23 @@ describe("checkout onApprove 409s", () => {
     expect(text).not.toMatch(/refunded/)
   })
 
+  it("shows the BE's contact-staff message, with its order id, as it is", async () => {
+    const msg = "Payment captured but could not be settled or refunded — please contact staff (order ORDER-9)"
+    server.use(
+      http.post(`${BASE}/carts/tables/t1/cart1/captureCheckout`, () =>
+        HttpResponse.json({ message: msg }, { status: 500 })
+      )
+    )
+    const handleShowFbk = vi.fn()
+    const { user } = renderWithProviders(
+      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} />,
+      { preloadedState: { carts: { data: cart, pointers: { shopId: "s1", tableId: "t1" } } } }
+    )
+
+    await user.click(screen.getByRole("button", { name: "Approve" }))
+    await waitFor(() => expect(handleShowFbk).toHaveBeenCalledWith("failure", msg))
+  })
+
   it("still says refunded for the post-capture conflict", async () => {
     const [, text] = await approveWith(
       "A concurrent payment took these items — your payment was refunded"

@@ -46,6 +46,21 @@ export interface IPayment {
     lines: IPaymentLine[]
 }
 
+// A manager's refund of units of a payment: pending while the provider is
+// asked, then completed or failed. One still pending after the request means
+// the provider's answer wasn't recorded: check the provider.
+export interface IRefund {
+    _id: string
+    paymentId: string
+    lines: { menuId: string; name: string; qty: number }[]
+    amount: number
+    currency: string
+    status: "pending" | "completed" | "failed"
+    providerRefundId?: string
+    failureReason?: string
+    at: string
+}
+
 export interface IManagerCart {
     _id: string
     tableId: string
@@ -53,6 +68,7 @@ export interface IManagerCart {
     items: IItem[]
     split: IManagerSplit[]
     payments?: IPayment[]
+    refunds?: IRefund[]
     createdAt?: string
     updatedAt?: string
 }

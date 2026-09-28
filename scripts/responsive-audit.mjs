@@ -50,6 +50,7 @@ const SCREENS = [
   ["m-item-add", "shopMg", "/shop/s1", "addItem"],
   ["m-table-add", "shopMg", "/shop/s1", "addTable"],
   ["m-table-sheet", "shopMg", "/shop/s1", "viewTable"],
+  ["m-refund", "shopMg", "/shop/s1", "refundPicker"],
   ["m-account", "shopMg", "/myAccount", null],
 ]
 
@@ -73,6 +74,10 @@ const ACTIONS = {
   addItem: (p) => p.getByRole("button", { name: /add menu item/i }).first(),
   addTable: (p) => p.getByRole("button", { name: /add table/i }).first(),
   viewTable: (p) => p.getByRole("button", { name: /view table/i }).first(),
+  refundPicker: (p) => [
+    p.getByRole("button", { name: /view table/i }).first(),
+    p.getByRole("button", { name: /^refund items from/i }).first(),
+  ],
 }
 
 const arg = (name) => {
@@ -343,9 +348,13 @@ const run = async ([id, role, url, action], vp) => {
     await page.goto(BASE + url, { waitUntil: "networkidle", timeout: 30000 })
     await settle(page)
     if (action) {
+      // An action is one control to click, or several in turn (a dialog
+      // opened from inside another).
       const open = async () => {
-        await ACTIONS[action](page).click({ timeout: 5000 })
-        await page.waitForTimeout(900)
+        for (const step of [ACTIONS[action](page)].flat()) {
+          await step.click({ timeout: 5000 })
+          await page.waitForTimeout(900)
+        }
       }
       await open()
       // PayPal's buttons come from its SDK over the network, in iframes, and the
