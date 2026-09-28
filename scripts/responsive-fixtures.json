@@ -540,6 +540,45 @@
                 "refundedQty": 0
               }
             ]
+          },
+          {
+            "_id": "p2",
+            "provider": "paypal",
+            "providerCheckoutId": "O2",
+            "providerPaymentId": "C2",
+            "currency": "GBP",
+            "userId": {
+              "_id": "u8",
+              "name": "Bo"
+            },
+            "paidAt": "2026-09-28T16:25:00.000Z",
+            "amount": 9.5,
+            "lines": [
+              {
+                "menuId": "m0",
+                "name": "Pancake 🥞",
+                "qty": 1,
+                "unitPrice": 9.5,
+                "refundedQty": 0
+              }
+            ]
+          }
+        ],
+        "refunds": [
+          {
+            "_id": "r1",
+            "paymentId": "p2",
+            "lines": [
+              {
+                "menuId": "m0",
+                "name": "Pancake 🥞",
+                "qty": 1
+              }
+            ],
+            "amount": 9.5,
+            "currency": "GBP",
+            "status": "pending",
+            "at": "2026-09-28T16:30:00.000Z"
           }
         ]
       }

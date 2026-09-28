@@ -85,11 +85,13 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
           })
         ).unwrap();
       } catch (err) {
-        const rejection = err as { status?: number } | undefined;
+        const rejection = err as { status?: number; message?: string } | undefined;
         if (rejection?.status === 409) {
           showAddError(`Sorry — ${menuItem?.name} just sold out.`);
           // Pull the fresh menu so this card turns into its sold-out state.
           dispatch(fetchSingleShop(shopId));
+        } else if (rejection?.message === "Table Not Found!") {
+          showAddError("This table isn't taking orders any more — please ask staff.");
         } else {
           showAddError("Couldn't add this to your cart — please try again.");
         }

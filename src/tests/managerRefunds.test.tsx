@@ -175,8 +175,49 @@ describe("refunding a payment", () => {
     ])
     const { sheet } = await openSheet()
 
-    expect(within(sheet).getByText("Refund in progress: check PayPal before refunding again.")).toBeInTheDocument()
+    expect(within(sheet).getByText(/^Refund of £3.00 in progress/)).toHaveTextContent(
+      "Refund of £3.00 in progress: PayPal hasn't confirmed it."
+    )
     expect(refundButton(sheet)).not.toBeInTheDocument()
+  })
+
+  it("retries a refund in progress after saying it can't refund twice", async () => {
+    carts = cartsWith(payment(), [
+      { _id: "r1", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 1 }], amount: 3, currency: "GBP", status: "pending", at: new Date().toISOString() },
+    ])
+    let retries = 0
+    server.use(
+      http.post(`${BASE}/shops/s1/carts/c1/refunds/r1/retry`, () => {
+        retries++
+        return HttpResponse.json({ refund: { status: "completed" }, cart: carts.open[0] })
+      })
+    )
+    const { user, sheet } = await openSheet()
+
+    await user.click(within(sheet).getByRole("button", { name: "Retry the £3.00 refund to Ada" }))
+    expect(within(sheet).getByText(/^Retry the £3.00 refund/)).toHaveTextContent(
+      "Retry the £3.00 refund to Ada for 1× Latte? PayPal is asked first whether it already went through; it's only sent again if it didn't, so it can't be refunded twice."
+    )
+    expect(retries).toBe(0)
+
+    await user.click(within(sheet).getByRole("button", { name: "Retry refund" }))
+    expect(await within(sheet).findByText("Refunded £3.00 to Ada.")).toBeInTheDocument()
+    expect(retries).toBe(1)
+  })
+
+  it("shows why a retry couldn't settle it", async () => {
+    carts = cartsWith(payment(), [
+      { _id: "r1", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 1 }], amount: 3, currency: "GBP", status: "pending", at: new Date().toISOString() },
+    ])
+    const msg = "Couldn't check with PayPal (PayPal order lookup failed (503)). The refund is still in progress: try again shortly."
+    server.use(
+      http.post(`${BASE}/shops/s1/carts/c1/refunds/r1/retry`, () => HttpResponse.json({ message: msg }, { status: 502 }))
+    )
+    const { user, sheet } = await openSheet()
+
+    await user.click(within(sheet).getByRole("button", { name: "Retry the £3.00 refund to Ada" }))
+    await user.click(within(sheet).getByRole("button", { name: "Retry refund" }))
+    expect(await within(sheet).findByText(msg)).toBeInTheDocument()
   })
 
   it("points to PayPal for a payment it can't refund itself", async () => {

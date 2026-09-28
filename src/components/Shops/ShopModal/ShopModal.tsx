@@ -73,13 +73,15 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       tables: shop ? shop.tables : [],
       menu: shop ? shop.menu : [],
     });
-    setPhoneInput(shop ? String(shop.phone) : "");
+    setPhoneInput(shop?.phone != null ? String(shop.phone) : "");
   }, [shop]);
 
+  // The BE stores the phone as a number: spaces, dashes, brackets and a
+  // leading + are allowed in the field and dropped.
   const parsePhone = (): number | undefined | null => {
-    if (phoneInput.trim() === "") return undefined;
-    const parsed = parseInt(phoneInput, 10);
-    return Number.isNaN(parsed) ? null : parsed;
+    const digits = phoneInput.replace(/[\s\-().]/g, "").replace(/^\+/, "");
+    if (digits === "") return undefined;
+    return /^\d+$/.test(digits) ? Number(digits) : null;
   };
 
   const createShop = async () => {
@@ -90,7 +92,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
     }
     const phone = parsePhone();
     if (phone === null) {
-      setError("Phone number must be numeric");
+      setError("Phone number can only contain digits, spaces, dashes and brackets");
       return;
     }
     const newShop = {
@@ -127,7 +129,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
     }
     const phone = parsePhone();
     if (phone === null) {
-      setError("Phone number must be numeric");
+      setError("Phone number can only contain digits, spaces, dashes and brackets");
       return;
     }
     const updatedShop = {

@@ -91,6 +91,21 @@ describe("menu card", () => {
     expect(await screen.findByText("Sold out")).toBeInTheDocument()
   })
 
+  it("says the table isn't taking orders when it was deleted", async () => {
+    server.use(
+      http.post(`${BASE}/carts/s1/tables/t1/addItem`, () =>
+        HttpResponse.json({ message: "Table Not Found!" }, { status: 404 })
+      )
+    )
+    const { user } = renderCard(shopWith(menu("m1", 5)))
+
+    await user.click(screen.getByRole("button", { name: /add/i }))
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "This table isn't taking orders any more — please ask staff."
+    )
+  })
+
   it("shows a generic message when Add fails for any other reason", async () => {
     server.use(
       http.post(`${BASE}/carts/s1/tables/t1/addItem`, () =>
@@ -269,11 +284,11 @@ describe("checkout onApprove 409s", () => {
     split: [],
   }
 
-  const approveWith = async (message: string) => {
+  const approveWith = async (message: string, status = 409) => {
     let cartFetches = 0
     server.use(
       http.post(`${BASE}/carts/tables/t1/cart1/captureCheckout`, () =>
-        HttpResponse.json({ message }, { status: 409 })
+        HttpResponse.json({ message }, { status })
       ),
       http.get(`${BASE}/carts/tables/t1`, () => {
         cartFetches++
@@ -299,6 +314,34 @@ describe("checkout onApprove 409s", () => {
     expect(variant).toBe("failure")
     expect(text).toBe(`${msg} — nothing was charged.`)
     expect(text).not.toMatch(/refunded/)
+  })
+
+  it("says nothing was charged when the table was closed meanwhile (404)", async () => {
+    const [variant, text] = await approveWith("Cart Not Found!", 404)
+
+    expect(variant).toBe("failure")
+    expect(text).toBe("Cart Not Found! — nothing was charged.")
+  })
+
+  it("asks to contact staff, without claiming a payment, when the outcome is unknown", async () => {
+    server.use(
+      http.post(`${BASE}/carts/tables/t1/cart1/captureCheckout`, () =>
+        HttpResponse.json({ message: "Internal Server Error" }, { status: 500 })
+      )
+    )
+    const handleShowFbk = vi.fn()
+    const { user } = renderWithProviders(
+      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} />,
+      { preloadedState: { carts: { data: cart, pointers: { shopId: "s1", tableId: "t1" } } } }
+    )
+
+    await user.click(screen.getByRole("button", { name: "Approve" }))
+    await waitFor(() =>
+      expect(handleShowFbk).toHaveBeenCalledWith(
+        "failure",
+        "We couldn't confirm your payment — please contact staff before paying again."
+      )
+    )
   })
 
   it("shows the BE's contact-staff message, with its order id, as it is", async () => {

@@ -58,7 +58,7 @@ const unpaidOf = (item: IManagerCart["items"][number]) => item.qty - (item.qtyPa
 // selected per item), who has selected what and for how long, the payments
 // made, and the carts closed in the last 24 hours. From here a manager can
 // release selections, remove unpaid items, close the table and merge duplicate
-// carts, each after a confirmation that says what will happen. No money moves.
+// carts, and refund payments, each after a confirmation that says what will happen.
 const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onChanged }: TableSheetProps) => {
   const [carts, setCarts] = useState<ITableCarts | null>(null);
   const [error, setError] = useState(false);
@@ -128,6 +128,8 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
     backend.post(cartUrl(cartId, action), body);
   const sendRefund: SendRefund = (cartId, body) => () =>
     backend.post(`/shops/${shopId}/carts/${cartId}/refunds`, body);
+  const retryRefund: RetryRefund = (cartId, refundId) => () =>
+    backend.post(`/shops/${shopId}/carts/${cartId}/refunds/${refundId}/retry`);
 
   const open = carts?.open ?? [];
   const closed = carts?.recentlyClosed ?? [];
@@ -192,7 +194,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 {i === 0 ? " (the one diners see)" : " (not shown to diners)"}
               </h3>
             )}
-            <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} disabled={busy || !!pending} />
+            <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} retryRefund={retryRefund} disabled={busy || !!pending} />
             <div className="d-flex flex-wrap gap-2 mt-3">
               {i > 0 && (
                 <Button
@@ -230,7 +232,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 <h3 className="h6">
                   Closed {cart.updatedAt ? clockTime(cart.updatedAt) : ""}
                 </h3>
-                <Payments cart={cart} ask={ask} sendRefund={sendRefund} disabled={busy || !!pending} />
+                <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} disabled={busy || !!pending} />
               </section>
             ))}
           </details>
@@ -293,16 +295,18 @@ type SendRefund = (
   cartId: string,
   body: { paymentId: string; lines: { menuId: string; qty: number }[] }
 ) => PendingAction["send"];
+type RetryRefund = (cartId: string, refundId: string) => PendingAction["send"];
 
 interface CartDetailsProps {
   cart: IManagerCart;
   ask: Ask;
   post: (cartId: string, action: string, body?: object) => PendingAction["send"];
   sendRefund: SendRefund;
+  retryRefund: RetryRefund;
   disabled: boolean;
 }
 
-const CartDetails = ({ cart, ask, post, sendRefund, disabled }: CartDetailsProps) => {
+const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, disabled }: CartDetailsProps) => {
   const selections = cart.split.filter((s) => s.splitStatus === "open");
   const selectedOf = (menuId: string | undefined) =>
     selections
@@ -426,7 +430,7 @@ const CartDetails = ({ cart, ask, post, sendRefund, disabled }: CartDetailsProps
         </ul>
       )}
 
-      <Payments cart={cart} ask={ask} sendRefund={sendRefund} disabled={disabled} />
+      <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} disabled={disabled} />
     </>
   );
 };
@@ -438,10 +442,11 @@ interface PaymentsProps {
   cart: IManagerCart;
   ask: Ask;
   sendRefund: SendRefund;
+  retryRefund: RetryRefund;
   disabled: boolean;
 }
 
-const Payments = ({ cart, ask, sendRefund, disabled }: PaymentsProps) => {
+const Payments = ({ cart, ask, sendRefund, retryRefund, disabled }: PaymentsProps) => {
   const payments = cart.payments ?? [];
   const refunds = cart.refunds ?? [];
   const legacy = cart.split.filter((s) => s.splitStatus === "closed" && s.unitPrice === undefined);
@@ -459,7 +464,8 @@ const Payments = ({ cart, ask, sendRefund, disabled }: PaymentsProps) => {
             const refunded = mine
               .filter((r) => r.status === "completed")
               .reduce((sum, r) => sum + r.amount, 0);
-            const inProgress = mine.some((r) => r.status === "pending");
+            const underWay = mine.filter((r) => r.status === "pending");
+            const inProgress = underWay.length > 0;
             // Per line, what can still be refunded: paid, less refunded, less
             // refunds under way.
             const leftOf = (line: IPayment["lines"][number]) =>
@@ -487,12 +493,35 @@ const Payments = ({ cart, ask, sendRefund, disabled }: PaymentsProps) => {
                     Refunded <strong className="text-nowrap">{formatPrice(refunded)}</strong>
                   </div>
                 )}
-                {inProgress && (
-                  <div className="small text-danger-emphasis">
-                    <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
-                    Refund in progress: check PayPal before refunding again.
-                  </div>
-                )}
+                {underWay.map((r) => {
+                  const who = p.userId?.name ?? "the diner";
+                  const what = r.lines.map((l) => units(l.qty, l.name)).join(", ");
+                  return (
+                    <div key={r._id} className="small text-danger-emphasis">
+                      <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
+                      Refund of {formatPrice(r.amount)} in progress: PayPal hasn't confirmed it.
+                      <Button
+                        variant="outline-primary"
+                        className="d-block mt-2"
+                        disabled={disabled}
+                        aria-label={`Retry the ${formatPrice(r.amount)} refund to ${who}`}
+                        onClick={() =>
+                          ask({
+                            message:
+                              `Retry the ${formatPrice(r.amount)} refund to ${who} for ${what}? PayPal is asked first ` +
+                              `whether it already went through; it's only sent again if it didn't, so it can't be refunded twice.`,
+                            confirmLabel: "Retry refund",
+                            danger: false,
+                            send: retryRefund(cart._id, r._id),
+                            done: () => `Refunded ${formatPrice(r.amount)} to ${who}.`,
+                          })
+                        }
+                      >
+                        Retry refund
+                      </Button>
+                    </div>
+                  );
+                })}
                 {!p.providerPaymentId ? (
                   <div className="small text-body-secondary">Refund this payment from PayPal.</div>
                 ) : refunding === p._id ? (

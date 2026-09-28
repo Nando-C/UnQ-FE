@@ -101,17 +101,29 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                         "failure",
                         "Payment could not be completed — nothing was charged. Please try again."
                       );
+                    } else if (
+                      rejection?.status !== undefined &&
+                      rejection.status >= 400 &&
+                      rejection.status < 500
+                    ) {
+                      // Refused before capture: the table was closed, the
+                      // selection is gone, or the login expired.
+                      handleShowFbk(
+                        "failure",
+                        rejection.message
+                          ? `${rejection.message} — nothing was charged.`
+                          : "Payment could not be completed — nothing was charged."
+                      );
+                      dispatch(getTableCart(cart.tableId));
                     } else {
-                      // The BE's own message already asks the diner to
-                      // contact staff and gives them the order id they need;
-                      // show it as it is.
+                      // A 5xx or no answer: the money may have moved. The BE's
+                      // own message already asks the diner to contact staff
+                      // and gives the order id they need; show it as it is.
                       handleShowFbk(
                         "failure",
                         rejection?.message?.includes("contact staff")
                           ? rejection.message
-                          : rejection?.message
-                            ? `Payment received, but the server rejected it (${rejection.message}) — please contact staff.`
-                            : "Payment received, but confirming it with the server failed — please contact staff."
+                          : "We couldn't confirm your payment — please contact staff before paying again."
                       );
                     }
                     return;
