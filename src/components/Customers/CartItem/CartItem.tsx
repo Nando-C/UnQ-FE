@@ -13,6 +13,7 @@ import { selectUserData } from "../../../redux/slices/userSlice";
 import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
 import { RiDeleteBinLine } from "react-icons/ri";
 import { formatPrice } from "../../../lib/price";
+import placeholder from "../../../assets/placeholder.svg";
 import "./CartItem.css";
 
 interface CartItemProps {
@@ -111,7 +112,9 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
         </label>
       </div>
       <Card className={soldOut ? "CartItem sold-out" : "CartItem"}>
-        <Image className="cart-thumb" src={cartItem.menuId?.image} alt="" rounded />
+        {/* A menu item deleted since it was added comes back from the BE with
+            no image (a sold-out stand-in), so fall back to the placeholder. */}
+        <Image className="cart-thumb" src={cartItem.menuId?.image || placeholder} alt="" rounded />
         <div className="cart-body">
           <Card.Subtitle>
             {cartItem.menuId?.name}

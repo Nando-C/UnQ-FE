@@ -192,6 +192,23 @@ describe("cart with a sold-out item", () => {
     )
   })
 
+  it("treats a menu item deleted since it was added as sold out, with a placeholder photo", () => {
+    // The BE's stand-in for a deleted menu item: its id, no image, unavailable.
+    cartState.items[1].menuId = {
+      _id: "m2",
+      name: "No longer on the menu",
+      short_description: "",
+      price: 0,
+      available: false,
+    } as IMenu
+    renderCart()
+
+    const row = screen.getByText("No longer on the menu").closest(".CartItem")!
+    expect(row).toHaveClass("sold-out")
+    expect(row.querySelector("img")?.getAttribute("src")).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Remove No longer on the menu from the cart" })).toBeInTheDocument()
+  })
+
   it("lets a selection made before the item sold out be un-ticked", async () => {
     cartState.split.push({ _id: "s-m2", userId: "u1", menuId: menu("m2", 3, false), qty: 2, splitStatus: "open" })
     const { user } = renderCart()
