@@ -318,11 +318,11 @@ describe("checkout onApprove 409s", () => {
     await waitFor(() => expect(handleShowFbk).toHaveBeenCalledWith("failure", msg))
   })
 
-  it("still says refunded for the post-capture conflict", async () => {
+  it("says refunded, once, for the post-capture conflict", async () => {
     const [, text] = await approveWith(
-      "A concurrent payment took these items — your payment was refunded"
+      "The table's cart changed while you were paying — your payment was refunded"
     )
 
-    expect(text).toMatch(/refunded automatically/)
+    expect(text).toBe("The table's cart changed while you were paying — your payment was refunded.")
   })
 })

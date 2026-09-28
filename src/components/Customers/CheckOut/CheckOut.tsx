@@ -87,12 +87,12 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                       );
                       dispatch(getTableCart(cart.tableId));
                     } else if (rejection?.status === 409) {
-                      // A concurrent payer took the units after capture — the
-                      // BE has already refunded automatically.
+                      // The cart changed after capture — the BE has already
+                      // refunded automatically, and its message says so.
                       handleShowFbk(
                         "failure",
                         rejection.message
-                          ? `${rejection.message} — you've been refunded automatically.`
+                          ? `${rejection.message}.`
                           : "Someone else claimed those units first — you've been refunded automatically."
                       );
                       dispatch(getTableCart(cart.tableId));
