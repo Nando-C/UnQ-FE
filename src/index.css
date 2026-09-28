@@ -129,6 +129,18 @@ a:focus-visible {
   text-decoration: none;
 }
 
+/* The end buttons follow the outline's corners (its radius less the 1px
+ * border), or their hover fill and focus ring square them off. */
+.stepper .btn:first-child {
+  border-radius: calc(var(--bs-border-radius) - 1px) 0 0
+    calc(var(--bs-border-radius) - 1px);
+}
+
+.stepper .btn:last-child {
+  border-radius: 0 calc(var(--bs-border-radius) - 1px)
+    calc(var(--bs-border-radius) - 1px) 0;
+}
+
 @media (hover: hover) {
   .stepper .btn:hover {
     background-color: var(--bs-primary-bg-subtle);
