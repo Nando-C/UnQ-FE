@@ -133,12 +133,14 @@ export const createCheckoutOrder = createAsyncThunk(
 interface CaptureCheckoutProps extends CheckOutProps {
     paypalOrderId: string
 }
+// `pending`: the BE answered 202, PayPal took the money but is still reviewing
+// it. The diner's items are held for them until staff confirm it.
 export const captureCheckout = createAsyncThunk(
     "cart/captureCheckout",
     async ({tableId, cartId, paypalOrderId}: CaptureCheckoutProps, { rejectWithValue }) => {
         try {
-            const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/captureCheckout`, { paypalOrderId })
-            return data
+            const { data, status }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/captureCheckout`, { paypalOrderId })
+            return { cart: data, pending: status === 202 }
         } catch (err) {
             if (axios.isAxiosError(err)) {
                 return rejectWithValue({
@@ -224,7 +226,7 @@ export const cartsSlice = createSlice({
             }
         })
         builder.addCase(captureCheckout.fulfilled, (state, action) => {
-            state.data = action.payload
+            state.data = action.payload.cart
         })
     }
 })

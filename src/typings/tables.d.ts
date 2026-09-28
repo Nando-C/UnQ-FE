@@ -4,7 +4,7 @@ import { IItem, ISplitItem } from "./cart";
 // and GET /shops/:shopId/tables/:tableId/carts).
 
 export type TableState = "free" | "ordering" | "waitingToPay" | "partlyPaid"
-export type TableAttention = "soldOut" | "duplicateCarts" | "staleSelection"
+export type TableAttention = "soldOut" | "duplicateCarts" | "staleSelection" | "paymentPending"
 
 export interface ITableStatus {
     tableId: string
@@ -37,6 +37,9 @@ export interface IPaymentLine {
 export interface IPayment {
     _id: string
     provider: string
+    // pending: PayPal took it but hasn't confirmed it (check it); failed: it
+    // didn't go through, nothing was taken. Absent on older answers: completed.
+    status?: "completed" | "pending" | "failed"
     providerCheckoutId: string
     providerPaymentId?: string
     currency: string

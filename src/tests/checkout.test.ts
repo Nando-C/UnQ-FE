@@ -71,6 +71,22 @@ describe("captureCheckout thunk", () => {
     expect(store.getState().carts.data).toEqual(closedCart)
   })
 
+  it("resolves to the cart, and whether PayPal is still reviewing the payment (202)", async () => {
+    server.use(
+      http.post(`${BASE}/carts/tables/t1/cart1/captureCheckout`, () =>
+        HttpResponse.json(closedCart, { status: 202 })
+      )
+    )
+
+    const store = makeStore()
+    const result = await store
+      .dispatch(captureCheckout({ tableId: "t1", cartId: "cart1", paypalOrderId: "order1" }))
+      .unwrap()
+
+    expect(result).toEqual({ cart: closedCart, pending: true })
+    expect(store.getState().carts.data).toEqual(closedCart)
+  })
+
   it("rejects with {status, message} on a 402 replay/verification failure", async () => {
     server.use(
       http.post(

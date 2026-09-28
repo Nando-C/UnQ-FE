@@ -228,3 +228,92 @@ describe("refunding a payment", () => {
     expect(refundButton(sheet)).not.toBeInTheDocument()
   })
 })
+
+describe("a payment PayPal hasn't confirmed", () => {
+  const checkButton = (sheet: HTMLElement) =>
+    within(sheet).queryByRole("button", { name: "Check Ada's payment of £8.00 with PayPal" })
+
+  it("offers a check, and no refund, only while it's pending", async () => {
+    carts = cartsWith(payment({ status: "pending" }))
+    const { sheet } = await openSheet()
+
+    expect(within(sheet).getByText(/^Awaiting PayPal/)).toHaveTextContent(
+      "Awaiting PayPal: it took this payment but hasn't confirmed it. The items are held as paid until then."
+    )
+    expect(checkButton(sheet)).toBeInTheDocument()
+    expect(refundButton(sheet)).not.toBeInTheDocument()
+  })
+
+  it("offers no check on a completed payment", async () => {
+    carts = cartsWith(payment({ status: "completed" }))
+    const { sheet } = await openSheet()
+
+    expect(refundButton(sheet)).toBeInTheDocument()
+    expect(checkButton(sheet)).not.toBeInTheDocument()
+  })
+
+  it("checks it with PayPal after saying what either answer does", async () => {
+    carts = cartsWith(payment({ status: "pending" }))
+    let checks = 0
+    server.use(
+      http.post(`${BASE}/shops/s1/carts/c1/payments/p1/check`, () => {
+        checks++
+        return HttpResponse.json({ payment: { status: "completed" }, cart: carts.open[0] })
+      })
+    )
+    const { user, sheet } = await openSheet()
+
+    await user.click(checkButton(sheet)!)
+    expect(within(sheet).getByText(/^Check Ada's payment/)).toHaveTextContent(
+      "Check Ada's payment of £8.00 with PayPal? If PayPal confirmed it, it's recorded as paid. If PayPal declined it, nothing was taken and its items become unpaid again. Ada will see a note either way."
+    )
+    expect(checks).toBe(0)
+
+    await user.click(within(sheet).getByRole("button", { name: "Check payment" }))
+    expect(await within(sheet).findByText("PayPal confirmed Ada's payment of £8.00.")).toBeInTheDocument()
+    expect(checks).toBe(1)
+  })
+
+  it("says so when PayPal declined it", async () => {
+    carts = cartsWith(payment({ status: "pending" }))
+    server.use(
+      http.post(`${BASE}/shops/s1/carts/c1/payments/p1/check`, () =>
+        HttpResponse.json({ payment: { status: "failed" }, cart: carts.open[0] })
+      )
+    )
+    const { user, sheet } = await openSheet()
+
+    await user.click(checkButton(sheet)!)
+    await user.click(within(sheet).getByRole("button", { name: "Check payment" }))
+    expect(
+      await within(sheet).findByText(
+        "PayPal didn't complete Ada's payment of £8.00: nothing was taken, and those items are unpaid again."
+      )
+    ).toBeInTheDocument()
+  })
+
+  it("shows PayPal still processing it as a warning", async () => {
+    carts = cartsWith(payment({ status: "pending" }))
+    server.use(
+      http.post(`${BASE}/shops/s1/carts/c1/payments/p1/check`, () =>
+        HttpResponse.json({ message: "PayPal is still processing this payment. Check again later" }, { status: 409 })
+      )
+    )
+    const { user, sheet } = await openSheet()
+
+    await user.click(checkButton(sheet)!)
+    await user.click(within(sheet).getByRole("button", { name: "Check payment" }))
+    expect(
+      await within(sheet).findByText("PayPal is still processing this payment. Check again later. Here's the table as it is now.")
+    ).toBeInTheDocument()
+  })
+
+  it("shows a failed payment with no way to refund it", async () => {
+    carts = cartsWith(payment({ status: "failed" }))
+    const { sheet } = await openSheet()
+
+    expect(within(sheet).getByText("Didn't go through at PayPal: nothing was taken.")).toBeInTheDocument()
+    expect(refundButton(sheet)).not.toBeInTheDocument()
+    expect(checkButton(sheet)).not.toBeInTheDocument()
+  })
+})

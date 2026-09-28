@@ -58,7 +58,8 @@ const unpaidOf = (item: IManagerCart["items"][number]) => item.qty - (item.qtyPa
 // selected per item), who has selected what and for how long, the payments
 // made, and the carts closed in the last 24 hours. From here a manager can
 // release selections, remove unpaid items, close the table and merge duplicate
-// carts, and refund payments, each after a confirmation that says what will happen.
+// carts, refund payments and check payments PayPal hadn't confirmed, each after
+// a confirmation that says what will happen.
 const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onChanged }: TableSheetProps) => {
   const [carts, setCarts] = useState<ITableCarts | null>(null);
   const [error, setError] = useState(false);
@@ -130,6 +131,8 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
     backend.post(`/shops/${shopId}/carts/${cartId}/refunds`, body);
   const retryRefund: RetryRefund = (cartId, refundId) => () =>
     backend.post(`/shops/${shopId}/carts/${cartId}/refunds/${refundId}/retry`);
+  const checkPayment: CheckPayment = (cartId, paymentId) => () =>
+    backend.post(`/shops/${shopId}/carts/${cartId}/payments/${paymentId}/check`);
 
   const open = carts?.open ?? [];
   const closed = carts?.recentlyClosed ?? [];
@@ -194,7 +197,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 {i === 0 ? " (the one diners see)" : " (not shown to diners)"}
               </h3>
             )}
-            <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} retryRefund={retryRefund} disabled={busy || !!pending} />
+            <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={busy || !!pending} />
             <div className="d-flex flex-wrap gap-2 mt-3">
               {i > 0 && (
                 <Button
@@ -232,7 +235,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 <h3 className="h6">
                   Closed {cart.updatedAt ? clockTime(cart.updatedAt) : ""}
                 </h3>
-                <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} disabled={busy || !!pending} />
+                <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={busy || !!pending} />
               </section>
             ))}
           </details>
@@ -296,6 +299,7 @@ type SendRefund = (
   body: { paymentId: string; lines: { menuId: string; qty: number }[] }
 ) => PendingAction["send"];
 type RetryRefund = (cartId: string, refundId: string) => PendingAction["send"];
+type CheckPayment = (cartId: string, paymentId: string) => PendingAction["send"];
 
 interface CartDetailsProps {
   cart: IManagerCart;
@@ -303,10 +307,11 @@ interface CartDetailsProps {
   post: (cartId: string, action: string, body?: object) => PendingAction["send"];
   sendRefund: SendRefund;
   retryRefund: RetryRefund;
+  checkPayment: CheckPayment;
   disabled: boolean;
 }
 
-const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, disabled }: CartDetailsProps) => {
+const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, disabled }: CartDetailsProps) => {
   const selections = cart.split.filter((s) => s.splitStatus === "open");
   const selectedOf = (menuId: string | undefined) =>
     selections
@@ -430,23 +435,25 @@ const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, disabled }: Car
         </ul>
       )}
 
-      <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} disabled={disabled} />
+      <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={disabled} />
     </>
   );
 };
 
 // Payments on a cart: the recorded ones in full, each with what's been refunded
 // and a way to refund more, and any paid units from before payments were
-// recorded as one "details unavailable" line (refunded from PayPal).
+// recorded as one "details unavailable" line (refunded from PayPal). One PayPal
+// hasn't confirmed can only be checked; one that failed, only seen.
 interface PaymentsProps {
   cart: IManagerCart;
   ask: Ask;
   sendRefund: SendRefund;
   retryRefund: RetryRefund;
+  checkPayment: CheckPayment;
   disabled: boolean;
 }
 
-const Payments = ({ cart, ask, sendRefund, retryRefund, disabled }: PaymentsProps) => {
+const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }: PaymentsProps) => {
   const payments = cart.payments ?? [];
   const refunds = cart.refunds ?? [];
   const legacy = cart.split.filter((s) => s.splitStatus === "closed" && s.unitPrice === undefined);
@@ -477,6 +484,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, disabled }: PaymentsProp
                 .filter((l) => l.menuId === line.menuId)
                 .reduce((sum, l) => sum + l.qty, 0);
             const refundable = p.lines.some((l) => leftOf(l) > 0);
+            const who = p.userId?.name ?? "the diner";
             return (
               <li key={p._id}>
                 <div className="d-flex flex-wrap justify-content-between gap-1">
@@ -488,13 +496,44 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, disabled }: PaymentsProp
                 <div className="small text-body-secondary">
                   {p.lines.map((l) => units(l.qty, l.name)).join(", ")}
                 </div>
+                {p.status === "pending" && (
+                  <div className="small text-danger-emphasis">
+                    <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
+                    Awaiting PayPal: it took this payment but hasn't confirmed it. The items are held as paid until then.
+                    <Button
+                      variant="outline-primary"
+                      className="d-block mt-2"
+                      disabled={disabled}
+                      aria-label={`Check ${who}'s payment of ${formatPrice(p.amount)} with PayPal`}
+                      onClick={() =>
+                        ask({
+                          message:
+                            `Check ${who}'s payment of ${formatPrice(p.amount)} with PayPal? If PayPal confirmed it, it's ` +
+                            `recorded as paid. If PayPal declined it, nothing was taken and its items become unpaid again. ` +
+                            `${who} will see a note either way.`,
+                          confirmLabel: "Check payment",
+                          danger: false,
+                          send: checkPayment(cart._id, p._id),
+                          done: (data) =>
+                            (data as { payment?: { status?: string } }).payment?.status === "failed"
+                              ? `PayPal didn't complete ${who}'s payment of ${formatPrice(p.amount)}: nothing was taken, and those items are unpaid again.`
+                              : `PayPal confirmed ${who}'s payment of ${formatPrice(p.amount)}.`,
+                        })
+                      }
+                    >
+                      Check payment
+                    </Button>
+                  </div>
+                )}
+                {p.status === "failed" && (
+                  <div className="small text-body-secondary">Didn't go through at PayPal: nothing was taken.</div>
+                )}
                 {refunded > 0 && (
                   <div className="small">
                     Refunded <strong className="text-nowrap">{formatPrice(refunded)}</strong>
                   </div>
                 )}
                 {underWay.map((r) => {
-                  const who = p.userId?.name ?? "the diner";
                   const what = r.lines.map((l) => units(l.qty, l.name)).join(", ");
                   return (
                     <div key={r._id} className="small text-danger-emphasis">
@@ -522,7 +561,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, disabled }: PaymentsProp
                     </div>
                   );
                 })}
-                {!p.providerPaymentId ? (
+                {p.status === "pending" || p.status === "failed" ? null : !p.providerPaymentId ? (
                   <div className="small text-body-secondary">Refund this payment from PayPal.</div>
                 ) : refunding === p._id ? (
                   <RefundPicker
@@ -530,7 +569,6 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, disabled }: PaymentsProp
                     leftOf={leftOf}
                     onCancel={() => setRefunding(null)}
                     onReview={(lines, amount) => {
-                      const who = p.userId?.name ?? "the diner";
                       const what = lines
                         .map((l) => units(l.qty, p.lines.find((pl) => pl.menuId === l.menuId)?.name))
                         .join(", ");

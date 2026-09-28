@@ -361,6 +361,28 @@ describe("checkout onApprove 409s", () => {
     await waitFor(() => expect(handleShowFbk).toHaveBeenCalledWith("failure", msg))
   })
 
+  it("says the payment is under review, and not to pay again, on a 202", async () => {
+    server.use(
+      http.post(`${BASE}/carts/tables/t1/cart1/captureCheckout`, () =>
+        HttpResponse.json({ ...cart, status: "open" }, { status: 202 })
+      )
+    )
+    const handleShowFbk = vi.fn()
+    const { user } = renderWithProviders(
+      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} />,
+      { preloadedState: { carts: { data: cart, pointers: { shopId: "s1", tableId: "t1" } } } }
+    )
+
+    await user.click(screen.getByRole("button", { name: "Approve" }))
+    await waitFor(() =>
+      expect(handleShowFbk).toHaveBeenCalledWith(
+        "failure",
+        "PayPal is still reviewing your payment. Your items are held for you until staff confirm it — please don't pay for them again."
+      )
+    )
+    expect(handleShowFbk).toHaveBeenCalledTimes(1)
+  })
+
   it("says refunded, once, for the post-capture conflict", async () => {
     const [, text] = await approveWith(
       "The table's cart changed while you were paying — your payment was refunded"

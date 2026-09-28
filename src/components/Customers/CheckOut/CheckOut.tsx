@@ -60,14 +60,15 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                   }
                 }}
                 onApprove={async (data) => {
+                  let pending: boolean;
                   try {
-                    await dispatch(
+                    ({ pending } = await dispatch(
                       captureCheckout({
                         tableId: cart.tableId,
                         cartId: cart._id,
                         paypalOrderId: data.orderID,
                       })
-                    ).unwrap();
+                    ).unwrap());
                   } catch (err) {
                     handleClose();
                     const rejection = err as
@@ -128,8 +129,17 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                     }
                     return;
                   }
-                  handleShowFbk("success");
                   handleClose();
+                  if (pending) {
+                    // PayPal took it but is still reviewing it: not paid yet,
+                    // and not to be paid again.
+                    handleShowFbk(
+                      "failure",
+                      "PayPal is still reviewing your payment. Your items are held for you until staff confirm it — please don't pay for them again."
+                    );
+                    return;
+                  }
+                  handleShowFbk("success");
                 }}
                 onCancel={() => {
                   handleClose();

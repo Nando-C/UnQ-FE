@@ -21,6 +21,7 @@ export const ATTENTION_LABEL: Record<TableAttention, string> = {
   soldOut: "Sold-out item in the cart",
   staleSelection: "Selection held over 15 min",
   duplicateCarts: "More than one open cart",
+  paymentPending: "Payment awaiting PayPal",
 };
 
 // "just now", "12 min", "2 h 5 min": how long ago `iso` was.
