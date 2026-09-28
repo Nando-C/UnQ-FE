@@ -40,7 +40,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
     cover: "",
     bio: "",
     open_times: "",
-    phone: 0,
+    phone: "",
     web_URL: "",
     shopMg: [],
     tables: [],
@@ -67,22 +67,14 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       cover: shop ? shop.cover : "",
       bio: shop ? shop.bio : "",
       open_times: shop ? shop.open_times : "",
-      phone: shop ? shop.phone : 0,
+      phone: shop?.phone ?? "",
       web_URL: shop ? shop.web_URL : "",
       shopMg: shop ? shop.shopMg : [],
       tables: shop ? shop.tables : [],
       menu: shop ? shop.menu : [],
     });
-    setPhoneInput(shop?.phone != null ? String(shop.phone) : "");
+    setPhoneInput(shop?.phone ?? "");
   }, [shop]);
-
-  // The BE stores the phone as a number: spaces, dashes, brackets and a
-  // leading + are allowed in the field and dropped.
-  const parsePhone = (): number | undefined | null => {
-    const digits = phoneInput.replace(/[\s\-().]/g, "").replace(/^\+/, "");
-    if (digits === "") return undefined;
-    return /^\d+$/.test(digits) ? Number(digits) : null;
-  };
 
   const createShop = async () => {
     setError(null);
@@ -90,16 +82,12 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       setError("Name is required");
       return;
     }
-    const phone = parsePhone();
-    if (phone === null) {
-      setError("Phone number can only contain digits, spaces, dashes and brackets");
-      return;
-    }
     const newShop = {
       name: editShop.name,
       bio: editShop.bio,
       open_times: editShop.open_times,
-      phone,
+      // As typed; the BE checks it. Empty clears it.
+      phone: phoneInput.trim(),
       web_URL: editShop.web_URL,
     };
     try {
@@ -127,16 +115,12 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       setError("Name is required");
       return;
     }
-    const phone = parsePhone();
-    if (phone === null) {
-      setError("Phone number can only contain digits, spaces, dashes and brackets");
-      return;
-    }
     const updatedShop = {
       name: editShop.name,
       bio: editShop.bio,
       open_times: editShop.open_times,
-      phone,
+      // As typed; the BE checks it. Empty clears it.
+      phone: phoneInput.trim(),
       web_URL: editShop.web_URL,
     };
     try {

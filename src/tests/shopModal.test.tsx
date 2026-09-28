@@ -34,30 +34,44 @@ describe("editing a shop's phone number", () => {
     expect(screen.getByPlaceholderText("Phone Number")).toHaveValue("")
     await user.click(screen.getByRole("button", { name: "Save Changes" }))
 
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument()
     expect(sent).toHaveLength(1)
-    expect(sent[0]).not.toHaveProperty("phone")
+    expect(sent[0].phone).toBe("")
   })
 
-  it("accepts spaces, dashes and brackets, sending the digits", async () => {
+  it("sends the number as typed, leading 0 and spaces included", async () => {
     const { user } = openEditor(shopWith())
-    const field = screen.getByPlaceholderText("Phone Number")
 
-    await user.type(field, "(0161) 496-0000")
+    await user.type(screen.getByPlaceholderText("Phone Number"), " 0161 496 0000 ")
     await user.click(screen.getByRole("button", { name: "Save Changes" }))
 
-    expect(sent[0].phone).toBe(1614960000)
+    expect(sent[0].phone).toBe("0161 496 0000")
   })
 
-  it("refuses letters", async () => {
-    const { user } = openEditor(shopWith({ phone: 1614960000 }))
+  it("clears a number", async () => {
+    const { user } = openEditor(shopWith({ phone: "07700 900123" }))
     const field = screen.getByPlaceholderText("Phone Number")
-    expect(field).toHaveValue("1614960000")
+    expect(field).toHaveValue("07700 900123")
 
-    await user.type(field, "x")
+    await user.clear(field)
+    await user.click(screen.getByRole("button", { name: "Save Changes" }))
+
+    expect(sent[0].phone).toBe("")
+  })
+
+  it("shows the BE's reason for a number it refuses", async () => {
+    server.use(
+      http.put(`${BASE}/shops/s1`, () =>
+        HttpResponse.json(
+          { message: "Validation failed", details: [{ path: "phone", message: "Phone number can only contain digits, spaces, dashes and brackets" }] },
+          { status: 400 }
+        )
+      )
+    )
+    const { user } = openEditor(shopWith())
+
+    await user.type(screen.getByPlaceholderText("Phone Number"), "call me")
     await user.click(screen.getByRole("button", { name: "Save Changes" }))
 
     expect(await screen.findByText("Phone number can only contain digits, spaces, dashes and brackets")).toBeInTheDocument()
-    expect(sent).toEqual([])
   })
 })

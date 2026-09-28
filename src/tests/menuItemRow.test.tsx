@@ -13,7 +13,7 @@ const makeShop = (overrides: Partial<Record<string, unknown>> = {}): IShop =>
     cover: "",
     bio: "",
     open_times: "",
-    phone: 123,
+    phone: "0123",
     web_URL: "",
     shopMg: [],
     tables: [],

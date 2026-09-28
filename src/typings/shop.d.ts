@@ -6,7 +6,7 @@ export interface IShop {
     cover: string
     bio: string
     open_times: string
-    phone: number
+    phone?: string
     web_URL: string
     shopMg: string[]
     tables: ITable[]
