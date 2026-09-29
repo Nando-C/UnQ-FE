@@ -62,8 +62,8 @@ describe("account page", () => {
     })
 
     const edit = screen.getByRole("button", { name: "Edit profile" })
-    // A link-style button takes the primary colour; the old transparent
-    // btn-primary drew a white pencil on the white card.
+    // A link-style button takes the primary colour, so the pencil shows on
+    // the white card.
     expect(edit).toHaveClass("btn-link")
     expect(edit).not.toHaveClass("btn-primary")
   })

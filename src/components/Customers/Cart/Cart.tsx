@@ -37,7 +37,7 @@ const Cart = () => {
 
   // The bottom bar only links to (and highlights) the cart once it knows the
   // table. TableMenu records it, but a cart page opened directly or refreshed
-  // never passes through the menu, which left the cart icon dead.
+  // never passes through the menu, so it's recorded here too.
   useEffect(() => {
     dispatch(storeCartPointers({ shopId, tableId }));
   }, [dispatch, shopId, tableId]);
@@ -65,7 +65,6 @@ const Cart = () => {
             <Button className="hit-44" onClick={goBack} aria-label="Back">
               <IoArrowBack size={25} />
             </Button>
-            {/* <span>Back</span> */}
           </Col>
           {tableId && (
             <Col className="text-center" xs={8}>

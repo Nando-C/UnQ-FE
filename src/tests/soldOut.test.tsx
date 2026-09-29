@@ -275,8 +275,7 @@ describe("cart with a sold-out item", () => {
     renderCart()
 
     // Total = 2 × 4.50 (m1) + 1 paid × 3 (m2) = 12; the 2 unpaid m2 units are
-    // not owed. Minus the £3 paid, £9 remains (it was £15 before sold-out
-    // units were left out).
+    // not owed. Minus the £3 paid, £9 remains.
     expect(screen.getByText(/Remaining Cart Total/)).toHaveTextContent("£9.00")
     expect(screen.getByText(/Total Payed/)).toHaveTextContent("£3.00")
   })

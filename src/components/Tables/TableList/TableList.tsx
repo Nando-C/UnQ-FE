@@ -50,10 +50,8 @@ const TableList = ({ shopId }: ShopMenuProps) => {
           it belongs to, but that heading would be redundant on screen. */}
       <h2 className="d-none d-print-block mb-4">{shop?.name}</h2>
 
-      {/* Add Table stays optically centred — the page Container is text-center and it has
-          always sat in the middle — so the print action is pushed to the right edge by a
-          pair of equal flex-fill rails rather than by justify-content, which would drag
-          Add Table over to the left. */}
+      {/* Add Table stays centred, like the rest of the page, and the print action sits
+          at the right edge: two equal rails either side (TableList.css). */}
       <div className="TableList-actions pb-5 d-print-none d-flex align-items-center gap-2">
         <div className="tl-rail" />
         <Button className="flex-shrink-0" onClick={handleShow}>
@@ -68,10 +66,8 @@ const TableList = ({ shopId }: ShopMenuProps) => {
             title="Print QR Codes"
             aria-label="Print QR Codes"
           >
-            {/* Below sm the label is dropped and this becomes an icon button. Both
-                buttons refuse to shrink, so keeping the full label on a 320px screen
-                made this one spill out of its rail and sit on top of Add Table. The
-                aria-label above carries the name once the text is gone. */}
+            {/* Icon only below sm: with its label it doesn't fit beside Add Table
+                on a 320px screen. The aria-label above names it. */}
             <FaPrint className="me-sm-2" />
             <span className="d-none d-sm-inline">Print QR Codes</span>
           </Button>

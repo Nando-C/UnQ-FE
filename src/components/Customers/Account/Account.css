@@ -1,6 +1,6 @@
 /* Managers have a fixed header (ShopNavbar publishes its height as
- * --unq-header-h); customers don't, so theirs falls back to 0. Without this the
- * header covered the top of the card, edit button included. */
+ * --unq-header-h); customers don't, so theirs falls back to 0. Keeps the
+ * header off the top of the card. */
 .Account {
   padding-top: calc(var(--unq-header-h, 0px) + 0.5rem);
 }
@@ -9,16 +9,16 @@
   position: relative;
 }
 
-/* A teal pencil in the card's corner. variant="link" gives it the primary
- * colour; as a transparent btn-primary it was white on the white card. */
+/* A teal pencil in the card's corner (variant="link" gives it the primary
+ * colour). */
 .Account > .card .edit-profile {
   position: absolute;
   top: 10px;
   right: 10px;
 }
 
-/* A portrait-sized avatar at every width (it filled half the card on a
- * desktop), square-cropped so a non-square photo stays a circle. */
+/* A portrait-sized avatar at every width, square-cropped so a non-square photo
+ * stays a circle. */
 .Account .avatar {
   width: 100%;
   max-width: 10rem;

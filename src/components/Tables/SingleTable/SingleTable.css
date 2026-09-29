@@ -3,8 +3,8 @@
   box-shadow: 0 6px 6px -4px #5c5c5c38;
 }
 
-/* A teal pencil in the card's corner. variant="link" gives it the primary
- * colour; as a transparent btn-primary it was white on the white card. */
+/* A teal pencil in the card's corner (variant="link" gives it the primary
+ * colour). */
 .SingleTable > .card .table-edit {
   position: absolute;
   top: 5px;

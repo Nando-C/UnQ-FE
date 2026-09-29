@@ -35,10 +35,8 @@ const Item = ({ itemId, shopId }: ItemProps) => {
     const available = !menuItem.available;
     setSaving(true);
     setFailed(false);
-    // Move the switch now rather than after the round trip. It used to be bound
-    // straight to store state that only changed once the PUT *and* a refetch of
-    // every shop had landed, so on a slow connection it read as broken — and if
-    // the PUT failed it silently stayed on the value the manager had rejected.
+    // Move the switch now rather than after the round trip, and put it back
+    // (with a message) if the save fails.
     dispatch(setMenuItemAvailability({ shopId, itemId, available }));
     try {
       await backend.put(`/shops/${shopId}/menu/${itemId}`, { available });
@@ -91,8 +89,8 @@ const Item = ({ itemId, shopId }: ItemProps) => {
               </div>
               <div className="item-sub">
                 <div className="item-body">
-                  {/* Only when there is one — an empty field used to render
-                      its heading over nothing. title= gives back the tail. */}
+                  {/* Only when there is one. title= shows the text cut off by
+                      the truncation. */}
                   {menuItem.short_description && (
                     <div
                       className="item-short text-truncate"
@@ -108,15 +106,11 @@ const Item = ({ itemId, shopId }: ItemProps) => {
                   </span>
                   <Form.Check
                     type="switch"
-                    // Unique per item: a shop menu renders many of these, and
-                    // the shared "custom-switch" id put duplicate ids on the
-                    // page, so every label pointed at the first item's switch.
+                    // Unique per item: a menu renders many of these.
                     id={`available-${menuItem._id}`}
-                    // react-bootstrap only emits a <label> when the check is
-                    // given one, so without this the switch reached the
-                    // accessibility tree unnamed — identical "checkbox,
-                    // checked" nodes. role="switch" also gets it announced as
-                    // on/off rather than checked.
+                    // There's no visible label, so aria-label names it;
+                    // role="switch" gets it announced as on/off rather than
+                    // checked.
                     role="switch"
                     aria-label={`${menuItem.name} available`}
                     checked={menuItem.available}

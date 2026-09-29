@@ -13,7 +13,7 @@ import { apiErrorMessage } from "../../../lib/errors";
 interface ShopModalProps {
   show: boolean;
   handleClose: () => void;
-  // shop: IShop | undefined
+  // "new" to create a shop.
   shopId: string;
 }
 

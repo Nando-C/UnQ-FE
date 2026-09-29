@@ -12,7 +12,6 @@ interface AccountOffCanvasProps {
 
 const ShopTablesOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
   const shop = useAppSelector(selectSelectedShop);
-  // console.log(shop)
 
   return (
     <>

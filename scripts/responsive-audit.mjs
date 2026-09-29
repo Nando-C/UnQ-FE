@@ -68,7 +68,7 @@ const VIEWPORTS = [
 const ACTIONS = {
   tables: (p) => p.getByRole("button", { name: /select table/i }).first(),
   checkout: (p) => p.getByRole("button", { name: /checkout/i }).first(),
-  // Icon-only, with no accessible name yet (S28), so found by its icon.
+  // The first icon button on the Account page: the edit pencil.
   editAccount: (p) => p.locator("button:has(svg)").first(),
   editShop: (p) => p.getByRole("button", { name: /edit details/i }).first(),
   addItem: (p) => p.getByRole("button", { name: /add menu item/i }).first(),

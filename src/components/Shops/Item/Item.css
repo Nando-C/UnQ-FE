@@ -46,8 +46,7 @@
   gap: var(--item-gap);
 }
 
-/* Fixed square. The image was w-100 h-100 with no ratio, so each item's own
- * proportions set its card's height and no two rows in the list matched. */
+/* Fixed square, so a photo's own proportions never set its row's height. */
 .Item .item-thumb {
   flex: 0 0 auto;
   width: var(--item-thumb);
@@ -97,8 +96,7 @@
   font-size: 1.25rem;
   letter-spacing: -0.5px;
   font-variant-numeric: tabular-nums;
-  /* "£ 11.5" used to break after the symbol across the whole 768-991px band,
-   * where the price sat in a ~120px column. */
+  /* Keeps "£11.50" on one line in the narrow 768-991px column. */
   white-space: nowrap;
 }
 
@@ -123,9 +121,8 @@
   margin-left: 0;
 }
 
-/* Was position:absolute top/right, which the item name ran underneath at
- * 320-430px and again across 768-900px. As a flex item it takes its own space
- * and the name simply wraps beside it. Padding keeps the target above 24px.
+/* A flex item rather than absolutely positioned, so a long name wraps beside
+ * it instead of running underneath. Padding keeps the target above 24px.
  *
  * align-items:flex-start on the head row pins it to the first line of a
  * wrapping name; the negative margin then centres it optically on that line

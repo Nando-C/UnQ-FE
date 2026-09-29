@@ -1,6 +1,5 @@
-/* Not scoped, and other screens rely on it (manager shop details, the
- * choose-table panel): every list group item is borderless and transparent.
- * Kept as it was; the shop list itself no longer uses a list group. */
+/* Global on purpose, and other screens rely on it (manager shop details, the
+ * choose-table panel): every list group item is borderless and transparent. */
 .list-group > .list-group-item {
   border: none;
   background-color: rgba(255, 255, 255, 0);

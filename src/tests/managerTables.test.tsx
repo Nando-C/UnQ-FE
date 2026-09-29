@@ -204,7 +204,7 @@ describe("diner's Total Payed", () => {
     })
 
     expect(await screen.findByText(/Total Payed/)).toHaveTextContent("£3.00")
-    // One £9 Latte still to pay (the old sum, 2 × £9 − £3, said £15).
+    // One £9 Latte still to pay.
     expect(screen.getByText(/Remaining Cart Total/)).toHaveTextContent("£9.00")
   })
 })

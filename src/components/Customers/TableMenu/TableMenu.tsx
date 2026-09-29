@@ -22,13 +22,13 @@ import ShopTablesOffCanvas from "../ShopTablesOffCanvas/ShopTablesOffCanvas";
 import "./TableMenu.css";
 import { tablePath } from "../../../lib/paths";
 
+// A shop's menu. With a table in the URL (a QR code's link) the diner can
+// order; without one they browse and are offered the tables to pick from.
 const TableMenu = () => {
   const { shopId = "", tableId = "" } = useParams<{
     shopId: string;
     tableId: string;
   }>();
-  // console.log("shopId: ", shopId)
-  // console.log("tableId: ", tableId)
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
@@ -55,9 +55,8 @@ const TableMenu = () => {
     dispatch(fetchSingleShop(shopId));
   }, [dispatch, shopId]);
 
-  // Cheap staleness mitigation, like the cart's: the menu has no live updates,
-  // so refresh it when a customer returns to this tab — an item may have sold
-  // out meanwhile. A tab left in the foreground still relies on the "just sold
+  // Like the cart, the menu has no live updates, so it refreshes when the
+  // diner comes back to this tab — an item may have sold out meanwhile. A tab left in the foreground still relies on the "just sold
   // out" message MenuItem shows when an add is refused.
   useEffect(() => {
     const onFocus = () => dispatch(fetchSingleShop(shopId));
@@ -66,7 +65,6 @@ const TableMenu = () => {
   }, [dispatch, shopId]);
 
   const shop = useAppSelector(selectSelectedShop);
-  // console.log("This Shop: ", shop)
 
   return (
     <div className="Shop-Page bg-light">

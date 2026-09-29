@@ -1,6 +1,6 @@
 
-/* A true circle: square box, photo cropped to fill it. It had pb-5 (padding
- * inside the image box), which stretched the rounding into an egg shape. */
+/* A true circle: square box, photo cropped to fill it. No padding on the
+ * image, which would stretch the rounding into an egg shape. */
 .avatar-preview {
   object-fit: cover;
 }

@@ -19,6 +19,7 @@ interface ItemModalProps {
   shopId: string;
   show: boolean;
   handleClose: () => void;
+  // "new" to create an item.
   itemId: string;
 }
 

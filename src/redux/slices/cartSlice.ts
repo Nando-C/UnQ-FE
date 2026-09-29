@@ -5,6 +5,10 @@ import axios, { AxiosResponse } from "axios"
 import type { AppThunk, RootState } from "../app/store"
 import { menuIdOf, myOpenSplit } from "../../lib/cart"
 
+// The cart of the table the diner is at: the BE's cart, plus the selections
+// ("splits") the diner has asked for that the BE hasn't confirmed yet. See the
+// BE's cart model for how items and splits work.
+
 const initialState: ICartStore = {
     data: {
         _id: "",
@@ -168,6 +172,7 @@ export const cartsSlice = createSlice({
     name: "carts",
     initialState,
     reducers: {
+        // Remembers the table the diner is at (see ICartStore.pointers).
         storeCartPointers(state, action) {
             const { shopId, tableId } = action.payload
             state.pointers.shopId = shopId

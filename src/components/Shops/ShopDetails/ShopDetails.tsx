@@ -21,6 +21,8 @@ import {
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
 
+// The manager's page for one shop: its details, menu and tables, one after
+// the other (ShopSectionNav in the header jumps between them).
 const ShopDetails = () => {
   const { shopId = "" } = useParams<{ shopId: string }>();
   const dispatch = useAppDispatch();
@@ -31,8 +33,8 @@ const ShopDetails = () => {
 
   const shop = useAppSelector(selectSelectedShop);
 
-  // The menu, tables and edit form read the manager's own shops, which only the
-  // Dashboard loaded: opened directly (a reload, a bookmark), they were empty.
+  // The menu, tables and edit form read the manager's own shops (loaded by the
+  // Dashboard), so a page opened directly (a reload, a bookmark) loads them.
   const inMyShops = useAppSelector((state) =>
     state.shops.data.some((s) => s._id === shopId)
   );

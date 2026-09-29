@@ -34,11 +34,9 @@ const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
     dotsOptions: {
       // The interface teal ($primary, #0F6E66) darkened for scannability. These get
       // printed and stuck on tables, so they have to survive print, dim rooms, odd
-      // angles and red-light laser readers. $primary itself would scan (6.10:1, luma
-      // 81/255), but this keeps the 10:1 margin the codes had before: 10.10:1 against
-      // white, luma 54/255, well clear of the binarisation midpoint, and a red-channel
-      // delta of 245, so the modules stay solid in the red band too. Still reads as
-      // the brand rather than the generic black.
+      // angles and red-light laser readers: 10.10:1 against white, luma 54/255 (well
+      // clear of the binarisation midpoint), and a red-channel delta of 245, so the
+      // modules stay solid in the red band too. Still reads as the brand.
       color: "#0A4A45",
       type: "rounded",
     },

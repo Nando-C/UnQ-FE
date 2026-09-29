@@ -4,8 +4,8 @@ export interface IItem {
     _id?: string
     menuId: IMenu | null | undefined
     qty: number
+    // How many of `qty` are paid for. (The spelling is the API's.)
     qtyPayed?: number
-    // totalPriceItems: number
 }
 
 export interface ISplitItem {
@@ -13,6 +13,7 @@ export interface ISplitItem {
     userId: string
     menuId: IMenu | null | undefined
     qty: number
+    // "open": selected to pay for; "closed": paid.
     splitStatus: string
     // Once paid: the price each unit was charged at, and when (payments from
     // before the BE recorded prices have neither).
@@ -20,7 +21,6 @@ export interface ISplitItem {
     paidAt?: string
     // When the diner first selected it.
     claimedAt?: string
-    // total_price_items: number
 }
 
 export interface ICart {
@@ -44,6 +44,8 @@ export interface ICartNotice {
 
 export interface ICartStore {
     data: ICart
+    // The table the diner is at (from the last table page they opened), so the
+    // bottom bar can link to its cart and sign-in can return them to it.
     pointers: {
         shopId: string
         tableId: string

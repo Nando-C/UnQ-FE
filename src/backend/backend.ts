@@ -1,5 +1,8 @@
 import axios, { AxiosError, AxiosRequestConfig } from "axios"
 
+// Every API call goes through this instance. VITE_BE_URL is normally "/api":
+// the Vite dev proxy and the Vercel rewrite forward it to the BE, so its auth
+// cookies are first-party (see .env.example). Cookies go with every request.
 const backend = axios.create({
     baseURL: import.meta.env.VITE_BE_URL,
     withCredentials: true,

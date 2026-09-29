@@ -5,8 +5,7 @@
     border-radius: 1.5rem;
 }
 
-/* The wide side padding only where there's room for it: at 5rem on a phone it
- * left the form ~230px of a 390px screen. */
+/* The wide side padding only where there's room for it (not on phones). */
 .ShopModal .modal-header,
 .ShopModal .modal-footer {
     padding-inline: 1rem;

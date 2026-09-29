@@ -23,8 +23,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
 
   const [qty, setQty] = useState(1);
 
-  // The shop (and so this card's data) is fetched once by TableMenu; every
-  // card used to refetch the whole shop on mount as well.
+  // The card reads its item from the shop TableMenu fetched.
   const dispatch = useAppDispatch();
 
   const shop = useAppSelector(selectSelectedShop);
@@ -32,9 +31,8 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
 
   const soldOut = menuItem?.available === false;
 
-  // Why an "Add" didn't go through. Before this a failed add was silently
-  // ignored, so a customer whose page predated the item selling out just saw
-  // nothing happen. Cleared on the next interaction or after a few seconds.
+  // Why an "Add" didn't go through (e.g. the item sold out since the page
+  // loaded). Cleared on the next interaction or after a few seconds.
   const [addError, showAddError] = useFlash<string>(5000);
   const clearAddError = () => showAddError(null);
 
@@ -53,8 +51,8 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
   const location = useLocation();
 
   // Add is off while it's sending, so a second tap can't order it twice, and
-  // says "Added" for a moment once it's in: the only other sign was the badge
-  // in the bottom bar.
+  // says "Added" for a moment once it's in (the bottom bar's badge is easy to
+  // miss).
   const [adding, setAdding] = useState(false);
   const [added, showAdded] = useFlash<true>(2000);
 

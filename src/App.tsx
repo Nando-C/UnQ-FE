@@ -20,6 +20,8 @@ function App() {
     dispatch(fetchUserData());
   }, [dispatch]);
 
+  // Shop managers get the manager header, everyone else (diners, guests) the
+  // bottom tab bar.
   const userDataStore = useAppSelector(selectUserData);
   const isManager = userDataStore.role === "shopMg" ? true : false;
 
@@ -31,8 +33,11 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/" element={<Dashboard />} />
+          {/* A shop's menu opened from the shop list, before picking a table. */}
           <Route path="/customer/shop/:shopId" element={<TableMenu />} />
+          {/* The manager's page for one of their shops. */}
           <Route path="/shop/:shopId" element={<ShopDetails />} />
+          {/* A table's menu: where a table's QR code leads. */}
           <Route
             path="/shops/:shopId/tables/:tableId"
             element={<TableMenu />}

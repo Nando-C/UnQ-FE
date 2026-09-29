@@ -9,6 +9,7 @@ import { apiErrorMessage } from "../../../lib/errors";
 
 interface TableModalProps {
   shopId: string;
+  // "new" to create a table.
   tableId: string;
   show: boolean;
   handleClose: () => void;
@@ -114,8 +115,8 @@ const TableModal = ({
           <Modal.Title>Table</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {/* Enter in the name field creates a new table, as Create does;
-              it used to send the rename, with no table to rename. */}
+          {/* Enter in the name field saves: a rename, or for a new table
+              the same as Create. */}
           <Form
             id={formId}
             onSubmit={(e) => {

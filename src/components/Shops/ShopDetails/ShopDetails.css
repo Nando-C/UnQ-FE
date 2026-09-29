@@ -1,14 +1,12 @@
 /* Clears the fixed manager header, which is taller on this page (it adds the shop's
- * section bar) and changes height with the viewport, so the measured --unq-header-h
- * (set by ShopNavbar) replaces the fixed pt-5 this page used when the header was a
- * single 55px bar. The fallback matches that old padding. */
+ * section bar) and changes height with the viewport: ShopNavbar measures it as
+ * --unq-header-h. */
 .ShopDetails {
   padding-top: var(--unq-header-h, 3rem);
 }
 
-/* Readable on wide screens: menu rows kept their price and switch ~1,000px from
- * the name at 1440px. .container.: Bootstrap's own max-widths load after this
- * file. */
+/* Readable on wide screens: menu rows don't stretch their price and switch far
+ * from the name. .container.: Bootstrap's own max-widths load after this file. */
 .container.ShopDetails {
   max-width: 60rem;
 }
@@ -26,11 +24,6 @@
   font-weight: 600;
 }
 
-/* #shopDetails > .card-title {
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: -1.5px;
-} */
 
 /* A URL has no spaces to wrap at; let it break anywhere rather than widen the
  * page on narrow screens or at large text. */

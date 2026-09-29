@@ -31,11 +31,9 @@ const CartListItems = () => {
     dispatch(getTableCart(tableId));
   }, [dispatch, tableId]);
 
-  // Cheap staleness mitigation: the cart view has no live/polled updates, so
-  // at least refresh when a customer returns to this tab (another diner may
-  // have claimed units while it was in the background). Doesn't cover a tab
-  // left in the foreground the whole time — a real fix would need polling or
-  // a push channel.
+  // The cart has no live updates, so it refreshes when the diner comes back to
+  // this tab (another diner may have claimed units meanwhile). A tab left in
+  // the foreground only sees others' changes on its next action.
   useEffect(() => {
     const onFocus = () => dispatch(getTableCart(tableId));
     window.addEventListener("focus", onFocus);
@@ -148,8 +146,7 @@ const CartListItems = () => {
   const navigate = useNavigate();
 
   // What the payment sheet says, and whether it's open. Kept apart so a closing
-  // sheet keeps its content while it slides away (it used to flip to
-  // "Success!" as it went).
+  // sheet keeps its content while it slides away.
   const [fbk, setFbk] = useState<{
     variant: FeedbackVariant;
     message?: string;

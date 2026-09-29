@@ -3,7 +3,7 @@ import { http, HttpResponse } from "msw"
 import backend from "../backend/backend"
 import { server, BASE } from "./server"
 
-// Exercises the S3 refresh-on-401 interceptor in src/backend/backend.ts.
+// Exercises the refresh-on-401 interceptor in src/backend/backend.ts.
 describe("axios refresh interceptor", () => {
   it("refreshes on a 401 and replays the original request", async () => {
     let protectedCalls = 0

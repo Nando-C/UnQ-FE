@@ -25,6 +25,7 @@ export interface IShopStore {
     // The signed-in manager's own shops (GET /shops/me). Kept apart from `all`:
     // both are fetched on a manager's first page load, in either order.
     data: IShop[]
+    // The shop whose page is open (a table's menu, or the manager's shop page).
     selected: IShop | null
     selectedMenu: IMenu | null
 }
