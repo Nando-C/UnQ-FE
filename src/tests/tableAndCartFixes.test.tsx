@@ -8,6 +8,7 @@ import TableMenu from "../components/Customers/TableMenu/TableMenu"
 import Cart from "../components/Customers/Cart/Cart"
 import CheckOut from "../components/Customers/CheckOut/CheckOut"
 import CartListItems from "../components/Customers/CartListItems/CartListItems"
+import { getTableCart } from "../redux/slices/cartSlice"
 import TableModal from "../components/Tables/TableModal/TableModal"
 import { makeStore, renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
@@ -104,6 +105,57 @@ describe("the empty cart page", () => {
     expect(await screen.findByText("Looks like you don't have any open orders!!")).toBeInTheDocument()
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
     expect(document.querySelectorAll(".CartNotices .alert")).toHaveLength(0)
+  })
+})
+
+describe("staff notes on the empty cart", () => {
+  const closedNote = { _id: "n1", at: new Date().toISOString(), message: "The staff closed this table." }
+
+  it("are dropped on moving to another table, even when its cart fails to load", async () => {
+    server.use(
+      http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json({ message: "Cart Not Found!", notices: [closedNote] }, { status: 404 })),
+      http.get(`${BASE}/carts/tables/t2`, () => HttpResponse.json({ message: "Generic Server Error" }, { status: 500 }))
+    )
+    const store = makeStore()
+
+    await store.dispatch(getTableCart("t1"))
+    expect(store.getState().carts.data.notices?.map((n) => n.message)).toEqual(["The staff closed this table."])
+    await store.dispatch(getTableCart("t2"))
+
+    expect(store.getState().carts.data.notices ?? []).toEqual([])
+    expect(store.getState().carts.data.items).toEqual([])
+  })
+
+  it("stay when the same table's cart briefly fails to load", async () => {
+    let fail = false
+    server.use(
+      http.get(`${BASE}/carts/tables/t1`, () =>
+        fail
+          ? HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })
+          : HttpResponse.json({ message: "Cart Not Found!", notices: [closedNote] }, { status: 404 })
+      )
+    )
+    const store = makeStore()
+
+    await store.dispatch(getTableCart("t1"))
+    fail = true
+    await store.dispatch(getTableCart("t1"))
+
+    expect(store.getState().carts.data.notices?.map((n) => n.message)).toEqual(["The staff closed this table."])
+  })
+
+  it("don't make an empty cart look like one to order or pay from", async () => {
+    server.use(
+      http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json({ message: "Cart Not Found!", notices: [closedNote] }, { status: 404 }))
+    )
+    const store = makeStore()
+
+    await store.dispatch(getTableCart("t1"))
+
+    const cart = store.getState().carts.data
+    expect(cart._id).toBe("")
+    expect(cart.items).toEqual([])
+    expect(cart.split).toEqual([])
   })
 })
 

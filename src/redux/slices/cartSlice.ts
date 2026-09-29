@@ -254,8 +254,12 @@ export const cartsSlice = createSlice({
             if (rejection?.status === 404) {
                 clearCart(state)
                 // Shown on the empty cart page, so its diners learn why.
-                // (A new object: the cleared cart is the frozen initial one.)
-                if (rejection.notices?.length) state.data = { ...state.data, notices: rejection.notices }
+                // (A new object: the cleared cart is the frozen initial one.) It
+                // keeps the table they're about, so moving to another table
+                // clears them (see pending) even if that table's fetch fails.
+                if (rejection.notices?.length) {
+                    state.data = { ...state.data, tableId: action.meta.arg, notices: rejection.notices }
+                }
             }
         })
         builder.addCase(captureCheckout.fulfilled, (state, action) => {
