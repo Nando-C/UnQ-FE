@@ -326,7 +326,9 @@ const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, d
       message: `Release ${who}'s selection of ${what}? Anyone at the table can then pay for it. ${who} will see a note.`,
       confirmLabel: "Release",
       danger: false,
-      send: post(cart._id, "releaseSelection", { userId: s.userId?._id, menuId: s.menuId?._id }),
+      // null for a diner whose account is gone: the BE then releases only
+      // those. Left out, it would release everyone's selection of the item.
+      send: post(cart._id, "releaseSelection", { userId: s.userId?._id ?? null, menuId: s.menuId?._id }),
       done: () => `Released ${who}'s selection of ${what}.`,
     });
   };

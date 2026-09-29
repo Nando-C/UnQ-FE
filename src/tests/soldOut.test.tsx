@@ -91,6 +91,27 @@ describe("menu card", () => {
     expect(await screen.findByText("Sold out")).toBeInTheDocument()
   })
 
+  it("asks to retry, not says sold out, when the cart was busy", async () => {
+    let shopFetches = 0
+    server.use(
+      http.post(`${BASE}/carts/s1/tables/t1/addItem`, () =>
+        HttpResponse.json({ message: "The cart changed, please retry" }, { status: 409 })
+      ),
+      http.get(`${BASE}/shops/s1`, () => {
+        shopFetches++
+        return HttpResponse.json(shopWith(menu("m1", 5)))
+      })
+    )
+    const { user } = renderCard(shopWith(menu("m1", 5)))
+
+    await user.click(screen.getByRole("button", { name: /add/i }))
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Someone else just changed the cart — please try again."
+    )
+    expect(shopFetches).toBe(0)
+  })
+
   it("says the table isn't taking orders when it was deleted", async () => {
     server.use(
       http.post(`${BASE}/carts/s1/tables/t1/addItem`, () =>

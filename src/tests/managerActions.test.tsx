@@ -137,6 +137,17 @@ describe("table sheet actions", () => {
     expect(posted).toEqual([{ action: "releaseSelection", body: { userId: "u1", menuId: "m1" } }])
   })
 
+  it("releases only a deleted diner's selection, not everyone's", async () => {
+    carts.open[0].split[0].userId = null
+    const { user, sheet } = await openSheet()
+
+    await user.click(within(sheet).getByRole("button", { name: "Release a diner's selection of 1× Latte" }))
+    await user.click(within(sheet).getByRole("button", { name: "Release" }))
+
+    await within(sheet).findByText("Released A diner's selection of 1× Latte.")
+    expect(posted).toEqual([{ action: "releaseSelection", body: { userId: null, menuId: "m1" } }])
+  })
+
   it("releases every selection at once", async () => {
     const { user, sheet } = await openSheet()
 

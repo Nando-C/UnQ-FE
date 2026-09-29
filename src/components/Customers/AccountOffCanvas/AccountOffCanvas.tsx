@@ -56,6 +56,11 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
   const [imageFile, setImageFile] = useState<File | null>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  // The BE asks for the current password to change the email of an account
+  // that has one (it compares addresses trimmed and lowercased, as it stores them).
+  const emailChanges = user.email.trim().toLowerCase() !== myUser.email.trim().toLowerCase();
+  const needsPassword = emailChanges && !!myUser.hasPassword;
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.currentTarget.files;
@@ -72,7 +77,9 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
         name: user.name,
         surname: user.surname,
         email: user.email,
+        ...(needsPassword && { currentPassword }),
       });
+      setCurrentPassword("");
 
       if (imageFile) {
         const newItemImg = new FormData();
@@ -168,6 +175,21 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
+            {needsPassword && (
+              <Form.Group className="mb-3" controlId="accountCurrentPassword">
+                <FloatingLabel label="Current password">
+                  <Form.Control
+                    type="password"
+                    placeholder="Current password"
+                    autoComplete="current-password"
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </FloatingLabel>
+                <Form.Text>Needed to change your email.</Form.Text>
+              </Form.Group>
+            )}
             {error && (
               <Alert className="my-2" variant="danger">
                 {error}

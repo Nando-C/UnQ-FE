@@ -86,7 +86,10 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
         ).unwrap();
       } catch (err) {
         const rejection = err as { status?: number; message?: string } | undefined;
-        if (rejection?.status === 409) {
+        if (rejection?.status === 409 && rejection.message !== "This item is sold out") {
+          // The BE's other 409: several diners changed the cart at once.
+          showAddError("Someone else just changed the cart — please try again.");
+        } else if (rejection?.status === 409) {
           showAddError(`Sorry — ${menuItem?.name} just sold out.`);
           // Pull the fresh menu so this card turns into its sold-out state.
           dispatch(fetchSingleShop(shopId));
