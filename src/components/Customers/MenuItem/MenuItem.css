@@ -108,3 +108,8 @@
   font-size: 0.75rem;
   white-space: nowrap;
 }
+
+/* Wide enough for "Added", so the button doesn't grow when it says so. */
+.MenuItem .add-button {
+  min-width: 5.5em;
+}

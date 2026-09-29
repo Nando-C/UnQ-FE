@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge, Card, Button, Image, Form } from "react-bootstrap";
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
   deleteFromCart,
+  getTableCart,
+  removeFromCart,
   selectCartsData,
   selectPendingSplit,
   selectSplitErrors,
@@ -13,6 +15,7 @@ import { selectUserData } from "../../../redux/slices/userSlice";
 import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
 import { RiDeleteBinLine } from "react-icons/ri";
 import { formatPrice } from "../../../lib/price";
+import { rememberReturnTo } from "../../../lib/returnTo";
 import placeholder from "../../../assets/placeholder.svg";
 import "./CartItem.css";
 
@@ -59,8 +62,30 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
 
   const dispatch = useAppDispatch();
 
+  // The cart is public, but changing it needs an account: a guest is sent to
+  // sign in (and back here after), as the menu's Add does.
+  const navigate = useNavigate();
+  const location = useLocation();
+  const signedIn = !!myUser._id;
+  const signInFirst = () => {
+    rememberReturnTo(location.pathname);
+    navigate("/login");
+  };
+
+  // Why the bin or − didn't do (all of) what was asked. Cleared after a few
+  // seconds, like the menu's Add errors.
+  const [rowError, setRowError] = useState<string | null>(null);
+  const rowErrorTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const showRowError = (message: string | null) => {
+    clearTimeout(rowErrorTimeoutRef.current);
+    setRowError(message);
+    if (message) rowErrorTimeoutRef.current = setTimeout(() => setRowError(null), 5000);
+  };
+  useEffect(() => () => clearTimeout(rowErrorTimeoutRef.current), []);
+
   const want = (next: number) => {
     if (!menuId) return;
+    if (!signedIn) return signInFirst();
     dispatch(
       setSplitQty({
         shopId,
@@ -78,19 +103,37 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
   };
   const decrement = () => want(qty - 1);
 
-  // The bin removes the item for the whole table, so a double tap mustn't
-  // send it twice.
-  const [deleting, setDeleting] = useState(false);
-  const deleteItemFromCart = () => {
-    if (!cartItem?.menuId || deleting) return;
-    setDeleting(true);
-    dispatch(
-      deleteFromCart({
-        shopId: shopId,
-        tableId: tableId,
-        item: cartItem,
-      })
-    ).finally(() => setDeleting(false));
+  // The bin removes the item for the whole table, except the units other
+  // diners have selected to pay for; − orders one less, never below those. One
+  // request at a time, so a double tap can't send it twice.
+  const [changing, setChanging] = useState(false);
+  const changeOrder = async (change: "bin" | "oneLess") => {
+    if (!signedIn) return signInFirst();
+    if (!cartItem?.menuId || changing) return;
+    showRowError(null);
+    setChanging(true);
+    try {
+      if (change === "bin") {
+        const cart = await dispatch(deleteFromCart({ shopId, tableId, item: cartItem })).unwrap();
+        const kept = cart.items.find((i) => menuIdOf(i) === menuId);
+        const held = kept ? kept.qty - (kept.qtyPayed ?? 0) : 0;
+        if (held > 0) showRowError(`${held} kept: someone at the table is paying for them.`);
+      } else {
+        await dispatch(removeFromCart({ shopId, tableId, item: { ...cartItem, qty: 1 } })).unwrap();
+      }
+    } catch (err) {
+      const reason = (err as { message?: string } | undefined)?.message;
+      showRowError(
+        reason === "Those units are already paid for or selected for payment" ||
+          reason === "Someone at the table is paying for those"
+          ? "Someone at the table is paying for those."
+          : reason || "Couldn't change the order, please try again."
+      );
+      // It has probably changed under us: show it as it is now.
+      dispatch(getTableCart(tableId));
+    } finally {
+      setChanging(false);
+    }
   };
 
   if (!cartItem) return null;
@@ -132,7 +175,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
               Always mounted: a live region inserted with its text is often
               not announced. */}
           <small className="split-error d-block text-danger" role="status">
-            {splitError}
+            {rowError ?? splitError}
           </small>
           {soldOut && (
             <small className="sold-out-note d-block">
@@ -175,15 +218,30 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
                 </Button>
               </div>
             ) : (
-              <Button
-                className="hit-44"
-                variant="danger"
-                onClick={deleteItemFromCart}
-                disabled={deleting}
-                aria-label={`Remove ${name} from the cart`}
-              >
-                <RiDeleteBinLine />
-              </Button>
+              <div className="order-actions d-flex align-items-center gap-2">
+                {/* One less of a line with more than one unpaid unit; for the
+                    last one it would do what the bin does. */}
+                {!soldOut && cartItem.qty - paidQty > 1 && (
+                  <Button
+                    variant="outline-secondary"
+                    className="hit-44"
+                    onClick={() => changeOrder("oneLess")}
+                    disabled={changing}
+                    aria-label={`Order one less ${name}`}
+                  >
+                    −
+                  </Button>
+                )}
+                <Button
+                  className="hit-44"
+                  variant="danger"
+                  onClick={() => changeOrder("bin")}
+                  disabled={changing}
+                  aria-label={`Remove ${name} from the cart`}
+                >
+                  <RiDeleteBinLine />
+                </Button>
+              </div>
             )}
           </div>
         </div>

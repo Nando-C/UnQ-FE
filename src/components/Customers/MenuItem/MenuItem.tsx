@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Badge, Card, Image, Button } from "react-bootstrap";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { addToCart } from "../../../redux/slices/cartSlice";
 import {
@@ -10,6 +10,7 @@ import {
 import { selectUserData } from "../../../redux/slices/userSlice";
 import { IItem } from "../../../typings/cart";
 import { formatPrice } from "../../../lib/price";
+import { rememberReturnTo } from "../../../lib/returnTo";
 import "./MenuItem.css";
 
 interface MenuItemProps {
@@ -72,10 +73,21 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
 
   const user = useAppSelector(selectUserData);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Add is off while it's sending, so a second tap can't order it twice, and
+  // says "Added" for a moment once it's in: the only other sign was the badge
+  // in the bottom bar.
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+  const addedTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(addedTimeoutRef.current), []);
 
   const addItemToCart = async () => {
+    if (adding) return;
     if (user._id) {
       clearAddError();
+      setAdding(true);
       try {
         await dispatch(
           addToCart({
@@ -84,6 +96,9 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
             item: item,
           })
         ).unwrap();
+        clearTimeout(addedTimeoutRef.current);
+        setAdded(true);
+        addedTimeoutRef.current = setTimeout(() => setAdded(false), 2000);
       } catch (err) {
         const rejection = err as { status?: number; message?: string } | undefined;
         if (rejection?.status === 409 && rejection.message !== "This item is sold out") {
@@ -98,8 +113,11 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
         } else {
           showAddError("Couldn't add this to your cart — please try again.");
         }
+      } finally {
+        setAdding(false);
       }
     } else {
+      rememberReturnTo(location.pathname);
       navigate("/login");
     }
   };
@@ -167,9 +185,9 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
             <Button
               className="add-button"
               onClick={addItemToCart}
-              disabled={item.qty < 1}
+              disabled={item.qty < 1 || adding}
             >
-              Add
+              {added ? "Added" : "Add"}
             </Button>
           </div>
         )}

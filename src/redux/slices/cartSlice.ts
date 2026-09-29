@@ -78,14 +78,36 @@ export const decreaseSplit = createAsyncThunk("cart/ decreaseSplit", async ({sho
     return data
 })
 
-export const removeFromCart = createAsyncThunk("cart/removeFromCart", async ({shopId, tableId, item}: AddToCartProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/removeItem`, toCartPayload(item))
-    return data
-})
-export const deleteFromCart = createAsyncThunk("cart/deleteFromCart", async ({shopId, tableId, item}: AddToCartProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/deleteItem`, toCartPayload(item))
-    return data
-})
+// The BE's reason for a refusal (e.g. 409 "Someone at the table is paying for
+// those"), for the cart row to show.
+const reasonOf = (err: unknown): { status?: number; message?: string } => {
+    if (axios.isAxiosError(err)) return { status: err.response?.status, message: err.response?.data?.message }
+    throw err
+}
+// Orders `item.qty` fewer of an item for the table. Answers 204 when that
+// empties the cart, which the BE then deletes.
+export const removeFromCart = createAsyncThunk(
+    "cart/removeFromCart",
+    async ({shopId, tableId, item}: AddToCartProps, { rejectWithValue }) => {
+        try {
+            const { data }: AxiosResponse<ICart | ""> = await backend.post(`carts/${shopId}/tables/${tableId}/removeItem`, toCartPayload(item))
+            return data
+        } catch (err) {
+            return rejectWithValue(reasonOf(err))
+        }
+    }
+)
+export const deleteFromCart = createAsyncThunk(
+    "cart/deleteFromCart",
+    async ({shopId, tableId, item}: AddToCartProps, { rejectWithValue }) => {
+        try {
+            const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/deleteItem`, toCartPayload(item))
+            return data
+        } catch (err) {
+            return rejectWithValue(reasonOf(err))
+        }
+    }
+)
 
 export const removeFromSplit = createAsyncThunk("cart/removeFromSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
     const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/removeSplitItem`, toCartPayload(item))
@@ -192,7 +214,8 @@ export const cartsSlice = createSlice({
             state.data = action.payload
         })
         builder.addCase(removeFromCart.fulfilled, (state, action) => {
-            state.data = action.payload
+            if (action.payload) state.data = action.payload
+            else clearCart(state)
         })
         builder.addCase(deleteFromCart.fulfilled, (state, action) => {
             state.data = action.payload

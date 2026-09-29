@@ -47,7 +47,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
     short_description: "",
     description: "",
     price: 0,
-    available: false,
+    available: true,
     category: "food",
   });
   const [priceInput, setPriceInput] = useState("");
@@ -61,7 +61,13 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
     if (show) setCreatedId(null);
   }, [show]);
 
+  // Each time the dialog opens it starts from the item as saved (an empty form
+  // for a new one, available by default as on the BE), not from what was typed
+  // or picked last time.
   useEffect(() => {
+    if (!show) return;
+    setImageFile(null);
+    setError(null);
     setItem({
       _id: menuItem ? menuItem._id : "",
       name: menuItem ? menuItem.name : "",
@@ -69,11 +75,11 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       short_description: menuItem ? menuItem.short_description : "",
       description: menuItem ? menuItem.description : "",
       price: menuItem ? menuItem.price : 0,
-      available: menuItem ? menuItem.available : false,
+      available: menuItem ? menuItem.available : true,
       category: menuItem ? menuItem.category : "food",
     });
     setPriceInput(menuItem ? String(menuItem.price) : "");
-  }, [menuItem]);
+  }, [menuItem, show]);
 
   const dispatch = useAppDispatch();
 
@@ -170,6 +176,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   };
 
   const deleteItem = async () => {
+    if (!window.confirm("Delete this item?")) return;
     setError(null);
     try {
       await backend.delete(`/shops/${shopId}/menu/${item._id}`);

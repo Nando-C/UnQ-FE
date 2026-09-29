@@ -195,4 +195,67 @@ describe("ItemModal", () => {
     expect(input.value).toBe("")
     createObjectURL.mockRestore()
   })
+
+  it("creates a new item available unless the switch is turned off", async () => {
+    let body: Record<string, unknown> | undefined
+    server.use(
+      http.post(`${BASE}/shops/s1/menu`, async ({ request }) => {
+        body = (await request.json()) as Record<string, unknown>
+        return HttpResponse.json({ _id: "m1" })
+      }),
+      http.get(`${BASE}/shops/me`, () => HttpResponse.json([]))
+    )
+    const { user } = renderNewItemModal()
+
+    expect(screen.getByLabelText("Available")).toBeChecked()
+    await user.type(screen.getByPlaceholderText("Name"), "Latte")
+    await user.type(screen.getByPlaceholderText("Price"), "3")
+    await user.click(screen.getByRole("button", { name: "Create Item" }))
+
+    await waitFor(() => expect(body?.available).toBe(true))
+  })
+
+  it("opens empty for the next item, with no photo picked, after one was created", async () => {
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:preview")
+    const { user, container, rerender } = renderNewItemModal()
+    await user.type(screen.getByPlaceholderText("Name"), "Latte")
+    await user.type(screen.getByPlaceholderText("Price"), "3")
+    const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement
+    await user.upload(input, new File(["x"], "latte.png", { type: "image/png" }))
+
+    // Closed (after Create, or Cancel) and opened again for the next item.
+    rerender(<ItemModal shopId="s1" show={false} handleClose={() => {}} itemId="new" />)
+    rerender(<ItemModal shopId="s1" show handleClose={() => {}} itemId="new" />)
+
+    await waitFor(() => expect(screen.getByPlaceholderText("Name")).toHaveValue(""))
+    expect((screen.getByPlaceholderText("Price") as HTMLInputElement).value).toBe("")
+    expect(screen.queryByRole("button", { name: "Reset Image" })).toBeNull()
+    vi.restoreAllMocks()
+  })
+
+  it("asks before deleting an item", async () => {
+    let deletes = 0
+    server.use(
+      http.delete(`${BASE}/shops/s1/menu/m1`, () => {
+        deletes++
+        return HttpResponse.json({})
+      }),
+      http.get(`${BASE}/shops/me`, () => HttpResponse.json([]))
+    )
+    const latte = { _id: "m1", name: "Latte", image: "", short_description: "", description: "", price: 3, available: true, category: "drinks" }
+    const { user } = renderWithProviders(
+      <ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />,
+      { preloadedState: { shops: { all: [], data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } } }
+    )
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false)
+
+    await user.click(screen.getByRole("button", { name: "Delete Item" }))
+    expect(confirm).toHaveBeenCalledWith("Delete this item?")
+    expect(deletes).toBe(0)
+
+    confirm.mockReturnValue(true)
+    await user.click(screen.getByRole("button", { name: "Delete Item" }))
+    await waitFor(() => expect(deletes).toBe(1))
+    vi.restoreAllMocks()
+  })
 })

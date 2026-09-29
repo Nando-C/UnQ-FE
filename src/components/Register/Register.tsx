@@ -16,6 +16,7 @@ import { useAppDispatch } from "../../redux/app/hooks";
 import { fetchUserData } from "../../redux/slices/userSlice";
 import wordmark from "../../assets/unq-wordmark-onematerial.svg";
 import "./Register.css";
+import { takeReturnTo } from "../../lib/returnTo";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -71,7 +72,7 @@ const Register = () => {
     try {
       await backend.post("/auth/register", credentials);
       dispatch(fetchUserData());
-      navigate("/");
+      navigate(takeReturnTo() ?? "/");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

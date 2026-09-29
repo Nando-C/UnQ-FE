@@ -1,6 +1,8 @@
 import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
 import { Container, Button } from "react-bootstrap";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { takeReturnTo } from "../../lib/returnTo";
 import { fetchUserData, selectUserData } from "../../redux/slices/userSlice";
 import ShopList from "../Shops/ShopList/ShopList";
 import { fetchShopList } from "../../redux/slices/shopSlice";
@@ -17,6 +19,16 @@ const Dashboard = () => {
 
   const userDataStore = useAppSelector(selectUserData);
   const isManager = userDataStore.role === "shopMg" ? true : false;
+
+  // Google sign-in comes back here, to the site root: a diner who started it
+  // at a table goes back to that table.
+  const navigate = useNavigate();
+  const signedIn = !!userDataStore._id;
+  useEffect(() => {
+    if (!signedIn) return;
+    const back = takeReturnTo();
+    if (back) navigate(back, { replace: true });
+  }, [signedIn, navigate]);
 
   useEffect(() => {
     if (isManager) {

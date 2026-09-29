@@ -43,16 +43,20 @@ const TableModal = ({
     Qr_Url: "",
   });
 
+  const dispatch = useAppDispatch();
+  const [error, setError] = useState<string | null>(null);
+
+  // Each time the dialog opens it starts from the table as saved (an empty
+  // name for a new one), not from what was typed last time.
   useEffect(() => {
+    if (!show) return;
+    setError(null);
     setTable({
       _id: selectedTable ? selectedTable._id : "",
       name: selectedTable ? selectedTable.name : "",
       Qr_Url: selectedTable ? selectedTable.Qr_Url : "",
     });
-  }, [selectedTable]);
-
-  const dispatch = useAppDispatch();
-  const [error, setError] = useState<string | null>(null);
+  }, [selectedTable, show]);
 
   const createTable = async () => {
     setError(null);

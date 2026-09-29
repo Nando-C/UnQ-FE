@@ -5,7 +5,7 @@ import { Modal, Button, Form, FloatingLabel, Image, Alert } from "react-bootstra
 import { useNavigate } from "react-router-dom";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { fetchShopList } from "../../../redux/slices/shopSlice";
+import { fetchShopList, fetchSingleShop } from "../../../redux/slices/shopSlice";
 import { IShop } from "../../../typings/shop";
 import placeholder from "../../../assets/placeholder.svg";
 import "./ShopModal.css";
@@ -68,7 +68,12 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
     setImageFile(files[0]);
   };
 
+  // Each time the dialog opens it starts from the shop as saved (an empty form
+  // for a new one), not from what was typed or picked last time.
   useEffect(() => {
+    if (!show) return;
+    setImageFile(null);
+    setError(null);
     setEditShop({
       _id: shop ? shop._id : "",
       name: shop ? shop.name : "",
@@ -82,7 +87,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       menu: shop ? shop.menu : [],
     });
     setPhoneInput(shop?.phone ?? "");
-  }, [shop]);
+  }, [shop, show]);
 
   const createShop = async () => {
     if (creating) return;
@@ -156,6 +161,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
         );
       }
       dispatch(fetchShopList());
+      // The shop page shows the selected shop, not the list's copy.
+      dispatch(fetchSingleShop(editShop._id));
       handleClose();
     } catch (err) {
       setError(getErrorMessage(err));

@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import axios from "axios";
 import {
   Col,
@@ -10,7 +10,7 @@ import {
   Image,
   Alert,
 } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import backend from "../../backend/backend";
 import { FcGoogle } from "react-icons/fc";
 import "../Register/Register.css";
@@ -18,6 +18,7 @@ import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
 import { selectCartPointers } from "../../redux/slices/cartSlice";
 import { fetchUserData } from "../../redux/slices/userSlice";
 import wordmark from "../../assets/unq-wordmark-onematerial.svg";
+import { hasReturnTo, rememberReturnTo, takeReturnTo } from "../../lib/returnTo";
 
 const getErrorMessage = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
@@ -39,6 +40,12 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Came here from a table: whichever way they sign in (this form, sign-up,
+  // Google), they go back to it afterwards.
+  useEffect(() => {
+    if (tableId && !hasReturnTo()) rememberReturnTo(`/shops/${shopId}/tables/${tableId}`);
+  }, [shopId, tableId]);
+
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -47,11 +54,7 @@ const Login = () => {
     try {
       await backend.post("/auth/login", credentials);
       dispatch(fetchUserData());
-      if (tableId) {
-        navigate(`/shops/${shopId}/tables/${tableId}`);
-      } else {
-        navigate("/");
-      }
+      navigate(takeReturnTo() ?? "/");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -100,9 +103,9 @@ const Login = () => {
               <p>
                 Don't have an account?{" "}
                 {/* Padded to a 24px+ tap height; still reads as a link. */}
-                <a href={`/register`} className="d-inline-block py-1">
+                <Link to="/register" className="d-inline-block py-1">
                   SignUp
-                </a>
+                </Link>
               </p>
             </Form.Group>
             {error && (

@@ -16,6 +16,7 @@ import ShopModal from "../ShopModal/ShopModal";
 import ShopMenu from "../ShopMenu/ShopMenu";
 import TableList from "../../Tables/TableList/TableList";
 import {
+  fetchShopList,
   fetchSingleShop,
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
@@ -29,6 +30,15 @@ const ShopDetails = () => {
   }, [dispatch, shopId]);
 
   const shop = useAppSelector(selectSelectedShop);
+
+  // The menu, tables and edit form read the manager's own shops, which only the
+  // Dashboard loaded: opened directly (a reload, a bookmark), they were empty.
+  const inMyShops = useAppSelector((state) =>
+    state.shops.data.some((s) => s._id === shopId)
+  );
+  useEffect(() => {
+    if (!inMyShops) dispatch(fetchShopList());
+  }, [inMyShops, dispatch]);
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
