@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit"
-import { ICart, ICartStore, IItem } from "../../typings/cart"
+import { ICart, ICartNotice, ICartStore, IItem } from "../../typings/cart"
 import backend from "../../backend/backend"
 import axios, { AxiosResponse } from "axios"
 import type { AppThunk, RootState } from "../app/store"
@@ -97,11 +97,13 @@ export const removeFromCart = createAsyncThunk(
         }
     }
 )
+// Removes the item's unpaid units that no one else is paying for. Answers 204
+// when that empties the cart, which the BE then deletes.
 export const deleteFromCart = createAsyncThunk(
     "cart/deleteFromCart",
     async ({shopId, tableId, item}: AddToCartProps, { rejectWithValue }) => {
         try {
-            const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/deleteItem`, toCartPayload(item))
+            const { data }: AxiosResponse<ICart | ""> = await backend.post(`carts/${shopId}/tables/${tableId}/deleteItem`, toCartPayload(item))
             return data
         } catch (err) {
             return rejectWithValue(reasonOf(err))
@@ -123,8 +125,11 @@ export const getTableCart = createAsyncThunk(
         } catch (err) {
             // A 404 means the table has no open cart (none yet, or it was paid
             // off); the reducer tells that apart from a failed request.
+            // Its body may carry notices from a cart closed lately that this
+            // diner took part in ("The staff closed this table").
             if (axios.isAxiosError(err)) {
-                return rejectWithValue({ status: err.response?.status })
+                const notices = (err.response?.data as { notices?: ICartNotice[] } | undefined)?.notices
+                return rejectWithValue({ status: err.response?.status, notices })
             }
             throw err
         }
@@ -218,7 +223,8 @@ export const cartsSlice = createSlice({
             else clearCart(state)
         })
         builder.addCase(deleteFromCart.fulfilled, (state, action) => {
-            state.data = action.payload
+            if (action.payload) state.data = action.payload
+            else clearCart(state)
         })
         builder.addCase(decreaseSplit.fulfilled, (state, action) => {
             state.data = action.payload
@@ -244,8 +250,12 @@ export const cartsSlice = createSlice({
         })
         builder.addCase(getTableCart.rejected, (state, action) => {
             if (action.meta.requestId !== state.cartRequestId) return
-            if ((action.payload as { status?: number } | undefined)?.status === 404) {
+            const rejection = action.payload as { status?: number; notices?: ICartNotice[] } | undefined
+            if (rejection?.status === 404) {
                 clearCart(state)
+                // Shown on the empty cart page, so its diners learn why.
+                // (A new object: the cleared cart is the frozen initial one.)
+                if (rejection.notices?.length) state.data = { ...state.data, notices: rejection.notices }
             }
         })
         builder.addCase(captureCheckout.fulfilled, (state, action) => {
@@ -323,11 +333,13 @@ const syncSplit = ({ shopId, tableId, cartId, menuId }: SplitTarget): AppThunk<P
                 if (myHeldQty(getState(), menuId) === held) throw new Error("split unchanged")
             }
         } catch (err) {
-            const status = (err as { status?: number } | undefined)?.status
+            const { status, message } = (err as { status?: number; message?: string } | undefined) ?? {}
             dispatch(splitFailed({
                 menuId,
                 message: adding && status === 409
-                    ? "Not enough left, someone else just took it."
+                    ? message === "This item is sold out"
+                        ? "Sorry, that just sold out."
+                        : "Not enough left, someone else just took it."
                     : "Couldn't update that, please try again.",
             }))
             await dispatch(getTableCart(tableId))

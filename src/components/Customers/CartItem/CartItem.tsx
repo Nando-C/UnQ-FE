@@ -114,8 +114,9 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
     setChanging(true);
     try {
       if (change === "bin") {
+        // Nothing back (204) when that emptied the cart and it went.
         const cart = await dispatch(deleteFromCart({ shopId, tableId, item: cartItem })).unwrap();
-        const kept = cart.items.find((i) => menuIdOf(i) === menuId);
+        const kept = cart ? cart.items.find((i) => menuIdOf(i) === menuId) : undefined;
         const held = kept ? kept.qty - (kept.qtyPayed ?? 0) : 0;
         if (held > 0) showRowError(`${held} kept: someone at the table is paying for them.`);
       } else {

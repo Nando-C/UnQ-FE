@@ -10,9 +10,9 @@ import {
   Row,
   Button,
 } from "react-bootstrap";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { storeCartPointers } from "../../../redux/slices/cartSlice";
+import { selectCartPointers, storeCartPointers } from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
   selectSelectedShop,
@@ -36,9 +36,20 @@ const TableMenu = () => {
   const [query, setQuery] = useState("");
 
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  // A diner at a table who opens the same shop from the shop list (after Home,
+  // say) goes back to their table's menu, instead of this page forgetting the
+  // table. Another shop starts without one.
+  const pointers = useAppSelector(selectCartPointers);
+  const backToTable =
+    !tableId && pointers.shopId === shopId && pointers.tableId ? pointers.tableId : "";
   useEffect(() => {
-    dispatch(storeCartPointers({ shopId, tableId }));
-  }, [dispatch, shopId, tableId]);
+    if (backToTable) {
+      navigate(`/shops/${shopId}/tables/${backToTable}`, { replace: true });
+    } else {
+      dispatch(storeCartPointers({ shopId, tableId }));
+    }
+  }, [dispatch, navigate, shopId, tableId, backToTable]);
   useEffect(() => {
     dispatch(fetchSingleShop(shopId));
   }, [dispatch, shopId]);

@@ -158,9 +158,10 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                       ? `${rejection.message} — nothing was charged.`
                       : "Payment failed — nothing was charged. Please try again."
                   );
-                  if (rejection?.status === 409) {
-                    dispatch(getTableCart(cart.tableId));
-                  }
+                  // Whatever stopped it (a sold-out item, a selection staff
+                  // released, a closed table), the cart as it is now shows why
+                  // and stops offering the same checkout again.
+                  dispatch(getTableCart(cart.tableId));
                 }}
               />
             </PayPalScriptProvider>

@@ -13,6 +13,7 @@ import {
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
 import CartListItems from "../CartListItems/CartListItems";
+import CartNotices from "../CartNotices/CartNotices";
 import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import "./Cart.css";
 
@@ -76,6 +77,10 @@ const Cart = () => {
         {cart.items.length > 0 ? (
           <CartListItems />
         ) : (
+          <>
+          {/* Why the cart is empty, when staff did it ("The staff closed
+              this table"): the list, which shows them otherwise, isn't here. */}
+          <CartNotices notices={cart.notices} />
           <Card>
             <Card.Body>
               <Row className="align-items-center text-center">
@@ -88,6 +93,7 @@ const Cart = () => {
               </Row>
             </Card.Body>
           </Card>
+          </>
         )}
       </Container>
     </>

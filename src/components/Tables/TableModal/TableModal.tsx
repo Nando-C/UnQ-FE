@@ -58,7 +58,10 @@ const TableModal = ({
     });
   }, [selectedTable, show]);
 
+  // One create at a time: a double tap would otherwise send two.
+  const [creating, setCreating] = useState(false);
   const createTable = async () => {
+    if (creating) return;
     setError(null);
     if (table.name.trim() === "") {
       setError("Name is required");
@@ -67,12 +70,15 @@ const TableModal = ({
     const newTable = {
       name: table.name,
     };
+    setCreating(true);
     try {
       await backend.post(`/shops/${shopId}/tables`, newTable);
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
       setError(getErrorMessage(err));
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -119,7 +125,16 @@ const TableModal = ({
           <Modal.Title>Table</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form id={formId} onSubmit={(e) => updateTable(e)}>
+          {/* Enter in the name field creates a new table, as Create does;
+              it used to send the rename, with no table to rename. */}
+          <Form
+            id={formId}
+            onSubmit={(e) => {
+              if (tableId !== "new") return updateTable(e);
+              e.preventDefault();
+              void createTable();
+            }}
+          >
             <Form.Group className="mb-3" controlId="formBasicEmail">
               <FloatingLabel controlId="floatingInput" label="Name">
                 <Form.Control
@@ -152,7 +167,7 @@ const TableModal = ({
               </Button>
             </>
           ) : (
-            <Button variant="primary" onClick={createTable}>
+            <Button variant="primary" onClick={createTable} disabled={creating}>
               Create Table
             </Button>
           )}
