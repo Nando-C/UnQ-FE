@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Col, FloatingLabel, Form, Row } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useAppSelector } from "../../../redux/app/hooks";
-import { selectShopsData } from "../../../redux/slices/shopSlice";
+import { selectAllShops } from "../../../redux/slices/shopSlice";
 import CustomerShopCard from "../CustomerShopCard/CustomerShopCard";
 import "./AllShopsList.css";
 
 const AllShopsList = () => {
-  const shopList = useAppSelector(selectShopsData);
+  const shopList = useAppSelector(selectAllShops);
 
   const [query, setQuery] = useState("");
 

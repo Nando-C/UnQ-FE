@@ -50,6 +50,14 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   const navigate = useNavigate();
   const [phoneInput, setPhoneInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // The shop Create made, once it exists: if its cover then fails to upload,
+  // pressing Create again saves the fields and the cover to it instead of
+  // making a second shop. Forgotten when the dialog is opened again.
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  useEffect(() => {
+    if (show) setCreatedId(null);
+  }, [show]);
 
   const [imageFile, setImageFile] = useState<File | null>();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,6 +85,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   }, [shop]);
 
   const createShop = async () => {
+    if (creating) return;
     setError(null);
     if (editShop.name.trim() === "") {
       setError("Name is required");
@@ -90,21 +99,34 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       phone: phoneInput.trim(),
       web_URL: editShop.web_URL,
     };
+    setCreating(true);
+    let uploading = false;
     try {
-      const created = await backend.post(`/shops`, newShop);
-
+      let id = createdId;
+      if (id) {
+        await backend.put(`/shops/${id}`, newShop);
+      } else {
+        id = (await backend.post(`/shops`, newShop)).data._id as string;
+        setCreatedId(id);
+      }
       if (imageFile) {
+        uploading = true;
         const newShopCover = new FormData();
         newShopCover.append("cover", imageFile);
-        await backend.put(
-          `/shops/${created.data._id}/cover`,
-          newShopCover
-        );
+        await backend.put(`/shops/${id}/cover`, newShopCover);
       }
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      if (uploading) {
+        // The shop exists, so the list shows it; only the cover is missing.
+        dispatch(fetchShopList());
+        setError(`The shop was created, but its cover wasn't saved: ${getErrorMessage(err)}`);
+      } else {
+        setError(getErrorMessage(err));
+      }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -289,7 +311,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
               </Button>
             </>
           ) : (
-            <Button variant="primary" onClick={createShop}>
+            <Button variant="primary" onClick={createShop} disabled={creating}>
               Create Shop
             </Button>
           )}

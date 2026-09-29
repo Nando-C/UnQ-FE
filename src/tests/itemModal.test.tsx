@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from "vitest"
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
+import { AxiosError } from "axios"
+import backend from "../backend/backend"
 import ItemModal from "../components/Shops/ItemModal/ItemModal"
 import { renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
@@ -113,7 +115,7 @@ describe("ItemModal", () => {
       <ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />,
       {
         preloadedState: {
-          shops: { data: [shop], selected: null, selectedMenu: null },
+          shops: { all: [], data: [shop], selected: null, selectedMenu: null },
         },
       } as unknown as Parameters<typeof renderWithProviders>[1]
     )
@@ -128,6 +130,48 @@ describe("ItemModal", () => {
     await waitFor(() => expect(body).toBeDefined())
     expect(body?.price).toBe(3.5)
     expect(body?.name).toBe("Latte")
+  })
+
+  it("doesn't make a second item when the image failed and Create is pressed again", async () => {
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:preview")
+    const calls: string[] = []
+    let uploads = 0
+    server.use(
+      http.post(`${BASE}/shops/s1/menu`, () => {
+        calls.push("create")
+        return HttpResponse.json({ _id: "m1" })
+      }),
+      http.put(`${BASE}/shops/s1/menu/m1`, () => {
+        calls.push("save")
+        return HttpResponse.json({ _id: "m1" })
+      }),
+      http.get(`${BASE}/shops/me`, () => HttpResponse.json([]))
+    )
+    // jsdom can't send a multipart body, so the upload is stubbed; the rest
+    // goes to the mock server.
+    const realPut = backend.put.bind(backend)
+    vi.spyOn(backend, "put").mockImplementation(async (url, ...rest) => {
+      if (!url.endsWith("/img")) return realPut(url, ...rest)
+      calls.push("image")
+      uploads += 1
+      if (uploads === 1) throw new AxiosError("413", "ERR_BAD_REQUEST", undefined, undefined,
+        { status: 413, data: { message: "File too large" } } as never)
+      return { data: {} } as never
+    })
+    const { user, container } = renderNewItemModal()
+    await user.type(screen.getByPlaceholderText("Name"), "Latte")
+    await user.type(screen.getByPlaceholderText("Price"), "3")
+    const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement
+    await user.upload(input, new File(["x"], "latte.png", { type: "image/png" }))
+
+    await user.click(screen.getByRole("button", { name: "Create Item" }))
+    expect(
+      await screen.findByText("The item was created, but its image wasn't saved: File too large")
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Create Item" }))
+
+    await waitFor(() => expect(calls).toEqual(["create", "image", "save", "image"]))
+    vi.restoreAllMocks()
   })
 
   it("shows Reset Image only after a photo is picked, and clears the pick", async () => {

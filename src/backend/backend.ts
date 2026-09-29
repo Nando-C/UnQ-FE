@@ -34,10 +34,15 @@ backend.interceptors.response.use(
                     })
                 }
                 await refreshPromise
-                return backend(failedRequest)
             } catch {
+                // The session is over, and the failed refresh cleared its
+                // cookies. A read is asked once more without them: a public one
+                // (a table's cart) then answers with the guest view instead of
+                // failing; a signed-in one just gets its 401 again.
+                if (failedRequest.method?.toLowerCase() === "get") return backend(failedRequest)
                 return Promise.reject(error)
             }
+            return backend(failedRequest)
         }
 
         return Promise.reject(error)

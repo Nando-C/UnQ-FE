@@ -6,6 +6,7 @@ import { IShop, IShopStore } from "../../typings/shop"
 import { RootState } from "../app/store";
 
 const initialState: IShopStore = {
+    all: [],
     data: [],
     selected: null,
     selectedMenu: null,
@@ -52,20 +53,22 @@ export const shopsSlice = createSlice({
             action: PayloadAction<{ shopId: string; itemId: string; available: boolean }>
         ) => {
             const { shopId, itemId, available } = action.payload
-            // The same shop can be held twice — in the manager's list and as the
-            // currently selected one — and both back live views.
+            // The same shop can be held three times — in the manager's list, in
+            // every shop's, and as the currently selected one — and all back
+            // live views.
             const apply = (shop: IShop | null) => {
                 if (!shop || shop._id !== shopId) return
                 const item = shop.menu.find((menuItem) => menuItem._id === itemId)
                 if (item) item.available = available
             }
             state.data.forEach(apply)
+            state.all.forEach(apply)
             apply(state.selected)
         },
     },
     extraReducers: (builder) => {
         builder.addCase(fetchAllShops.fulfilled, (state, action) => {
-            state.data = action.payload
+            state.all = action.payload
         })
         builder.addCase(fetchShopList.fulfilled, (state, action) => {
             state.data = action.payload
@@ -81,6 +84,7 @@ export const shopsSlice = createSlice({
 
 export const { setMenuItemAvailability } = shopsSlice.actions
 
+export const selectAllShops = (state: RootState) => state.shops.all
 export const selectShopsData = (state: RootState) => state.shops.data
 export const selectSelectedShop = (state: RootState) => state.shops.selected
 export const selectSelectedMenu = (state: RootState) => state.shops.selectedMenu

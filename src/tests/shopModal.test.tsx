@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest"
-import { screen } from "@testing-library/react"
+import { describe, it, expect, beforeEach, vi } from "vitest"
+import { screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
+import { AxiosError } from "axios"
+import backend from "../backend/backend"
 import ShopModal from "../components/Shops/ShopModal/ShopModal"
 import { renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
@@ -24,7 +26,7 @@ beforeEach(() => {
 
 const openEditor = (shop: IShop) =>
   renderWithProviders(<ShopModal show shopId="s1" handleClose={() => {}} />, {
-    preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
+    preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
   })
 
 describe("editing a shop's phone number", () => {
@@ -73,5 +75,47 @@ describe("editing a shop's phone number", () => {
     await user.click(screen.getByRole("button", { name: "Save Changes" }))
 
     expect(await screen.findByText("Phone number can only contain digits, spaces, dashes and brackets")).toBeInTheDocument()
+  })
+})
+
+describe("creating a shop", () => {
+  it("doesn't make a second shop when the cover failed and Create is pressed again", async () => {
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:preview")
+    const calls: string[] = []
+    let uploads = 0
+    server.use(
+      http.post(`${BASE}/shops`, () => {
+        calls.push("create")
+        return HttpResponse.json({ _id: "s2" })
+      }),
+      http.put(`${BASE}/shops/s2`, () => {
+        calls.push("save")
+        return HttpResponse.json({ _id: "s2" })
+      })
+    )
+    // jsdom can't send a multipart body, so the upload is stubbed; the rest
+    // goes to the mock server.
+    const realPut = backend.put.bind(backend)
+    vi.spyOn(backend, "put").mockImplementation(async (url, ...rest) => {
+      if (!url.endsWith("/cover")) return realPut(url, ...rest)
+      calls.push("cover")
+      uploads += 1
+      if (uploads === 1) throw new AxiosError("413", "ERR_BAD_REQUEST", undefined, undefined,
+        { status: 413, data: { message: "File too large" } } as never)
+      return { data: {} } as never
+    })
+    const { user, container } = renderWithProviders(<ShopModal show shopId="new" handleClose={() => {}} />)
+    await user.type(screen.getByPlaceholderText("Name"), "Cafe")
+    const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement
+    await user.upload(input, new File(["x"], "cover.png", { type: "image/png" }))
+
+    await user.click(screen.getByRole("button", { name: "Create Shop" }))
+    expect(
+      await screen.findByText("The shop was created, but its cover wasn't saved: File too large")
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Create Shop" }))
+
+    await waitFor(() => expect(calls).toEqual(["create", "cover", "save", "cover"]))
+    vi.restoreAllMocks()
   })
 })

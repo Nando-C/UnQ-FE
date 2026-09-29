@@ -2,7 +2,8 @@
 export interface IUser {
     _id: string
     name: string
-    surname: string
+    // Absent on a Google account whose Google profile has no family name.
+    surname?: string
     email: string
     avatar?: string
     role: string

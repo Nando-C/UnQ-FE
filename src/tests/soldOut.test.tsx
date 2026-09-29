@@ -51,7 +51,7 @@ describe("menu card", () => {
     renderWithProviders(<MenuItem shopId="s1" itemId="m1" />, {
       preloadedState: {
         user: { data: me, status: "authenticated" },
-        shops: { data: [], selected: shop, selectedMenu: null },
+        shops: { all: [], data: [], selected: shop, selectedMenu: null },
       },
       route: "/shops/s1/tables/t1",
       path: "/shops/:shopId/tables/:tableId",

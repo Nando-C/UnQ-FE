@@ -20,6 +20,10 @@ export interface ITable {
 }
 
 export interface IShopStore {
+    // Every shop, for customers to browse (GET /shops/).
+    all: IShop[]
+    // The signed-in manager's own shops (GET /shops/me). Kept apart from `all`:
+    // both are fetched on a manager's first page load, in either order.
     data: IShop[]
     selected: IShop | null
     selectedMenu: IMenu | null

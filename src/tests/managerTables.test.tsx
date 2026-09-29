@@ -39,7 +39,7 @@ const statuses: ITableStatus[] = [
 
 const renderTables = () =>
   renderWithProviders(<TableList shopId="s1" />, {
-    preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
+    preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
   })
 
 // The card holding a table's title.

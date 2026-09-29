@@ -75,7 +75,7 @@ beforeEach(() => {
 
 const openSheet = async () => {
   const utils = renderWithProviders(<TableList shopId="s1" />, {
-    preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
+    preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
   })
   await utils.user.click(screen.getByRole("button", { name: "View table 4" }))
   const sheet = await screen.findByRole("dialog")

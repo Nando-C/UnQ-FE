@@ -11,7 +11,7 @@ const shop = { _id: "s1", name: "First Shop", menu: [], tables: [] } as unknown 
 
 const renderAt = (route: string) =>
   renderWithProviders(<ShopNavbar />, {
-    preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
+    preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
     route,
   })
 

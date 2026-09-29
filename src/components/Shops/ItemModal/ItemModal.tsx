@@ -52,6 +52,14 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   });
   const [priceInput, setPriceInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // The item Create made, once it exists: if its image then fails to upload,
+  // pressing Create again saves the fields and the image to it instead of
+  // making a second item. Forgotten when the dialog is opened again.
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  useEffect(() => {
+    if (show) setCreatedId(null);
+  }, [show]);
 
   useEffect(() => {
     setItem({
@@ -79,6 +87,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   };
 
   const createItem = async () => {
+    if (creating) return;
     setError(null);
     const price = parseFloat(priceInput);
     const problem = priceError(priceInput, price);
@@ -94,20 +103,34 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       available: item.available,
       category: item.category,
     };
+    setCreating(true);
+    let uploading = false;
     try {
-      const created = await backend.post(`/shops/${shopId}/menu`, newItem);
+      let id = createdId;
+      if (id) {
+        await backend.put(`/shops/${shopId}/menu/${id}`, newItem);
+      } else {
+        id = (await backend.post(`/shops/${shopId}/menu`, newItem)).data._id as string;
+        setCreatedId(id);
+      }
       if (imageFile) {
+        uploading = true;
         const newItemImg = new FormData();
         newItemImg.append("image", imageFile);
-        await backend.put(
-          `/shops/${shopId}/menu/${created.data._id}/img`,
-          newItemImg
-        );
+        await backend.put(`/shops/${shopId}/menu/${id}/img`, newItemImg);
       }
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      if (uploading) {
+        // The item exists, so the menu shows it; only the image is missing.
+        dispatch(fetchShopList());
+        setError(`The item was created, but its image wasn't saved: ${getErrorMessage(err)}`);
+      } else {
+        setError(getErrorMessage(err));
+      }
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -315,7 +338,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
               </Button>
             </>
           ) : (
-            <Button variant="primary" onClick={createItem}>
+            <Button variant="primary" onClick={createItem} disabled={creating}>
               Create Item
             </Button>
           )}

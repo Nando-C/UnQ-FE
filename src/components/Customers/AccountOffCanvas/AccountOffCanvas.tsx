@@ -46,7 +46,7 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
     setUser({
       _id: myUser._id,
       name: myUser.name,
-      surname: myUser.surname,
+      surname: myUser.surname ?? "",
       email: myUser.email,
       avatar: myUser.avatar,
       role: myUser.role,
@@ -75,7 +75,9 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
     try {
       await backend.put(`/users/me`, {
         name: user.name,
-        surname: user.surname,
+        // Left out while empty on an account that never had one (a Google
+        // account can be without it); the BE refuses an empty surname.
+        ...((user.surname || myUser.surname) && { surname: user.surname }),
         email: user.email,
         ...(needsPassword && { currentPassword }),
       });

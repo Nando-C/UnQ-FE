@@ -36,6 +36,16 @@ describe("editing the account", () => {
     expect(sent).toEqual([{ name: "Adax", surname: "Lovelace", email: "ada@example.com" }])
   })
 
+  it("leaves out the surname of a Google account that has none", async () => {
+    const { user, sent } = renderAccount({ ...ada, surname: undefined, hasPassword: false })
+
+    expect(screen.getByPlaceholderText("Surname")).toHaveValue("")
+    await user.type(screen.getByPlaceholderText("Name"), "x")
+    await user.click(screen.getByRole("button", { name: "Save Changes" }))
+
+    expect(sent).toEqual([{ name: "Adax", email: "ada@example.com" }])
+  })
+
   it("asks for the current password to change the email, and sends it", async () => {
     const { user, sent } = renderAccount()
 
