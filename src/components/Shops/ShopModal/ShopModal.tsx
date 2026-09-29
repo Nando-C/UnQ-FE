@@ -55,8 +55,14 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   // making a second shop. Forgotten when the dialog is opened again.
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // Opening the dialog also drops the cover picked and the error shown last
+  // time. Only on opening: an error set just after a save reloaded the shop
+  // must stay.
   useEffect(() => {
-    if (show) setCreatedId(null);
+    if (!show) return;
+    setCreatedId(null);
+    setImageFile(null);
+    setError(null);
   }, [show]);
 
   const [imageFile, setImageFile] = useState<File | null>();
@@ -69,11 +75,10 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   };
 
   // Each time the dialog opens it starts from the shop as saved (an empty form
-  // for a new one), not from what was typed or picked last time.
+  // for a new one), not from what was typed last time; and it follows the
+  // saved shop when that reloads.
   useEffect(() => {
     if (!show) return;
-    setImageFile(null);
-    setError(null);
     setEditShop({
       _id: shop ? shop._id : "",
       name: shop ? shop.name : "",
@@ -150,9 +155,11 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       phone: phoneInput.trim(),
       web_URL: editShop.web_URL,
     };
+    let uploading = false;
     try {
       await backend.put(`/shops/${editShop._id}`, updatedShop);
       if (imageFile) {
+        uploading = true;
         const newShopCover = new FormData();
         newShopCover.append("cover", imageFile);
         await backend.put(
@@ -165,7 +172,14 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       dispatch(fetchSingleShop(editShop._id));
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      if (uploading) {
+        // The changes are saved, so the page shows them too.
+        dispatch(fetchShopList());
+        dispatch(fetchSingleShop(editShop._id));
+        setError(`The changes were saved, but the cover wasn't: ${getErrorMessage(err)}`);
+      } else {
+        setError(getErrorMessage(err));
+      }
     }
   };
 

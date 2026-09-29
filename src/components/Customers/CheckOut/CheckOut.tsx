@@ -1,3 +1,4 @@
+import type { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
 import { useRef } from "react";
 import { Offcanvas } from "react-bootstrap";
 import {
@@ -16,7 +17,7 @@ import { REFUNDED_MARKER } from "../../../lib/cart";
 interface CheckOutProps {
   show: boolean;
   handleClose: () => void;
-  handleShowFbk: (variant: "success" | "failure", message?: string) => void;
+  handleShowFbk: (variant: FeedbackVariant, message?: string) => void;
 }
 
 const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
@@ -134,7 +135,7 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                     // PayPal took it but is still reviewing it: not paid yet,
                     // and not to be paid again.
                     handleShowFbk(
-                      "failure",
+                      "pending",
                       "PayPal is still reviewing your payment. Your items are held for you until staff confirm it — please don't pay for them again."
                     );
                     return;

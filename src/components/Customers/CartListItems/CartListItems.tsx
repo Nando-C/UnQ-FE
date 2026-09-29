@@ -14,7 +14,7 @@ import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
 import { formatPrice } from "../../../lib/price";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
-import PaymentFeedback from "../PaymentFeedback/PaymentFeedback";
+import PaymentFeedback, { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
 import CartNotices from "../CartNotices/CartNotices";
 import "./CartListItems.css";
 
@@ -155,21 +155,28 @@ const CartListItems = () => {
   const navigate = useNavigate();
 
   const [showFbk, setShowFbk] = useState<{
-    variant: "success" | "failure";
+    variant: FeedbackVariant;
     message?: string;
   } | null>(null);
   const fbkTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const handleShowFbk = (variant: "success" | "failure", message?: string) => {
+  // Only a success closes itself (and returns to the table's menu). A failure
+  // or a payment under review stays until the diner closes it: it may say not
+  // to pay again, or carry the order id staff need.
+  const handleShowFbk = (variant: FeedbackVariant, message?: string) => {
     if (fbkTimeoutRef.current) clearTimeout(fbkTimeoutRef.current);
     setShowFbk({ variant, message });
-    fbkTimeoutRef.current = setTimeout(() => {
-      handleCloseFbk(variant);
-    }, 3000);
+    if (variant === "success") {
+      fbkTimeoutRef.current = setTimeout(() => {
+        handleCloseFbk(variant);
+      }, 3000);
+    }
   };
-  const handleCloseFbk = (variant?: "success" | "failure") => {
+  const handleCloseFbk = (variant?: FeedbackVariant) => {
     if (fbkTimeoutRef.current) clearTimeout(fbkTimeoutRef.current);
     if ((variant ?? showFbk?.variant) === "success") {
-      navigate(-1);
+      // To the menu by path, not back a page: a diner who signed in on the way
+      // here may have other pages behind this one.
+      navigate(`/shops/${shopId}/tables/${tableId}`);
     }
     setShowFbk(null);
   };

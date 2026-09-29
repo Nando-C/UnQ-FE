@@ -397,7 +397,7 @@ describe("checkout onApprove 409s", () => {
     await user.click(screen.getByRole("button", { name: "Approve" }))
     await waitFor(() =>
       expect(handleShowFbk).toHaveBeenCalledWith(
-        "failure",
+        "pending",
         "PayPal is still reviewing your payment. Your items are held for you until staff confirm it — please don't pay for them again."
       )
     )

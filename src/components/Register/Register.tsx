@@ -72,7 +72,8 @@ const Register = () => {
     try {
       await backend.post("/auth/register", credentials);
       dispatch(fetchUserData());
-      navigate(takeReturnTo() ?? "/");
+      // In place of this page, so Back never lands on the sign-up form again.
+      navigate(takeReturnTo() ?? "/", { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

@@ -59,7 +59,9 @@ const Login = () => {
     try {
       await backend.post("/auth/login", credentials);
       dispatch(fetchUserData());
-      navigate(takeReturnTo() ?? "/");
+      // In place of this page, so Back (and a page's own back) never lands on
+      // the sign-in form again.
+      navigate(takeReturnTo() ?? "/", { replace: true });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -108,7 +110,7 @@ const Login = () => {
               <p>
                 Don't have an account?{" "}
                 {/* Padded to a 24px+ tap height; still reads as a link. */}
-                <Link to="/register" className="d-inline-block py-1">
+                <Link to="/register" replace className="d-inline-block py-1">
                   SignUp
                 </Link>
               </p>

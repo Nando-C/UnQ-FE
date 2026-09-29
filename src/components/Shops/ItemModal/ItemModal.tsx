@@ -57,17 +57,21 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   // making a second item. Forgotten when the dialog is opened again.
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // Opening the dialog also drops the photo picked and the error shown last
+  // time. Only on opening: an error set just after a save reloaded the menu
+  // must stay.
   useEffect(() => {
-    if (show) setCreatedId(null);
+    if (!show) return;
+    setCreatedId(null);
+    setImageFile(null);
+    setError(null);
   }, [show]);
 
   // Each time the dialog opens it starts from the item as saved (an empty form
   // for a new one, available by default as on the BE), not from what was typed
-  // or picked last time.
+  // last time; and it follows the saved item when that reloads.
   useEffect(() => {
     if (!show) return;
-    setImageFile(null);
-    setError(null);
     setItem({
       _id: menuItem ? menuItem._id : "",
       name: menuItem ? menuItem.name : "",
@@ -157,10 +161,12 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       available: item.available,
       category: item.category,
     };
+    let uploading = false;
     try {
       await backend.put(`/shops/${shopId}/menu/${item._id}`, updatedItem);
 
       if (imageFile) {
+        uploading = true;
         const newItemImg = new FormData();
         newItemImg.append("image", imageFile);
         await backend.put(
@@ -171,7 +177,13 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      if (uploading) {
+        // The changes are saved (diners see them), so the menu shows them too.
+        dispatch(fetchShopList());
+        setError(`The changes were saved, but the image wasn't: ${getErrorMessage(err)}`);
+      } else {
+        setError(getErrorMessage(err));
+      }
     }
   };
 

@@ -42,7 +42,10 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
     avatar: "",
     role: "",
   });
+  // The form follows the saved account, and starts from it each time the panel
+  // opens, not from edits made and abandoned last time.
   useEffect(() => {
+    if (!show) return;
     setUser({
       _id: myUser._id,
       name: myUser.name,
@@ -51,12 +54,21 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
       avatar: myUser.avatar,
       role: myUser.role,
     });
-  }, [myUser]);
+  }, [myUser, show]);
 
   const [imageFile, setImageFile] = useState<File | null>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
+  // Opening the panel also drops the photo picked, the password typed and the
+  // error shown last time. Only on opening: an error set just after a save
+  // reloaded the account must stay.
+  useEffect(() => {
+    if (!show) return;
+    setImageFile(null);
+    setCurrentPassword("");
+    setError(null);
+  }, [show]);
   // The BE asks for the current password to change the email of an account
   // that has one (it compares addresses trimmed and lowercased, as it stores them).
   const emailChanges = user.email.trim().toLowerCase() !== myUser.email.trim().toLowerCase();
@@ -72,6 +84,7 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
     e.preventDefault();
     setError(null);
 
+    let uploading = false;
     try {
       await backend.put(`/users/me`, {
         name: user.name,
@@ -84,6 +97,7 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
       setCurrentPassword("");
 
       if (imageFile) {
+        uploading = true;
         const newItemImg = new FormData();
         newItemImg.append("avatar", imageFile);
         await backend.put(`/users/me/avatar`, newItemImg);
@@ -91,7 +105,14 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
       dispatch(fetchUserData());
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      if (uploading) {
+        // The details are saved, so the account shows them too (and a changed
+        // email no longer asks for the password again).
+        dispatch(fetchUserData());
+        setError(`Your details were saved, but the photo wasn't: ${getErrorMessage(err)}`);
+      } else {
+        setError(getErrorMessage(err));
+      }
     }
   };
 

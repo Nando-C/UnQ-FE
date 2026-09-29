@@ -49,8 +49,10 @@ const Cart = () => {
   const cart = useAppSelector(selectCartsData);
 
   const navigate = useNavigate();
+  // The cart is only reached from its table's menu, so Back goes there by
+  // path: back a page could land on the sign-in form a diner passed through.
   const goBack = () => {
-    navigate(-1);
+    navigate(`/shops/${shopId}/tables/${tableId}`);
   };
 
   return (
