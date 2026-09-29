@@ -61,6 +61,26 @@ describe("ItemModal", () => {
     expect(createSpy).not.toHaveBeenCalled()
   })
 
+  it("blocks a price with a fraction of a penny and fires no request", async () => {
+    const createSpy = vi.fn()
+    server.use(
+      http.post(`${BASE}/shops/s1/menu`, () => {
+        createSpy()
+        return HttpResponse.json({ _id: "m1" })
+      })
+    )
+    const { user } = renderNewItemModal()
+
+    await user.type(screen.getByPlaceholderText("Name"), "Latte")
+    await user.type(screen.getByPlaceholderText("Price"), "1.006")
+    await user.click(screen.getByRole("button", { name: "Create Item" }))
+
+    expect(
+      await screen.findByText("Price must be in whole pence (at most 2 decimals)")
+    ).toBeInTheDocument()
+    expect(createSpy).not.toHaveBeenCalled()
+  })
+
   it("submits the edit form from Save Changes in the dialog's footer", async () => {
     // The button sits outside the <form> (so it stays in view while the body
     // scrolls) and reaches it through its form attribute.

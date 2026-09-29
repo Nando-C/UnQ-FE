@@ -18,6 +18,14 @@ const getErrorMessage = (err: unknown): string => {
   return "Something went wrong, try again";
 };
 
+// Why a typed price can't be sent, or null. Whole pence, as the BE requires:
+// refunds price each line on its own, so a fraction of a penny wouldn't add up.
+const priceError = (input: string, price: number): string | null => {
+  if (Number.isNaN(price) || price <= 0) return "Price must be a positive number";
+  if (!/^\s*\d*(\.\d{0,2})?\s*$/.test(input)) return "Price must be in whole pence (at most 2 decimals)";
+  return null;
+};
+
 interface ItemModalProps {
   shopId: string;
   show: boolean;
@@ -73,8 +81,9 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   const createItem = async () => {
     setError(null);
     const price = parseFloat(priceInput);
-    if (Number.isNaN(price) || price <= 0) {
-      setError("Price must be a positive number");
+    const problem = priceError(priceInput, price);
+    if (problem) {
+      setError(problem);
       return;
     }
     const newItem = {
@@ -106,8 +115,9 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
     e.preventDefault();
     setError(null);
     const price = parseFloat(priceInput);
-    if (Number.isNaN(price) || price <= 0) {
-      setError("Price must be a positive number");
+    const problem = priceError(priceInput, price);
+    if (problem) {
+      setError(problem);
       return;
     }
     const updatedItem = {
