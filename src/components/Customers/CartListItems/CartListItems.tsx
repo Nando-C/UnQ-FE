@@ -154,17 +154,22 @@ const CartListItems = () => {
 
   const navigate = useNavigate();
 
-  const [showFbk, setShowFbk] = useState<{
+  // What the payment sheet says, and whether it's open. Kept apart so a closing
+  // sheet keeps its content while it slides away (it used to flip to
+  // "Success!" as it went).
+  const [fbk, setFbk] = useState<{
     variant: FeedbackVariant;
     message?: string;
   } | null>(null);
+  const [fbkOpen, setFbkOpen] = useState(false);
   const fbkTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Only a success closes itself (and returns to the table's menu). A failure
   // or a payment under review stays until the diner closes it: it may say not
   // to pay again, or carry the order id staff need.
   const handleShowFbk = (variant: FeedbackVariant, message?: string) => {
     if (fbkTimeoutRef.current) clearTimeout(fbkTimeoutRef.current);
-    setShowFbk({ variant, message });
+    setFbk({ variant, message });
+    setFbkOpen(true);
     if (variant === "success") {
       fbkTimeoutRef.current = setTimeout(() => {
         handleCloseFbk(variant);
@@ -173,12 +178,12 @@ const CartListItems = () => {
   };
   const handleCloseFbk = (variant?: FeedbackVariant) => {
     if (fbkTimeoutRef.current) clearTimeout(fbkTimeoutRef.current);
-    if ((variant ?? showFbk?.variant) === "success") {
+    if ((variant ?? fbk?.variant) === "success") {
       // To the menu by path, not back a page: a diner who signed in on the way
       // here may have other pages behind this one.
       navigate(`/shops/${shopId}/tables/${tableId}`);
     }
-    setShowFbk(null);
+    setFbkOpen(false);
   };
 
   return (
@@ -243,9 +248,9 @@ const CartListItems = () => {
         handleShowFbk={handleShowFbk}
       />
       <PaymentFeedback
-        showFbk={!!showFbk}
-        variant={showFbk?.variant ?? "success"}
-        message={showFbk?.message}
+        showFbk={fbkOpen}
+        variant={fbk?.variant ?? "success"}
+        message={fbk?.message}
         handleCloseFbk={() => handleCloseFbk()}
       />
     </>

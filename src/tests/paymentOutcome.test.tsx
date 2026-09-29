@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Provider } from "react-redux"
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
@@ -85,6 +85,24 @@ describe("after paying", () => {
 
     expect(screen.getByText(message)).toBeInTheDocument()
   }, 10_000)
+
+  it("keeps saying what happened while a closed message slides away, never \"Success!\"", async () => {
+    server.use(
+      http.post(`${BASE}/carts/tables/t1/cart1/captureCheckout`, () => HttpResponse.json(cart, { status: 202 }))
+    )
+    const user = renderCartAt(["/shops/s1/tables/t1/cart"])
+    await pay(user)
+    const sheet = (await screen.findByText("Payment under review")).closest(".offcanvas") as HTMLElement
+
+    await user.click(within(sheet).getByRole("button", { name: "Close" }))
+
+    expect(screen.queryByText("Success!")).not.toBeInTheDocument()
+    expect(screen.queryByText(/The Transaction Was Successful/)).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText("Payment under review")).not.toBeInTheDocument())
+    expect(screen.queryByText("Success!")).not.toBeInTheDocument()
+    // Closing a message that isn't a success stays on the cart.
+    expect(screen.queryByText("table menu")).not.toBeInTheDocument()
+  })
 
   it("shows a payment PayPal is reviewing as under review, not as failed, and keeps it", async () => {
     server.use(
