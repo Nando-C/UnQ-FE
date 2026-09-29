@@ -18,7 +18,7 @@ import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
 import { selectCartPointers } from "../../redux/slices/cartSlice";
 import { fetchUserData } from "../../redux/slices/userSlice";
 import wordmark from "../../assets/unq-wordmark-onematerial.svg";
-import { hasReturnTo, rememberReturnTo, takeReturnTo } from "../../lib/returnTo";
+import { peekReturnTo, rememberReturnTo, takeReturnTo } from "../../lib/returnTo";
 
 const getErrorMessage = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
@@ -41,9 +41,14 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   // Came here from a table: whichever way they sign in (this form, sign-up,
-  // Google), they go back to it afterwards.
+  // Google), they go back to it afterwards. A page of that same table saved
+  // on the way (its cart) is kept; one of another table, left by an earlier
+  // sign-in that wasn't finished, is replaced.
   useEffect(() => {
-    if (tableId && !hasReturnTo()) rememberReturnTo(`/shops/${shopId}/tables/${tableId}`);
+    if (!tableId) return;
+    const table = `/shops/${shopId}/tables/${tableId}`;
+    const saved = peekReturnTo();
+    if (saved !== table && !saved?.startsWith(`${table}/`)) rememberReturnTo(table);
   }, [shopId, tableId]);
 
   const handleLogin = async (e: FormEvent) => {

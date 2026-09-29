@@ -93,6 +93,30 @@ describe("a diner who has to sign in at a table goes back to it", () => {
     expect(screen.getByRole("link", { name: "SignUp" })).toHaveAttribute("href", "/register")
   })
 
+  it("to the table they're at now, not one from an earlier sign-in they didn't finish", () => {
+    rememberReturnTo("/shops/s1/tables/t10")
+    renderAt("/login", <Login />, "/login", {
+      carts: {
+        data: { _id: "", userId: "", tableId: "", status: "", items: [], split: [] },
+        pointers: { shopId: "s1", tableId: "t1" },
+      },
+    })
+
+    expect(takeReturnTo()).toBe("/shops/s1/tables/t1")
+  })
+
+  it("to the cart, when that's where this table's diner was sent to sign in from", () => {
+    rememberReturnTo("/shops/s1/tables/t1/cart")
+    renderAt("/login", <Login />, "/login", {
+      carts: {
+        data: { _id: "", userId: "", tableId: "", status: "", items: [], split: [] },
+        pointers: { shopId: "s1", tableId: "t1" },
+      },
+    })
+
+    expect(takeReturnTo()).toBe("/shops/s1/tables/t1/cart")
+  })
+
   it("but not a signed-in visitor of the root with nothing remembered, nor from another site", async () => {
     sessionStorage.setItem("unq.returnTo", JSON.stringify({ path: "//evil.example", at: Date.now() }))
     server.use(

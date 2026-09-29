@@ -28,7 +28,8 @@ const read = (): string | null => {
   }
 };
 
-export const hasReturnTo = () => read() !== null;
+// The path, left in place.
+export const peekReturnTo = (): string | null => read();
 
 // The path, once: it's forgotten as it's read.
 export const takeReturnTo = (): string | null => {
