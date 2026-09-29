@@ -17,20 +17,14 @@ import { fetchUserData } from "../../redux/slices/userSlice";
 import wordmark from "../../assets/unq-wordmark-onematerial.svg";
 import "./Register.css";
 import { takeReturnTo } from "../../lib/returnTo";
+import { apiErrorMessage } from "../../lib/errors";
 
 const MIN_PASSWORD_LENGTH = 8;
 
-const getErrorMessage = (err: unknown): string => {
-  if (axios.isAxiosError(err)) {
-    if (err.response?.status === 409) return "Email already registered";
-    const data = err.response?.data as
-      | { message?: string; details?: { message: string }[] }
-      | undefined;
-    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
-    if (data?.message) return data.message;
-  }
-  return "Something went wrong, try again";
-};
+const getErrorMessage = (err: unknown): string =>
+  axios.isAxiosError(err) && err.response?.status === 409
+    ? "Email already registered"
+    : apiErrorMessage(err);
 
 const Register = () => {
   const [credentials, setCredentials] = useState({

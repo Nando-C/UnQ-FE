@@ -12,6 +12,12 @@ const TITLES: Record<FeedbackVariant, string> = {
   pending: "Payment under review",
 };
 
+const ICONS: Record<FeedbackVariant, React.ReactNode> = {
+  success: <AiOutlineCheckCircle color="var(--bs-success)" size={100} />,
+  failure: <AiOutlineCloseCircle color="var(--bs-danger)" size={100} />,
+  pending: <AiOutlineClockCircle color="var(--bs-warning)" size={100} />,
+};
+
 interface PaymentFeedbackProps {
   showFbk: boolean;
   variant: FeedbackVariant;
@@ -36,25 +42,10 @@ const PaymentFeedback = ({
           </Offcanvas.Header>
           <Offcanvas.Body>
             <Row>
-              {variant === "success" ? (
-                <>
-                  <AiOutlineCheckCircle color="var(--bs-success)" size={100} />
-                  <Card.Subtitle className="mt-4 text-center">
-                    The Transaction Was Successful!
-                  </Card.Subtitle>
-                </>
-              ) : (
-                <>
-                  {variant === "pending" ? (
-                    <AiOutlineClockCircle color="var(--bs-warning)" size={100} />
-                  ) : (
-                    <AiOutlineCloseCircle color="var(--bs-danger)" size={100} />
-                  )}
-                  <Card.Subtitle className="mt-4 text-center">
-                    {message}
-                  </Card.Subtitle>
-                </>
-              )}
+              {ICONS[variant]}
+              <Card.Subtitle className="mt-4 text-center">
+                {variant === "success" ? "The Transaction Was Successful!" : message}
+              </Card.Subtitle>
             </Row>
           </Offcanvas.Body>
         </Offcanvas>

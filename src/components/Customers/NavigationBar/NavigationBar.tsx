@@ -7,7 +7,9 @@ import { fetchUserData } from "../../../redux/slices/userSlice";
 import { AiOutlineHome } from "react-icons/ai";
 import { IoCartOutline } from "react-icons/io5";
 import { FaRegUserCircle } from "react-icons/fa";
+import { unpaidQty } from "../../../lib/cart";
 import "./NavigationBar.css";
+import { tablePath } from "../../../lib/paths";
 import {
   getTableCart,
   selectCartPointers,
@@ -29,13 +31,8 @@ const NavigationBar = () => {
     }
   }, [dispatch, tableId]);
 
-  const items = useAppSelector(selectCartsData).items.filter(
-    (item) => item.qty > (item.qtyPayed ?? 0)
-  );
-  const itemsQty = items.reduce(
-    (total, item) => total + item.qty - (item.qtyPayed ?? 0),
-    0
-  );
+  const items = useAppSelector(selectCartsData).items.filter((item) => unpaidQty(item) > 0);
+  const itemsQty = items.reduce((total, item) => total + unpaidQty(item), 0);
 
   return (
     <>
@@ -57,7 +54,7 @@ const NavigationBar = () => {
               {shopId && tableId ? (
                 <NavLink
                   className="cart-link nav-link"
-                  to={`/shops/${shopId}/tables/${tableId}/cart`}
+                  to={`${tablePath(shopId, tableId)}/cart`}
                   aria-label={
                     itemsQty > 0 ? `Cart, ${itemsQty} items` : "Cart"
                   }

@@ -10,13 +10,14 @@ import {
 } from "../../../redux/slices/cartSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
 import { IItem } from "../../../typings/cart";
-import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
+import { availableQty, isSoldOut, menuIdOf, myOpenSplit, unpaidQty } from "../../../lib/cart";
 import { formatPrice } from "../../../lib/price";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
 import PaymentFeedback, { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
 import CartNotices from "../CartNotices/CartNotices";
 import "./CartListItems.css";
+import { tablePath } from "../../../lib/paths";
 
 const CartListItems = () => {
   const { shopId = "", tableId = "" } = useParams<{
@@ -48,21 +49,13 @@ const CartListItems = () => {
   // Changes still on their way to the BE; checkout waits for them.
   const syncing = Object.keys(pending).length > 0;
 
-  const visibleItems = cart.items.filter((i) => (i.qtyPayed ?? 0) < i.qty);
+  const visibleItems = cart.items.filter((i) => unpaidQty(i) > 0);
   // How many units of an item I hold, counting what I've just asked for
   // (setSplitQty) ahead of the BE's answer, as the rows do.
   const myQtyFor = (item: IItem) => {
     const menuId = menuIdOf(item);
     const wanted = menuId ? pending[menuId] : undefined;
-    if (wanted !== undefined) return wanted;
-    return (
-      cart.split.find(
-        (s) =>
-          s.splitStatus === "open" &&
-          s.userId === myUser._id &&
-          menuIdOf(s) === menuId
-      )?.qty ?? 0
-    );
+    return wanted ?? myOpenSplit(cart.split, myUser._id, menuId)?.qty ?? 0;
   };
   const mySplitFor = (item: IItem) => myQtyFor(item) > 0;
 
@@ -80,7 +73,7 @@ const CartListItems = () => {
   // Holding a split on a sold-out item blocks the whole checkout (the BE
   // refuses it), so say so on the button instead of letting PayPal open.
   const holdsSoldOut = visibleItems.some(
-    (i) => isSoldOut(i) && !!mySplitFor(i)
+    (i) => isSoldOut(i) && mySplitFor(i)
   );
 
   // "Select All" is derived, never stored: checked exactly when every
@@ -88,7 +81,7 @@ const CartListItems = () => {
   // per-item commands, so it can never disagree with the individual checkboxes.
   const allSelected =
     selectableItems.length > 0 &&
-    selectableItems.every((i) => !!mySplitFor(i));
+    selectableItems.every(mySplitFor);
 
   // Sets every row's wanted count at once; each row's own loop then brings
   // the BE round to it, so a second click before they land just changes the
@@ -126,7 +119,7 @@ const CartListItems = () => {
     .filter((item) => !isSoldOut(item))
     .reduce(
       (total, item) =>
-        total + (item.qty - (item.qtyPayed ?? 0)) * (item.menuId?.price ?? 0),
+        total + unpaidQty(item) * (item.menuId?.price ?? 0),
       0
     );
   const totalCart = totalSplitPayed + totalUnpaid;
@@ -181,7 +174,7 @@ const CartListItems = () => {
     if ((variant ?? fbk?.variant) === "success") {
       // To the menu by path, not back a page: a diner who signed in on the way
       // here may have other pages behind this one.
-      navigate(`/shops/${shopId}/tables/${tableId}`);
+      navigate(tablePath(shopId, tableId));
     }
     setFbkOpen(false);
   };
@@ -203,7 +196,7 @@ const CartListItems = () => {
           <div>
             {remainingCartTotal !== totalCart ? "Remaining Cart Total" : "Cart Total"}{" "}
             <strong className="text-nowrap">
-              {formatPrice(remainingCartTotal !== totalCart ? remainingCartTotal : totalCart)}
+              {formatPrice(remainingCartTotal)}
             </strong>
           </div>
           <div>

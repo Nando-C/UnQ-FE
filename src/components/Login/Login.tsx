@@ -19,6 +19,7 @@ import { selectCartPointers } from "../../redux/slices/cartSlice";
 import { fetchUserData } from "../../redux/slices/userSlice";
 import wordmark from "../../assets/unq-wordmark-onematerial.svg";
 import { peekReturnTo, rememberReturnTo, takeReturnTo } from "../../lib/returnTo";
+import { tablePath } from "../../lib/paths";
 
 const getErrorMessage = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
@@ -46,7 +47,7 @@ const Login = () => {
   // sign-in that wasn't finished, is replaced.
   useEffect(() => {
     if (!tableId) return;
-    const table = `/shops/${shopId}/tables/${tableId}`;
+    const table = tablePath(shopId, tableId);
     const saved = peekReturnTo();
     if (saved !== table && !saved?.startsWith(`${table}/`)) rememberReturnTo(table);
   }, [shopId, tableId]);

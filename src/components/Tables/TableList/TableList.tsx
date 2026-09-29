@@ -27,9 +27,12 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   const loadStatuses = useCallback(() => {
     backend
       .get<ITableStatus[]>(`/shops/${shopId}/tables/status`)
-      .then(({ data }) =>
-        setStatuses(Object.fromEntries(data.map((s) => [s.tableId, s])))
-      )
+      .then(({ data }) => {
+        const next: Record<string, ITableStatus> = Object.fromEntries(data.map((s) => [s.tableId, s]));
+        // Unchanged since the last refresh: keep the same object, so the
+        // cards don't all render again for nothing.
+        setStatuses((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+      })
       .catch(() => {});
   }, [shopId]);
   useVisiblePolling(loadStatuses, 30_000, tableCount > 0);

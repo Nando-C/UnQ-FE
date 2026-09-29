@@ -1,22 +1,11 @@
 import { ChangeEvent, useEffect, useRef, useState, useId } from "react";
-import axios from "axios";
 import { Modal, Button, Form, FloatingLabel, Image, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { IMenu } from "../../../typings/menu";
 import placeholder from "../../../assets/placeholder.svg";
-
-const getErrorMessage = (err: unknown): string => {
-  if (axios.isAxiosError(err)) {
-    const data = err.response?.data as
-      | { message?: string; details?: { message: string }[] }
-      | undefined;
-    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
-    if (data?.message) return data.message;
-  }
-  return "Something went wrong, try again";
-};
+import { apiErrorMessage } from "../../../lib/errors";
 
 // Why a typed price can't be sent, or null. Whole pence, as the BE requires:
 // refunds price each line on its own, so a fraction of a penny wouldn't add up.
@@ -135,9 +124,9 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       if (uploading) {
         // The item exists, so the menu shows it; only the image is missing.
         dispatch(fetchShopList());
-        setError(`The item was created, but its image wasn't saved: ${getErrorMessage(err)}`);
+        setError(`The item was created, but its image wasn't saved: ${apiErrorMessage(err)}`);
       } else {
-        setError(getErrorMessage(err));
+        setError(apiErrorMessage(err));
       }
     } finally {
       setCreating(false);
@@ -180,9 +169,9 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       if (uploading) {
         // The changes are saved (diners see them), so the menu shows them too.
         dispatch(fetchShopList());
-        setError(`The changes were saved, but the image wasn't: ${getErrorMessage(err)}`);
+        setError(`The changes were saved, but the image wasn't: ${apiErrorMessage(err)}`);
       } else {
-        setError(getErrorMessage(err));
+        setError(apiErrorMessage(err));
       }
     }
   };
@@ -195,7 +184,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(apiErrorMessage(err));
     }
   };
 

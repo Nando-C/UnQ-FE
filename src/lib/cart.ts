@@ -5,6 +5,13 @@ import { IItem, ISplitItem } from "../typings/cart";
 export const menuIdOf = (x: IItem | ISplitItem | undefined) =>
   typeof x?.menuId === "string" ? x.menuId : x?.menuId?._id;
 
+// Units of an item not paid for yet.
+export const unpaidQty = (item: IItem | undefined) => (item?.qty ?? 0) - (item?.qtyPayed ?? 0);
+
+// A diner's open split of an item (at most one per diner and item).
+export const myOpenSplit = (split: ISplitItem[], myUserId: string, menuId: string | undefined) =>
+  split.find((s) => s.splitStatus === "open" && s.userId === myUserId && menuIdOf(s) === menuId);
+
 // The pool the caller's own split can still draw from: total qty minus what's
 // already paid minus whatever units OTHER diners currently hold in an open
 // split for the same item. The caller's own open split is intentionally not
@@ -22,7 +29,7 @@ export const availableQty = (
         menuIdOf(s) === menuIdOf(item)
     )
     .reduce((sum, s) => sum + s.qty, 0);
-  return (item?.qty ?? 0) - (item?.qtyPayed ?? 0) - heldByOthers;
+  return unpaidQty(item) - heldByOthers;
 };
 
 // A menu item the shop has marked unavailable. Only a populated menuId can

@@ -65,6 +65,8 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
   const [error, setError] = useState(false);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [busy, setBusy] = useState(false);
+  // Nothing else can be asked while an action is being confirmed or sent.
+  const locked = busy || !!pending;
   const [result, setResult] = useState<Result | null>(null);
 
   const load = useCallback(() => {
@@ -197,12 +199,12 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 {i === 0 ? " (the one diners see)" : " (not shown to diners)"}
               </h3>
             )}
-            <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={busy || !!pending} />
+            <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={locked} />
             <div className="d-flex flex-wrap gap-2 mt-3">
               {i > 0 && (
                 <Button
                   variant="outline-primary"
-                  disabled={busy || !!pending}
+                  disabled={locked}
                   onClick={() =>
                     ask({
                       message:
@@ -219,7 +221,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
               )}
               <Button
                 variant="outline-danger"
-                disabled={busy || !!pending}
+                disabled={locked}
                 onClick={() => ask(closeAction(cart, tableName, post(cart._id, "close")))}
               >
                 Close table
@@ -235,7 +237,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 <h3 className="h6">
                   Closed {cart.updatedAt ? clockTime(cart.updatedAt) : ""}
                 </h3>
-                <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={busy || !!pending} />
+                <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={locked} />
               </section>
             ))}
           </details>

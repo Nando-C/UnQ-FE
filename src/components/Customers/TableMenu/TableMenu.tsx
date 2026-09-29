@@ -20,6 +20,7 @@ import {
 import MenuItem from "../MenuItem/MenuItem";
 import ShopTablesOffCanvas from "../ShopTablesOffCanvas/ShopTablesOffCanvas";
 import "./TableMenu.css";
+import { tablePath } from "../../../lib/paths";
 
 const TableMenu = () => {
   const { shopId = "", tableId = "" } = useParams<{
@@ -45,7 +46,7 @@ const TableMenu = () => {
     !tableId && pointers.shopId === shopId && pointers.tableId ? pointers.tableId : "";
   useEffect(() => {
     if (backToTable) {
-      navigate(`/shops/${shopId}/tables/${backToTable}`, { replace: true });
+      navigate(tablePath(shopId, backToTable), { replace: true });
     } else {
       dispatch(storeCartPointers({ shopId, tableId }));
     }

@@ -11,6 +11,7 @@ import {
   createCheckoutOrder,
   getTableCart,
   selectCartsData,
+  type CartRejection,
 } from "../../../redux/slices/cartSlice";
 import { REFUNDED_MARKER } from "../../../lib/cart";
 
@@ -23,9 +24,7 @@ interface CheckOutProps {
 const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
   const cart = useAppSelector(selectCartsData);
   const dispatch = useAppDispatch();
-  const createOrderRejectionRef = useRef<
-    { status?: number; message?: string } | undefined
-  >(undefined);
+  const createOrderRejectionRef = useRef<CartRejection | undefined>(undefined);
 
   return (
     <div className="CheckOut">
@@ -54,9 +53,7 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                   } catch (err) {
                     // The SDK's onError only gets a generic Error, so stash
                     // the BE's {status, message} here for onError to read.
-                    createOrderRejectionRef.current = err as
-                      | { status?: number; message?: string }
-                      | undefined;
+                    createOrderRejectionRef.current = err as CartRejection | undefined;
                     throw err;
                   }
                 }}
@@ -72,23 +69,11 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                     ).unwrap());
                   } catch (err) {
                     handleClose();
-                    const rejection = err as
-                      | { status?: number; message?: string }
-                      | undefined;
+                    const rejection = err as CartRejection | undefined;
                     if (
                       rejection?.status === 409 &&
-                      rejection.message &&
-                      !rejection.message.includes(REFUNDED_MARKER)
+                      (!rejection.message || rejection.message.includes(REFUNDED_MARKER))
                     ) {
-                      // Refused BEFORE capture (an item sold out, the
-                      // selection changed, or the units are gone): nothing
-                      // was charged or refunded. The refreshed cart shows why.
-                      handleShowFbk(
-                        "failure",
-                        `${rejection.message} — nothing was charged.`
-                      );
-                      dispatch(getTableCart(cart.tableId));
-                    } else if (rejection?.status === 409) {
                       // The cart changed after capture — the BE has already
                       // refunded automatically, and its message says so.
                       handleShowFbk(
@@ -108,8 +93,10 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                       rejection.status >= 400 &&
                       rejection.status < 500
                     ) {
-                      // Refused before capture: the table was closed, the
-                      // selection is gone, or the login expired.
+                      // Refused before capture: an item sold out, the
+                      // selection changed or is gone, the units were taken,
+                      // the table was closed, or the login expired. Nothing
+                      // was charged; the refreshed cart shows why.
                       handleShowFbk(
                         "failure",
                         rejection.message

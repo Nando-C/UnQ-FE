@@ -26,10 +26,11 @@ const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
 
   const defaultCover = placeholder;
 
-  const qrCode = new QRCodeStyling({
+  // One QR code for the card's lifetime, drawn again only when what it shows
+  // changes (the card re-renders on every status refresh).
+  const [qrCode] = useState(() => new QRCodeStyling({
     width: 250,
     height: 250,
-    image: shop?.cover !== defaultCover ? shop?.cover : "",
     dotsOptions: {
       // The interface teal ($primary, #0F6E66) darkened for scannability. These get
       // printed and stuck on tables, so they have to survive print, dim rooms, odd
@@ -45,16 +46,18 @@ const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
       crossOrigin: "anonymous",
       margin: 5,
     },
-  });
+  }));
   const qrRef = useRef<HTMLDivElement>(null);
 
-  // Must append once on mount only; qrCode is a new QRCodeStyling instance
-  // every render, so listing it here would re-append the canvas every render.
   useEffect(() => {
     qrCode.append(qrRef.current ?? undefined);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [qrCode]);
 
-  qrCode.update({ data: table?.Qr_Url });
+  const qrData = table?.Qr_Url;
+  const qrImage = shop?.cover !== defaultCover ? shop?.cover : "";
+  useEffect(() => {
+    qrCode.update({ data: qrData, image: qrImage });
+  }, [qrCode, qrData, qrImage]);
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);

@@ -29,7 +29,7 @@ const read = (): string | null => {
 };
 
 // The path, left in place.
-export const peekReturnTo = (): string | null => read();
+export const peekReturnTo = read;
 
 // The path, once: it's forgotten as it's read.
 export const takeReturnTo = (): string | null => {

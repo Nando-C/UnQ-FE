@@ -1,5 +1,4 @@
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import axios from "axios";
 import {
   Alert,
   Form,
@@ -14,17 +13,7 @@ import { fetchUserData, selectUserData } from "../../../redux/slices/userSlice";
 import { IUser } from "../../../typings/user";
 import placeholder from "../../../assets/placeholder.svg";
 import "./AccountOffCanvas.css";
-
-const getErrorMessage = (err: unknown): string => {
-  if (axios.isAxiosError(err)) {
-    const data = err.response?.data as
-      | { message?: string; details?: { message: string }[] }
-      | undefined;
-    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
-    if (data?.message) return data.message;
-  }
-  return "Something went wrong, try again";
-};
+import { apiErrorMessage } from "../../../lib/errors";
 
 interface AccountOffCanvasProps {
   show: boolean;
@@ -109,9 +98,9 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
         // The details are saved, so the account shows them too (and a changed
         // email no longer asks for the password again).
         dispatch(fetchUserData());
-        setError(`Your details were saved, but the photo wasn't: ${getErrorMessage(err)}`);
+        setError(`Your details were saved, but the photo wasn't: ${apiErrorMessage(err)}`);
       } else {
-        setError(getErrorMessage(err));
+        setError(apiErrorMessage(err));
       }
     }
   };

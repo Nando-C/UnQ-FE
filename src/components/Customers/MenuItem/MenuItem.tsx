@@ -1,16 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Badge, Card, Image, Button } from "react-bootstrap";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { addToCart } from "../../../redux/slices/cartSlice";
+import { addToCart, type CartRejection } from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
-import { IItem } from "../../../typings/cart";
 import { formatPrice } from "../../../lib/price";
 import { rememberReturnTo } from "../../../lib/returnTo";
+import { useFlash } from "../../../lib/useFlash";
 import "./MenuItem.css";
 
 interface MenuItemProps {
@@ -21,10 +21,7 @@ interface MenuItemProps {
 const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
   const { tableId = "" } = useParams<{ tableId: string }>();
 
-  const [item, setItem] = useState<IItem>({
-    menuId: null,
-    qty: 1,
-  });
+  const [qty, setQty] = useState(1);
 
   // The shop (and so this card's data) is fetched once by TableMenu; every
   // card used to refetch the whole shop on mount as well.
@@ -33,42 +30,22 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
   const shop = useAppSelector(selectSelectedShop);
   const menuItem = shop?.menu.find((item) => item._id === itemId);
 
-  useEffect(() => {
-    setItem((prev) => ({ ...prev, menuId: menuItem }));
-  }, [menuItem]);
-
   const soldOut = menuItem?.available === false;
 
   // Why an "Add" didn't go through. Before this a failed add was silently
   // ignored, so a customer whose page predated the item selling out just saw
   // nothing happen. Cleared on the next interaction or after a few seconds.
-  const [addError, setAddError] = useState<string | null>(null);
-  const addErrorTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const clearAddError = () => {
-    if (addErrorTimeoutRef.current) clearTimeout(addErrorTimeoutRef.current);
-    setAddError(null);
-  };
-  const showAddError = (message: string) => {
-    clearAddError();
-    setAddError(message);
-    addErrorTimeoutRef.current = setTimeout(() => setAddError(null), 5000);
-  };
-  useEffect(() => () => clearTimeout(addErrorTimeoutRef.current), []);
+  const [addError, showAddError] = useFlash<string>(5000);
+  const clearAddError = () => showAddError(null);
 
   const increment = () => {
     clearAddError();
-    const newQty = item.qty + 1;
-    setItem({ ...item, qty: newQty });
+    setQty(qty + 1);
   };
 
   const decrement = () => {
     clearAddError();
-    const newQty = item.qty - 1;
-    if (newQty >= 0) {
-      setItem({ ...item, qty: newQty });
-    } else {
-      setItem({ ...item, qty: 0 });
-    }
+    setQty(Math.max(0, qty - 1));
   };
 
   const user = useAppSelector(selectUserData);
@@ -79,9 +56,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
   // says "Added" for a moment once it's in: the only other sign was the badge
   // in the bottom bar.
   const [adding, setAdding] = useState(false);
-  const [added, setAdded] = useState(false);
-  const addedTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  useEffect(() => () => clearTimeout(addedTimeoutRef.current), []);
+  const [added, showAdded] = useFlash<true>(2000);
 
   const addItemToCart = async () => {
     if (adding) return;
@@ -93,14 +68,12 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
           addToCart({
             shopId: shopId,
             tableId: tableId,
-            item: item,
+            item: { menuId: menuItem, qty },
           })
         ).unwrap();
-        clearTimeout(addedTimeoutRef.current);
-        setAdded(true);
-        addedTimeoutRef.current = setTimeout(() => setAdded(false), 2000);
+        showAdded(true);
       } catch (err) {
-        const rejection = err as { status?: number; message?: string } | undefined;
+        const rejection = err as CartRejection | undefined;
         if (rejection?.status === 409 && rejection.message !== "This item is sold out") {
           // The BE's other 409: several diners changed the cart at once.
           showAddError("Someone else just changed the cart — please try again.");
@@ -172,7 +145,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
               >
                 −
               </Button>
-              <span className="qty">{item.qty}</span>
+              <span className="qty">{qty}</span>
               <Button
                 variant="link"
                 className="hit-44"
@@ -185,7 +158,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
             <Button
               className="add-button"
               onClick={addItemToCart}
-              disabled={item.qty < 1 || adding}
+              disabled={qty < 1 || adding}
             >
               {added ? "Added" : "Add"}
             </Button>

@@ -3,7 +3,7 @@ import { ICart, ICartNotice, ICartStore, IItem } from "../../typings/cart"
 import backend from "../../backend/backend"
 import axios, { AxiosResponse } from "axios"
 import type { AppThunk, RootState } from "../app/store"
-import { menuIdOf } from "../../lib/cart"
+import { menuIdOf, myOpenSplit } from "../../lib/cart"
 
 const initialState: ICartStore = {
     data: {
@@ -32,10 +32,16 @@ interface AddToSplitProps {
     cartId: string
     item: IItem
 }
-const toCartPayload = (item: IItem) => ({
-    menuId: typeof item.menuId === "string" ? item.menuId : item.menuId?._id,
-    qty: item.qty,
-})
+const toCartPayload = (item: IItem) => ({ menuId: menuIdOf(item), qty: item.qty })
+
+// A refused cart request: the BE's status and reason (e.g. 409 "Someone at the
+// table is paying for those"), for the UI to tell refusals apart.
+export type CartRejection = { status?: number; message?: string }
+
+const reasonOf = (err: unknown): CartRejection => {
+    if (axios.isAxiosError(err)) return { status: err.response?.status, message: err.response?.data?.message }
+    throw err
+}
 
 export const addToCart = createAsyncThunk(
     "cart/addToCart",
@@ -45,13 +51,7 @@ export const addToCart = createAsyncThunk(
             return data
         } catch (err) {
             // The menu card tells a sold-out 409 apart from any other failure.
-            if (axios.isAxiosError(err)) {
-                return rejectWithValue({
-                    status: err.response?.status,
-                    message: err.response?.data?.message,
-                })
-            }
-            throw err
+            return rejectWithValue(reasonOf(err))
         }
     }
 )
@@ -63,13 +63,7 @@ export const addToSplit = createAsyncThunk(
             return data
         } catch (err) {
             // A 409 means the units were claimed first (or it sold out).
-            if (axios.isAxiosError(err)) {
-                return rejectWithValue({
-                    status: err.response?.status,
-                    message: err.response?.data?.message,
-                })
-            }
-            throw err
+            return rejectWithValue(reasonOf(err))
         }
     }
 )
@@ -78,12 +72,6 @@ export const decreaseSplit = createAsyncThunk("cart/ decreaseSplit", async ({sho
     return data
 })
 
-// The BE's reason for a refusal (e.g. 409 "Someone at the table is paying for
-// those"), for the cart row to show.
-const reasonOf = (err: unknown): { status?: number; message?: string } => {
-    if (axios.isAxiosError(err)) return { status: err.response?.status, message: err.response?.data?.message }
-    throw err
-}
 // Orders `item.qty` fewer of an item for the table. Answers 204 when that
 // empties the cart, which the BE then deletes.
 export const removeFromCart = createAsyncThunk(
@@ -146,13 +134,7 @@ export const createCheckoutOrder = createAsyncThunk(
             const { data }: AxiosResponse<{ paypalOrderId: string }> = await backend.post(`carts/tables/${tableId}/${cartId}/createCheckoutOrder`)
             return data.paypalOrderId
         } catch (err) {
-            if (axios.isAxiosError(err)) {
-                return rejectWithValue({
-                    status: err.response?.status,
-                    message: err.response?.data?.message,
-                })
-            }
-            throw err
+            return rejectWithValue(reasonOf(err))
         }
     }
 )
@@ -169,13 +151,7 @@ export const captureCheckout = createAsyncThunk(
             const { data, status }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/captureCheckout`, { paypalOrderId })
             return { cart: data, pending: status === 202 }
         } catch (err) {
-            if (axios.isAxiosError(err)) {
-                return rejectWithValue({
-                    status: err.response?.status,
-                    message: err.response?.data?.message,
-                })
-            }
-            throw err
+            return rejectWithValue(reasonOf(err))
         }
     }
 )
@@ -218,14 +194,13 @@ export const cartsSlice = createSlice({
         builder.addCase(addToSplit.fulfilled, (state, action) => {
             state.data = action.payload
         })
-        builder.addCase(removeFromCart.fulfilled, (state, action) => {
+        // A 204 (no body): the BE deleted the emptied cart.
+        const cartOrGone = (state: ICartStore, action: PayloadAction<ICart | "">) => {
             if (action.payload) state.data = action.payload
             else clearCart(state)
-        })
-        builder.addCase(deleteFromCart.fulfilled, (state, action) => {
-            if (action.payload) state.data = action.payload
-            else clearCart(state)
-        })
+        }
+        builder.addCase(removeFromCart.fulfilled, cartOrGone)
+        builder.addCase(deleteFromCart.fulfilled, cartOrGone)
         builder.addCase(decreaseSplit.fulfilled, (state, action) => {
             state.data = action.payload
         })
@@ -300,12 +275,7 @@ interface SplitTarget {
 const syncing = new Set<string>()
 
 const myHeldQty = (state: RootState, menuId: string) =>
-    state.carts.data.split.find(
-        (s) =>
-            s.splitStatus === "open" &&
-            s.userId === state.user.data._id &&
-            menuIdOf(s) === menuId
-    )?.qty ?? 0
+    myOpenSplit(state.carts.data.split, state.user.data._id, menuId)?.qty ?? 0
 
 const syncSplit = ({ shopId, tableId, cartId, menuId }: SplitTarget): AppThunk<Promise<void>> =>
     async (dispatch, getState) => {
@@ -337,7 +307,7 @@ const syncSplit = ({ shopId, tableId, cartId, menuId }: SplitTarget): AppThunk<P
                 if (myHeldQty(getState(), menuId) === held) throw new Error("split unchanged")
             }
         } catch (err) {
-            const { status, message } = (err as { status?: number; message?: string } | undefined) ?? {}
+            const { status, message } = (err as CartRejection | undefined) ?? {}
             dispatch(splitFailed({
                 menuId,
                 message: adding && status === 409

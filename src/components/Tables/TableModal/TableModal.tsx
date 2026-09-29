@@ -1,22 +1,11 @@
 import { useEffect, useState, useId } from "react";
-import axios from "axios";
 import { FloatingLabel, Form, Modal, Button, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { ITable } from "../../../typings/shop";
 import "./TableModal.css";
-
-const getErrorMessage = (err: unknown): string => {
-  if (axios.isAxiosError(err)) {
-    const data = err.response?.data as
-      | { message?: string; details?: { message: string }[] }
-      | undefined;
-    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
-    if (data?.message) return data.message;
-  }
-  return "Something went wrong, try again";
-};
+import { apiErrorMessage } from "../../../lib/errors";
 
 interface TableModalProps {
   shopId: string;
@@ -76,7 +65,7 @@ const TableModal = ({
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(apiErrorMessage(err));
     } finally {
       setCreating(false);
     }
@@ -96,7 +85,7 @@ const TableModal = ({
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(apiErrorMessage(err));
     }
   };
 
@@ -108,7 +97,7 @@ const TableModal = ({
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(apiErrorMessage(err));
     }
   };
 

@@ -16,6 +16,7 @@ import CartListItems from "../CartListItems/CartListItems";
 import CartNotices from "../CartNotices/CartNotices";
 import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import "./Cart.css";
+import { tablePath } from "../../../lib/paths";
 
 const Cart = () => {
   const dispatch = useAppDispatch();
@@ -53,7 +54,7 @@ const Cart = () => {
   // The cart is only reached from its table's menu, so Back goes there by
   // path: back a page could land on the sign-in form a diner passed through.
   const goBack = () => {
-    navigate(`/shops/${shopId}/tables/${tableId}`);
+    navigate(tablePath(shopId, tableId));
   };
 
   return (

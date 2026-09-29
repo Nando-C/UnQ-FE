@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Badge, Card, Button, Image, Form } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
@@ -10,12 +10,14 @@ import {
   selectPendingSplit,
   selectSplitErrors,
   setSplitQty,
+  type CartRejection,
 } from "../../../redux/slices/cartSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
-import { availableQty, isSoldOut, menuIdOf } from "../../../lib/cart";
+import { availableQty, isSoldOut, menuIdOf, myOpenSplit, unpaidQty } from "../../../lib/cart";
 import { RiDeleteBinLine } from "react-icons/ri";
 import { formatPrice } from "../../../lib/price";
 import { rememberReturnTo } from "../../../lib/returnTo";
+import { useFlash } from "../../../lib/useFlash";
 import placeholder from "../../../assets/placeholder.svg";
 import "./CartItem.css";
 
@@ -34,12 +36,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
   const myUser = useAppSelector(selectUserData);
   const cartItem = cart.items.find((item) => item._id === itemId);
   const menuId = menuIdOf(cartItem);
-  const splitItem = cart.split.find(
-    (s) =>
-      s.splitStatus === "open" &&
-      s.userId === myUser._id &&
-      menuIdOf(s) === menuId
-  );
+  const splitItem = myOpenSplit(cart.split, myUser._id, menuId);
   // What I've asked for wins over what the BE holds until the two agree
   // (setSplitQty), so −/+ answer on the tap rather than after a round trip.
   const pending = useAppSelector(selectPendingSplit);
@@ -74,14 +71,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
 
   // Why the bin or − didn't do (all of) what was asked. Cleared after a few
   // seconds, like the menu's Add errors.
-  const [rowError, setRowError] = useState<string | null>(null);
-  const rowErrorTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const showRowError = (message: string | null) => {
-    clearTimeout(rowErrorTimeoutRef.current);
-    setRowError(message);
-    if (message) rowErrorTimeoutRef.current = setTimeout(() => setRowError(null), 5000);
-  };
-  useEffect(() => () => clearTimeout(rowErrorTimeoutRef.current), []);
+  const [rowError, showRowError] = useFlash<string>(5000);
 
   const want = (next: number) => {
     if (!menuId) return;
@@ -116,14 +106,13 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
       if (change === "bin") {
         // Nothing back (204) when that emptied the cart and it went.
         const cart = await dispatch(deleteFromCart({ shopId, tableId, item: cartItem })).unwrap();
-        const kept = cart ? cart.items.find((i) => menuIdOf(i) === menuId) : undefined;
-        const held = kept ? kept.qty - (kept.qtyPayed ?? 0) : 0;
+        const held = unpaidQty(cart ? cart.items.find((i) => menuIdOf(i) === menuId) : undefined);
         if (held > 0) showRowError(`${held} kept: someone at the table is paying for them.`);
       } else {
         await dispatch(removeFromCart({ shopId, tableId, item: { ...cartItem, qty: 1 } })).unwrap();
       }
     } catch (err) {
-      const reason = (err as { message?: string } | undefined)?.message;
+      const reason = (err as CartRejection | undefined)?.message;
       showRowError(
         reason === "Those units are already paid for or selected for payment" ||
           reason === "Someone at the table is paying for those"

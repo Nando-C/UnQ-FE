@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAppSelector } from "../../../redux/app/hooks";
 import { selectSelectedShop } from "../../../redux/slices/shopSlice";
 import "./ShopTablesOffCanvas.css";
+import { tablePath } from "../../../lib/paths";
 
 interface AccountOffCanvasProps {
   show: boolean;
@@ -28,7 +29,7 @@ const ShopTablesOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
             {shop?.tables.map((table) => (
               <ListGroup.Item key={table._id} className="px-0">
                 <Link
-                  to={`/shops/${shop._id}/tables/${table._id}`}
+                  to={tablePath(shop._id, table._id)}
                   onClick={handleClose}
                 >
                   <Card>

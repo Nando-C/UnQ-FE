@@ -1,6 +1,5 @@
 import { useId } from "react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
-import axios from "axios";
 import { Modal, Button, Form, FloatingLabel, Image, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import backend from "../../../backend/backend";
@@ -9,17 +8,7 @@ import { fetchShopList, fetchSingleShop } from "../../../redux/slices/shopSlice"
 import { IShop } from "../../../typings/shop";
 import placeholder from "../../../assets/placeholder.svg";
 import "./ShopModal.css";
-
-const getErrorMessage = (err: unknown): string => {
-  if (axios.isAxiosError(err)) {
-    const data = err.response?.data as
-      | { message?: string; details?: { message: string }[] }
-      | undefined;
-    if (data?.details?.length) return data.details.map((d) => d.message).join(", ");
-    if (data?.message) return data.message;
-  }
-  return "Something went wrong, try again";
-};
+import { apiErrorMessage } from "../../../lib/errors";
 
 interface ShopModalProps {
   show: boolean;
@@ -48,7 +37,6 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   });
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [phoneInput, setPhoneInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   // The shop Create made, once it exists: if its cover then fails to upload,
   // pressing Create again saves the fields and the cover to it instead of
@@ -91,7 +79,6 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       tables: shop ? shop.tables : [],
       menu: shop ? shop.menu : [],
     });
-    setPhoneInput(shop?.phone ?? "");
   }, [shop, show]);
 
   const createShop = async () => {
@@ -106,7 +93,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       bio: editShop.bio,
       open_times: editShop.open_times,
       // As typed; the BE checks it. Empty clears it.
-      phone: phoneInput.trim(),
+      phone: (editShop.phone ?? "").trim(),
       web_URL: editShop.web_URL,
     };
     setCreating(true);
@@ -131,9 +118,9 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       if (uploading) {
         // The shop exists, so the list shows it; only the cover is missing.
         dispatch(fetchShopList());
-        setError(`The shop was created, but its cover wasn't saved: ${getErrorMessage(err)}`);
+        setError(`The shop was created, but its cover wasn't saved: ${apiErrorMessage(err)}`);
       } else {
-        setError(getErrorMessage(err));
+        setError(apiErrorMessage(err));
       }
     } finally {
       setCreating(false);
@@ -152,7 +139,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       bio: editShop.bio,
       open_times: editShop.open_times,
       // As typed; the BE checks it. Empty clears it.
-      phone: phoneInput.trim(),
+      phone: (editShop.phone ?? "").trim(),
       web_URL: editShop.web_URL,
     };
     let uploading = false;
@@ -176,9 +163,9 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
         // The changes are saved, so the page shows them too.
         dispatch(fetchShopList());
         dispatch(fetchSingleShop(editShop._id));
-        setError(`The changes were saved, but the cover wasn't: ${getErrorMessage(err)}`);
+        setError(`The changes were saved, but the cover wasn't: ${apiErrorMessage(err)}`);
       } else {
-        setError(getErrorMessage(err));
+        setError(apiErrorMessage(err));
       }
     }
   };
@@ -191,7 +178,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       navigate("/");
       handleClose();
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(apiErrorMessage(err));
     }
   };
 
@@ -293,8 +280,10 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 <Form.Control
                   type="tel"
                   placeholder="Phone Number"
-                  value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value)}
+                  value={editShop.phone ?? ""}
+                  onChange={(e) =>
+                    setEditShop({ ...editShop, phone: e.target.value })
+                  }
                 />
               </FloatingLabel>
             </Form.Group>

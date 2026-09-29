@@ -20,8 +20,11 @@ const ShopName = ({ name }: ShopNameProps) => {
     if (!el) return;
     // A different shop starts from the beginning of its own name.
     el.scrollLeft = 0;
-    const update = () =>
-      setEdges(hiddenEdges(el.scrollLeft, el.scrollWidth, el.clientWidth));
+    // Only a change at either end renders again, not every scroll event.
+    const update = () => {
+      const next = hiddenEdges(el.scrollLeft, el.scrollWidth, el.clientWidth);
+      setEdges((prev) => (prev.start === next.start && prev.end === next.end ? prev : next));
+    };
     update();
     el.addEventListener("scroll", update, { passive: true });
     const observer =
