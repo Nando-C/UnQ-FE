@@ -19,8 +19,9 @@
 // 44px, or one under 32px), inline links under 24px,
 // text under 12px, stretched images, sheets or dialogs whose content has to
 // be scrolled, runtime errors on the page.
-// Also errors: an id used twice (it breaks label and ARIA links), and a
-// control reached with Tab that ends up under a fixed header or bottom bar.
+// Also errors: an id used twice (it breaks label and ARIA links), a control
+// reached with Tab that ends up under a fixed header or bottom bar, and a page
+// without exactly one main region and one h1.
 
 import { chromium } from "playwright-core"
 import { createServer } from "vite"
@@ -183,8 +184,10 @@ function audit() {
   const inlineLink = (el) => el.matches("a") && getComputedStyle(el).display === "inline" && !!el.parentElement && hasOwnText(el.parentElement)
   const targets = []
   const sel = "a[href], button, input:not([type=hidden]), select, textarea, [role=switch], [role=button], [role=checkbox]"
+  // Visually hidden controls (a skip link until it's focused) aren't tapped.
+  const hidden = ".visually-hidden, .visually-hidden-focusable:not(:focus):not(:focus-within)"
   for (const el of scope.querySelectorAll(sel)) {
-    if (!visible(el) || el.closest("[aria-hidden=true]")) continue
+    if (!visible(el) || el.closest("[aria-hidden=true]") || el.matches(hidden)) continue
     const { w, h } = hitSize(el)
     // Comfortable: at least 44 on one side and 32 on the other (a full-width
     // 38px button is easy to hit; a 31px square is not).
@@ -232,8 +235,15 @@ function audit() {
   for (const el of document.querySelectorAll("[id]")) seen[el.id] = (seen[el.id] || 0) + 1
   const dupIds = Object.entries(seen).filter(([, n]) => n > 1).map(([id, n]) => `id "${id}" is used ${n} times`)
 
+  // Page structure: one main region and one h1 (visually hidden ones count).
+  const structure = []
+  const mains = document.querySelectorAll("main, [role=main]").length
+  const h1s = document.querySelectorAll("h1").length
+  if (mains !== 1) structure.push(`${mains} main regions (want 1)`)
+  if (h1s !== 1) structure.push(`${h1s} h1 headings (want 1)`)
+
   return {
-    vw, vh, docW: document.documentElement.scrollWidth, layer: !!layer, clippedBody, dupIds,
+    vw, vh, docW: document.documentElement.scrollWidth, layer: !!layer, clippedBody, dupIds, structure,
     spills: spills.slice(0, 6).map((x) => x.text),
     overflow: over.slice(0, 6).map(({ el, r }) => `${desc(el)} spans ${Math.round(r.left)}..${Math.round(r.right)}px of ${vw}`),
     targets, tiny, distorted,
@@ -285,6 +295,10 @@ function focusUnderBar() {
   if (!el || el === document.body) return null
   const r = el.getBoundingClientRect()
   if (!r.width || !r.height) return null
+  // A fixed control (the skip link, shown over the header when focused) never
+  // scrolls: whether a bar covers it depends on which is drawn on top, not on
+  // position, so this check leaves it out.
+  if (getComputedStyle(el).position === "fixed") return null
   let top = 0, bottom = innerHeight
   for (const bar of document.querySelectorAll("body *")) {
     if (getComputedStyle(bar).position !== "fixed" || bar.contains(el) || bar.closest(".offcanvas, .modal")) continue
@@ -423,6 +437,7 @@ const run = async ([id, role, url, action], vp) => {
       r.errors.push({ kind: "overflow", text: a.overflow.length ? a.overflow.join("; ") : `page is ${a.docW}px wide on a ${a.vw}px screen` })
     for (const t of a.spills) r.errors.push({ kind: "spill", text: t })
     for (const t of a.dupIds) r.errors.push({ kind: "duplicate id", text: t })
+    for (const t of a.structure) r.errors.push({ kind: "structure", text: t })
     for (const t of a.targets)
       (t.level === "error" ? r.errors : r.warnings).push({
         kind: "target",
@@ -513,7 +528,7 @@ const lines = [
   "",
   `${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC · ${screens.length} screens × ${viewports.length} viewports`,
   "",
-  "✗ errors (overflow, spill out of a card/sheet/dialog, control under 24px, content or a focused control under a fixed bar, duplicate id) · ⚠ warnings (control under 44×32: both sides under 44px or one under 32px, inline link under 24px, text under 12px, stretched image, sheet or dialog content scrolled out of view, page error). Counts are distinct findings.",
+  "✗ errors (overflow, spill out of a card/sheet/dialog, control under 24px, content or a focused control under a fixed bar, duplicate id, not exactly one main and one h1) · ⚠ warnings (control under 44×32: both sides under 44px or one under 32px, inline link under 24px, text under 12px, stretched image, sheet or dialog content scrolled out of view, page error). Counts are distinct findings.",
   "",
   `| Screen | ${viewports.map((v) => v.name).join(" | ")} |`,
   `|---|${viewports.map(() => "---").join("|")}|`,

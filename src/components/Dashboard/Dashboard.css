@@ -4,18 +4,3 @@
   padding-top: calc(var(--unq-header-h, 55px) + 1.5rem);
   padding-bottom: 3rem;
 }
-
-.MyShops .page-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.MyShops .page-head h1 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-}

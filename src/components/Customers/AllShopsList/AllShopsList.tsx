@@ -28,6 +28,7 @@ const AllShopsList = () => {
 
   return (
     <div className="AllShopsList bg-light pt-5 pb-5">
+      <h1 className="visually-hidden">Shops</h1>
       <Row>
         <Col>
           <Form.Group className="search-bar mb-3">

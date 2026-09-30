@@ -102,7 +102,9 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
           and long names wrap inside it instead of pushing the photo. */}
       <div className="menu-media">
         <div className="menu-text">
-          <Card.Subtitle>{menuItem?.name}</Card.Subtitle>
+          <Card.Subtitle as="h3" className="h6">
+            {menuItem?.name}
+          </Card.Subtitle>
           {menuItem?.short_description && (
             <small className="menu-desc d-block">
               {menuItem.short_description}

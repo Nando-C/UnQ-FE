@@ -151,6 +151,34 @@ a:focus-visible {
   font-weight: 600;
 }
 
+/* A page's or a section's heading with its actions on the right, wrapping
+ * under it when there's no room (My Shops, and each part of a shop's page). */
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-head h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.page-head h2 {
+  margin: 0;
+  font-weight: 600;
+}
+
+.page-head .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 /* Shop cards (customer home, manager's My Shops): one column on phones, two
  * from 768px, three from 1200px. The whole card is the link. */
 .shop-grid {

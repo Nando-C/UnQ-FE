@@ -7,12 +7,16 @@ import { useState } from "react";
 import AccountOffCanvas from "../AccountOffCanvas/AccountOffCanvas";
 import { useNavigate } from "react-router-dom";
 import Login from "../../Login/Login";
+import { usePageTitle } from "../../../lib/usePageTitle";
 
 const Account = () => {
   const user = useAppSelector(selectUserData);
   const status = useAppSelector(selectUserStatus);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+
+  // A guest sees the sign-in form here, which names the page itself.
+  usePageTitle(status === "guest" ? "Log in" : "Account");
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
@@ -27,6 +31,7 @@ const Account = () => {
     <>
       {status === "authenticated" ? (
         <Container className="Account phone-column px-2 pb-2 text-center">
+          <h1 className="visually-hidden">Account</h1>
           <Card className="p-2">
             {/* One column at every width (the page is a phone-width column
                 on wide screens too), so the corner edit button never sits
@@ -34,7 +39,7 @@ const Account = () => {
             <div>
               <Image className="avatar my-4" src={user.avatar} alt="" roundedCircle />
             </div>
-            <Card.Title>
+            <Card.Title as="h2" className="h5">
               {user.name} {user.surname}
             </Card.Title>
             <Card.Body>

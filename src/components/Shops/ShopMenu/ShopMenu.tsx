@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Card,
   Button,
   ListGroup,
   Row,
@@ -41,9 +40,15 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
   const handleShow = () => setShow(true);
 
   return (
-    <div id="shopMenu" className="ShopMenu pt-4">
-      <hr />
-      <Card.Title className="m-5">MENU</Card.Title>
+    <section id="shopMenu" className="ShopMenu shop-section" aria-labelledby="shop-menu-heading">
+      <div className="page-head">
+        <h2 id="shop-menu-heading" className="h5">
+          Menu
+        </h2>
+        <div className="actions">
+          <Button onClick={handleShow}>Add menu item</Button>
+        </div>
+      </div>
       <Row>
         <Col>
           <Form.Group className="mb-3">
@@ -57,9 +62,6 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
           </Form.Group>
         </Col>
       </Row>
-      <div className="my-3 text-align-end">
-        <Button onClick={handleShow}>Add Menu Item</Button>
-      </div>
       {/* The menu comes from the manager's own shops (ShopDetails loads them
           when needed): placeholders until they arrive. */}
       {shop ? (
@@ -100,7 +102,7 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
         handleClose={handleClose}
         itemId={"new"}
       />
-    </div>
+    </section>
   );
 };
 

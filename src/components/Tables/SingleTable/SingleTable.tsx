@@ -67,7 +67,7 @@ const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
     <>
       <div className="SingleTable text-center h-100">
         <Card className="h-100">
-          <Card.Title className="mt-3">{table?.name}</Card.Title>
+          <Card.Title as="h3" className="h5 mt-3">{table?.name}</Card.Title>
           {status && <TableStatus status={status} />}
           <div ref={qrRef} className="mt-2" />
           <Button

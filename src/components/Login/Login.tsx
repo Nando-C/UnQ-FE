@@ -20,6 +20,7 @@ import { fetchUserData } from "../../redux/slices/userSlice";
 import wordmark from "../../assets/unq-wordmark-onematerial.svg";
 import { peekReturnTo, rememberReturnTo, takeReturnTo } from "../../lib/returnTo";
 import { tablePath } from "../../lib/paths";
+import { usePageTitle } from "../../lib/usePageTitle";
 
 const getErrorMessage = (err: unknown): string => {
   if (axios.isAxiosError(err)) {
@@ -40,6 +41,7 @@ const Login = () => {
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  usePageTitle("Log in");
 
   // Came here from a table: whichever way they sign in (this form, sign-up,
   // Google), they go back to it afterwards. A page of that same table saved
@@ -72,6 +74,7 @@ const Login = () => {
 
   return (
     <Container className="Register mb-5 text-center">
+      <h1 className="visually-hidden">Log in</h1>
       <Row className="align-items-center">
         <Col xs={12} sm={6}>
           <Image

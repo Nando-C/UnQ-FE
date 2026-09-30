@@ -22,6 +22,7 @@ import {
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
 import { Loading, LoadFailed } from "../../Common/ScreenStates";
+import { usePageTitle } from "../../../lib/usePageTitle";
 
 // The manager's page for one shop: its details, menu and tables, one after
 // the other (ShopSectionNav in the header jumps between them).
@@ -38,6 +39,7 @@ const ShopDetails = () => {
   const selected = useAppSelector(selectSelectedShop);
   const shop = selected?._id === shopId ? selected : null;
   const failed = useAppSelector(selectSelectedFailed) === shopId;
+  usePageTitle(shop ? `Manage ${shop.name}` : "");
 
   // The menu, tables and edit form read the manager's own shops (loaded by the
   // Dashboard), so a page opened directly (a reload, a bookmark) loads them.
@@ -53,10 +55,30 @@ const ShopDetails = () => {
   const handleShow = () => setShow(true);
 
   return (
-    <Container id="shopDetails" className="ShopDetails text-center">
-      <Card.Title className="m-5">SHOP DETAILS</Card.Title>
+    <Container id="shopDetails" className="ShopDetails">
+      {/* The shop's name heads the page; its details, menu and tables are
+          its sections, each with its own actions on the right. */}
+      <div className="page-head">
+        <h1>
+          {shop ? (
+            shop.name
+          ) : (
+            <span className="placeholder-glow" aria-hidden="true">
+              <span className="placeholder col-6" />
+            </span>
+          )}
+        </h1>
+      </div>
+      <div className="page-head">
+        <h2 className="h5">Details</h2>
+        {shop && (
+          <div className="actions">
+            <Button onClick={handleShow}>Edit details</Button>
+          </div>
+        )}
+      </div>
       {shop ? (
-        <Card className="my-5">
+        <Card>
           <Row className="align-items-center">
             <Col xs={12} md={6}>
               <Container className="p-3">
@@ -65,7 +87,6 @@ const ShopDetails = () => {
             </Col>
             <Col xs={12} md={6}>
               <Card.Body className="ms-2">
-                <Card.Title>{shop.name}</Card.Title>
                 <ListGroup className="align-items-start" variant="flush">
                   <ListGroup.Item>
                     <Card.Text>{shop.bio}</Card.Text>
@@ -89,9 +110,6 @@ const ShopDetails = () => {
                   </ListGroup.Item>
                 </ListGroup>
               </Card.Body>
-              <Button className="mb-3" onClick={handleShow}>
-                Edit Details
-              </Button>
             </Col>
           </Row>
         </Card>
@@ -102,13 +120,12 @@ const ShopDetails = () => {
         />
       ) : (
         <Loading label="Loading the shop">
-          <Card className="my-5 p-3">
-            <Row className="align-items-center text-start">
+          <Card className="p-3">
+            <Row className="align-items-center">
               <Col xs={12} md={6}>
                 <span className="placeholder w-100 d-block" style={{ aspectRatio: "16 / 9" }} />
               </Col>
               <Col xs={12} md={6} className="pt-3 pt-md-0">
-                <span className="placeholder placeholder-lg col-8 d-block mb-3" />
                 <span className="placeholder col-11 d-block mb-2" />
                 <span className="placeholder col-6 d-block mb-2" />
                 <span className="placeholder col-7 d-block" />

@@ -1,20 +1,3 @@
-/* Two equal rails either side of Add Table: the empty one on the left mirrors the one
- * holding the print action, so Add Table stays centred while the print button sits
- * flush with the right edge.
- *
- * flex: 1 1 0 rather than Bootstrap's .flex-fill (flex: 1 1 auto) — with an auto basis
- * the rails size to their CONTENT, so the right one grows around the button and shoves
- * Add Table 68px off centre. A zero basis makes the two rails genuinely equal.
- *
- * Note the rails cannot be relied on to prevent a collision: a rail's automatic minimum
- * size comes from its min-content width, which assumes the button's label may WRAP, but
- * the button itself does not shrink — so a full-width label spills out of its rail and
- * lands on top of Add Table on a 320px screen. That is solved in the markup by dropping
- * to an icon-only button below the sm breakpoint, not here. */
-.TableList-actions > .tl-rail {
-  flex: 1 1 0;
-}
-
 @media print {
   @page {
     margin: 12mm;

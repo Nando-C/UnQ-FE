@@ -4,3 +4,22 @@
   min-height: 100vh;
   min-height: 100dvh;
 }
+
+/* The skip link, once focused, sits over the top-left corner, above the
+ * manager's fixed header. */
+.skip-link:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1100;
+  padding: 0.5rem 1rem;
+  background-color: var(--bs-body-bg);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 0 0 var(--bs-focus-ring-width) var(--bs-focus-ring-color);
+}
+
+/* The skip link's target: focused so the next Tab starts from the content,
+ * but it isn't a control, so no ring. */
+#main:focus {
+  outline: 0;
+}

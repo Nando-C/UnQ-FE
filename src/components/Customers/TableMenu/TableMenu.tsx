@@ -24,6 +24,7 @@ import { Loading, LoadFailed, NoMatch } from "../../Common/ScreenStates";
 import ShopTablesOffCanvas from "../ShopTablesOffCanvas/ShopTablesOffCanvas";
 import "./TableMenu.css";
 import { tablePath } from "../../../lib/paths";
+import { usePageTitle } from "../../../lib/usePageTitle";
 
 // A shop's menu. With a table in the URL (a QR code's link) the diner can
 // order; without one they browse and are offered the tables to pick from.
@@ -72,6 +73,7 @@ const TableMenu = () => {
   const selected = useAppSelector(selectSelectedShop);
   const shop = selected?._id === shopId ? selected : null;
   const failed = useAppSelector(selectSelectedFailed) === shopId;
+  usePageTitle(shop?.name ?? "");
 
   const q = query.toLowerCase();
   const matches =
@@ -94,7 +96,7 @@ const TableMenu = () => {
       )}
       <Container className="phone-column">
         <div className="text-center">
-          <Card.Title className={!tableId ? "pt-4 pt-md-5" : "py-4 pt-md-5"}>
+          <Card.Title as="h1" className={!tableId ? "pt-4 pt-md-5" : "py-4 pt-md-5"}>
             {shop ? (
               shop.name
             ) : (
@@ -122,7 +124,9 @@ const TableMenu = () => {
             </Form.Group>
           </Col>
         </Row>
-        <Card.Subtitle className="mb-1 mt-4 fw-bold"> MENU </Card.Subtitle>
+        <Card.Subtitle as="h2" className="h6 mb-1 mt-4 fw-bold text-uppercase">
+          Menu
+        </Card.Subtitle>
         <div className="mb-5">
           {shop ? (
             <>

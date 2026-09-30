@@ -149,7 +149,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
             no image (a sold-out stand-in), so fall back to the placeholder. */}
         <Image className="cart-thumb" src={cartItem.menuId?.image || placeholder} alt="" rounded />
         <div className="cart-body">
-          <Card.Subtitle>
+          <Card.Subtitle as="h2" className="h6">
             {cartItem.menuId?.name}
             {soldOut && (
               <Badge bg="light" text="dark" className="ms-2 align-middle border">

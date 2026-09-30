@@ -2,7 +2,13 @@
  * section bar) and changes height with the viewport: ShopNavbar measures it as
  * --unq-header-h. */
 .ShopDetails {
-  padding-top: var(--unq-header-h, 3rem);
+  padding-top: calc(var(--unq-header-h, 3rem) + 1.5rem);
+  padding-bottom: 3rem;
+}
+
+/* The menu and the tables start well clear of the section above. */
+.ShopDetails .shop-section {
+  margin-top: 3rem;
 }
 
 /* Readable on wide screens: menu rows don't stretch their price and switch far

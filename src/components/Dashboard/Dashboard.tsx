@@ -8,6 +8,7 @@ import ShopList from "../Shops/ShopList/ShopList";
 import { fetchShopList } from "../../redux/slices/shopSlice";
 import ShopModal from "../Shops/ShopModal/ShopModal";
 import AllShopsList from "../Customers/AllShopsList/AllShopsList";
+import { usePageTitle } from "../../lib/usePageTitle";
 import "./Dashboard.css";
 
 const Dashboard = () => {
@@ -19,6 +20,7 @@ const Dashboard = () => {
 
   const userDataStore = useAppSelector(selectUserData);
   const isManager = userDataStore.role === "shopMg" ? true : false;
+  usePageTitle(isManager ? "My Shops" : "Shops");
 
   // Google sign-in comes back here, to the site root: a diner who started it
   // at a table goes back to that table.

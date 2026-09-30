@@ -22,6 +22,7 @@ import { Loading, LoadFailed } from "../../Common/ScreenStates";
 import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import "./Cart.css";
 import { tablePath } from "../../../lib/paths";
+import { usePageTitle } from "../../../lib/usePageTitle";
 
 const Cart = () => {
   const dispatch = useAppDispatch();
@@ -37,6 +38,7 @@ const Cart = () => {
   const shopFailed = useAppSelector(selectSelectedFailed) === shopId;
   const tableName =
     shop?.tables.find((table) => table._id === tableId)?.name ?? "";
+  usePageTitle(tableName ? `Cart · Table ${tableName}` : "Cart");
 
   useEffect(() => {
     if (tableId) {
@@ -101,7 +103,7 @@ const Cart = () => {
           </Col>
           {tableId && (
             <Col className="text-center" xs={8}>
-              <Card.Subtitle className="cart-table-name">
+              <h1 className="cart-table-name h6 mb-0">
                 {tableName ? (
                   <span>Table: {tableName}</span>
                 ) : !shop && !shopFailed ? (
@@ -109,7 +111,7 @@ const Cart = () => {
                     <span className="placeholder col-6" />
                   </span>
                 ) : null}
-              </Card.Subtitle>
+              </h1>
             </Col>
           )}
         </Row>
@@ -135,7 +137,9 @@ const Cart = () => {
             <Card className="text-center">
               <Card.Body className="py-4">
                 <Image src={wordmark} alt="" fluid className="mb-4" style={{ maxWidth: "10rem" }} />
-                <Card.Title>No open orders</Card.Title>
+                <Card.Title as="h2" className="h5">
+                  No open orders
+                </Card.Title>
                 <Card.Text className="text-body-secondary">
                   Anything added from the menu shows up here.
                 </Card.Text>

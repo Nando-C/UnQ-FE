@@ -18,6 +18,7 @@ import wordmark from "../../assets/unq-wordmark-onematerial.svg";
 import "./Register.css";
 import { takeReturnTo } from "../../lib/returnTo";
 import { apiErrorMessage } from "../../lib/errors";
+import { usePageTitle } from "../../lib/usePageTitle";
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -39,6 +40,7 @@ const Register = () => {
   const dispatch = useAppDispatch();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  usePageTitle("Sign up");
 
   const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
@@ -77,6 +79,7 @@ const Register = () => {
 
   return (
     <Container className="Register mb-5 text-center">
+      <h1 className="visually-hidden">Sign up</h1>
       <Row className="align-items-center">
         <Col xs={12} sm={6}>
           <Image

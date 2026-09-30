@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Button, Card, Row, Col } from "react-bootstrap";
+import { Button, Row, Col } from "react-bootstrap";
 import { FaPrint } from "react-icons/fa";
 import { useAppSelector } from "../../../redux/app/hooks";
 import backend from "../../../backend/backend";
@@ -42,37 +42,32 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   const handleShow = () => setShow(true);
 
   return (
-    <div id="tableList" className="py-4">
-      <hr className="d-print-none" />
-      <Card.Title className="m-5 d-print-none">TABLES</Card.Title>
+    <section id="tableList" className="shop-section" aria-labelledby="table-list-heading">
+      <div className="page-head d-print-none">
+        <h2 id="table-list-heading" className="h5">
+          Tables
+        </h2>
+        <div className="actions">
+          <Button
+            variant="outline-primary"
+            onClick={() => window.print()}
+            disabled={tableCount === 0}
+            title="Print QR codes"
+            aria-label="Print QR codes"
+          >
+            {/* Icon only below sm, so both actions fit beside the heading on a
+                320px screen. The aria-label above names it. */}
+            <FaPrint className="me-sm-2" />
+            <span className="d-none d-sm-inline">Print QR codes</span>
+          </Button>
+          <Button onClick={handleShow}>Add table</Button>
+        </div>
+      </div>
 
       {/* Paper only. A printed sheet of codes is useless if you cannot tell which shop
           it belongs to, but that heading would be redundant on screen. */}
       <h2 className="d-none d-print-block mb-4">{shop?.name}</h2>
 
-      {/* Add Table stays centred, like the rest of the page, and the print action sits
-          at the right edge: two equal rails either side (TableList.css). */}
-      <div className="TableList-actions pb-5 d-print-none d-flex align-items-center gap-2">
-        <div className="tl-rail" />
-        <Button className="flex-shrink-0" onClick={handleShow}>
-          Add Table
-        </Button>
-        <div className="tl-rail d-flex justify-content-end">
-          <Button
-            variant="outline-primary"
-            className="flex-shrink-0"
-            onClick={() => window.print()}
-            disabled={tableCount === 0}
-            title="Print QR Codes"
-            aria-label="Print QR Codes"
-          >
-            {/* Icon only below sm: with its label it doesn't fit beside Add Table
-                on a 320px screen. The aria-label above names it. */}
-            <FaPrint className="me-sm-2" />
-            <span className="d-none d-sm-inline">Print QR Codes</span>
-          </Button>
-        </div>
-      </div>
       <Row>
         {shop?.tables.map((table) => (
           <Col key={table._id} className="mb-4" sm={12} md={6} lg={4} xl={3}>
@@ -91,7 +86,7 @@ const TableList = ({ shopId }: ShopMenuProps) => {
         handleClose={handleClose}
         tableId={"new"}
       />
-    </div>
+    </section>
   );
 };
 

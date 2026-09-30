@@ -38,13 +38,14 @@ describe("the manager's shop page", () => {
     expect(await screen.findByText("Window")).toBeInTheDocument()
   })
 
-  it("shows the saved details once Edit Details is saved", async () => {
-    const { user, container } = openShopPage()
+  it("shows the saved details once Edit details is saved", async () => {
+    const { user } = openShopPage()
     await screen.findByText("Latte")
-    const detailsTitle = () => container.querySelector("#shopDetails .card-body .card-title")
+    // The shop's name heads the page.
+    const detailsTitle = () => screen.getByRole("heading", { level: 1 })
     await waitFor(() => expect(detailsTitle()).toHaveTextContent("Cafe"))
 
-    await user.click(screen.getByRole("button", { name: "Edit Details" }))
+    await user.click(screen.getByRole("button", { name: "Edit details" }))
     const name = await screen.findByPlaceholderText("Name")
     await waitFor(() => expect(name).toHaveValue("Cafe"))
     await user.clear(name)
