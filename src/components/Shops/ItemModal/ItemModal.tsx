@@ -54,9 +54,13 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   // Focus goes back to it when the question closes without deleting.
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const [deleting, setDeleting] = useState(false);
-  useEffect(() => {
+  // A question left open when the dialog closed (Esc, the backdrop) is dropped
+  // in the render that reopens it, so it never shows, or takes focus, again.
+  const [wasShown, setWasShown] = useState(show);
+  if (show !== wasShown) {
+    setWasShown(show);
     if (show) setConfirmingDelete(false);
-  }, [show]);
+  }
   // Opening the dialog also drops the photo picked and the error shown last
   // time. Only on opening: an error set just after a save reloaded the menu
   // must stay.

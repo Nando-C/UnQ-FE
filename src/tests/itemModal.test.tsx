@@ -280,4 +280,21 @@ describe("ItemModal", () => {
 
     expect(screen.getByText("Delete Latte from the menu? Diners can no longer order it.")).toBeInTheDocument()
   })
+
+  it("drops a question left open when the dialog closed, so reopening starts afresh", async () => {
+    server.use(http.get(`${BASE}/shops/me`, () => HttpResponse.json([])))
+    const latte = { _id: "m1", name: "Latte", image: "", short_description: "", description: "", price: 3, available: true, category: "drinks" }
+    const state = { shops: { all: [], data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } }
+    const { user, rerender } = renderWithProviders(<ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />, { preloadedState: state })
+
+    await user.click(screen.getByRole("button", { name: "Delete item" }))
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument()
+    // Closed with the question up (Esc, or the backdrop), then opened again.
+    rerender(<ItemModal shopId="s1" show={false} handleClose={() => {}} itemId="m1" />)
+    rerender(<ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />)
+
+    expect(await screen.findByRole("button", { name: "Save Changes" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Delete item" })).not.toHaveFocus()
+  })
 })

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { Alert, Badge, Button, Modal, Spinner } from "react-bootstrap";
 import { FiAlertTriangle } from "react-icons/fi";
@@ -91,7 +91,12 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
     }
   }, [show]);
 
+  // The control that asked, taken as it asks: once the question shows, every
+  // action is disabled and the browser moves focus off it. Focus goes back to
+  // it when the question closes.
+  const askedFrom = useRef<HTMLElement | null>(null);
   const ask: Ask = (action) => {
+    askedFrom.current = document.activeElement as HTMLElement | null;
     setResult(null);
     setPending(action);
   };
@@ -250,6 +255,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
           busy={busy}
           onConfirm={confirm}
           onCancel={() => setPending(null)}
+          returnFocus={() => askedFrom.current}
         />
       )}
     </Modal>
