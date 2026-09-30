@@ -1,10 +1,18 @@
 /* Moving focus (Tab) or jumping to an anchor scrolls the target clear of the
- * fixed bottom bar, and of the cart's checkout bar pinned above it on phones,
+ * fixed bottom bar, and on phones of the cart's checkout bar pinned above it,
  * instead of underneath them. Both heights are measured (--unq-footer-h by
  * NavigationBar, --unq-checkout-h by CartListItems) and removed when they
  * unmount, so the manager side, with neither, is unaffected. */
 html {
-  scroll-padding-bottom: calc(var(--unq-footer-h, 0px) + var(--unq-checkout-h, 0px));
+  scroll-padding-bottom: var(--unq-footer-h, 0px);
+}
+
+/* The checkout bar is only pinned below 768px (CartListItems.css); wider, it
+ * sits in the page and covers nothing. */
+@media (max-width: 767.98px) {
+  html {
+    scroll-padding-bottom: calc(var(--unq-footer-h, 0px) + var(--unq-checkout-h, 0px));
+  }
 }
 
 /* Resting icons stay Bootstrap's navbar grey; teal marks meaning only. The page
