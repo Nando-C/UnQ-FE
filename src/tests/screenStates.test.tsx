@@ -238,6 +238,9 @@ describe("a shop's menu", () => {
     const { user } = renderMenu(null)
 
     expect(await screen.findByText("Couldn't load this menu.")).toBeInTheDocument()
+    // The page is still named, not left on a loading bar.
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Menu")
+    expect(document.title).toBe("Menu · UnQ")
     fail = false
     await user.click(screen.getByRole("button", { name: "Try again" }))
 

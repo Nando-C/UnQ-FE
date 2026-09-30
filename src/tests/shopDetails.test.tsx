@@ -56,6 +56,17 @@ describe("the manager's shop page", () => {
   })
 })
 
+describe("a manager's shop that can't be loaded", () => {
+  it("is still named, with a way to try again", async () => {
+    server.use(http.get(`${BASE}/shops/s1`, () => HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })))
+    openShopPage()
+
+    expect(await screen.findByText("Couldn't load this shop.")).toBeInTheDocument()
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Shop")
+    expect(document.title).toBe("Shop · UnQ")
+  })
+})
+
 describe("the Add Table dialog", () => {
   it("opens empty for the next table", async () => {
     const { user, rerender } = renderWithProviders(

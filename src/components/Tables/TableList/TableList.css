@@ -22,6 +22,9 @@
     top: 0;
     left: 0;
     width: 100%;
+    /* Also drops the screen's gap above the section (.shop-section), so the
+     * sheet starts at the paper's own margin. */
+    margin: 0 !important;
     padding: 0 !important;
   }
 

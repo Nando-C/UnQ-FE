@@ -39,7 +39,8 @@ const ShopDetails = () => {
   const selected = useAppSelector(selectSelectedShop);
   const shop = selected?._id === shopId ? selected : null;
   const failed = useAppSelector(selectSelectedFailed) === shopId;
-  usePageTitle(shop ? `Manage ${shop.name}` : "");
+  // A shop that failed to load still names the page (the retry is below).
+  usePageTitle(shop ? `Manage ${shop.name}` : failed ? "Shop" : "");
 
   // The menu, tables and edit form read the manager's own shops (loaded by the
   // Dashboard), so a page opened directly (a reload, a bookmark) loads them.
@@ -62,6 +63,8 @@ const ShopDetails = () => {
         <h1>
           {shop ? (
             shop.name
+          ) : failed ? (
+            "Shop"
           ) : (
             <span className="placeholder-glow" aria-hidden="true">
               <span className="placeholder col-6" />

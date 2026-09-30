@@ -73,7 +73,8 @@ const TableMenu = () => {
   const selected = useAppSelector(selectSelectedShop);
   const shop = selected?._id === shopId ? selected : null;
   const failed = useAppSelector(selectSelectedFailed) === shopId;
-  usePageTitle(shop?.name ?? "");
+  // A menu that failed to load still names the page (the retry is below).
+  usePageTitle(shop ? shop.name : failed ? "Menu" : "");
 
   const q = query.toLowerCase();
   const matches =
@@ -99,6 +100,8 @@ const TableMenu = () => {
           <Card.Title as="h1" className={!tableId ? "pt-4 pt-md-5" : "py-4 pt-md-5"}>
             {shop ? (
               shop.name
+            ) : failed ? (
+              "Menu"
             ) : (
               <span className="placeholder-glow" aria-hidden="true">
                 <span className="placeholder col-6" />
