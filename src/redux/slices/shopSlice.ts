@@ -87,20 +87,29 @@ export const shopsSlice = createSlice({
         builder.addCase(fetchShopList.rejected, (state) => {
             state.dataStatus = "failed"
         })
-        // Only answers about the shop last asked for count: one for the shop
-        // opened before, arriving late, would otherwise replace it (and leave
-        // its page waiting for a shop that never comes). Answers for the same
-        // shop all count, so a good copy isn't lost to a failed refetch.
+        // Which answer becomes `selected`:
+        // - one about another shop (opened before, answering late) never does,
+        //   or it would replace this one and leave its page waiting;
+        // - the latest request's answer always does;
+        // - an older request's answer for this same shop does only while the
+        //   store doesn't hold this shop yet, so it can stand in when the
+        //   latest fails, but never overwrites a newer copy (after an edit,
+        //   or an item selling out).
+        // Only the latest request's failure counts as the shop failing to load.
         builder.addCase(fetchSingleShop.pending, (state, action) => {
             state.selectedWanted = action.meta.arg
+            state.selectedRequestId = action.meta.requestId
             if (state.selectedFailed === action.meta.arg) delete state.selectedFailed
         })
         builder.addCase(fetchSingleShop.fulfilled, (state, action) => {
             if (action.meta.arg !== state.selectedWanted) return
-            state.selected = action.payload
+            const latest = action.meta.requestId === state.selectedRequestId
+            if (latest || state.selected?._id !== action.meta.arg) {
+                state.selected = action.payload
+            }
         })
         builder.addCase(fetchSingleShop.rejected, (state, action) => {
-            if (action.meta.arg !== state.selectedWanted) return
+            if (action.meta.requestId !== state.selectedRequestId) return
             state.selectedFailed = action.meta.arg
         })
         builder.addCase(fetchMenuItem.fulfilled, (state, action) => {

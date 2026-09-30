@@ -179,6 +179,30 @@ describe("opening one shop after another", () => {
     expect(store.getState().shops.selected?._id).toBe("s1")
   })
 
+  it("never lets an older copy of the shop overwrite a newer one", async () => {
+    const slow = gate()
+    let calls = 0
+    server.use(
+      http.get(`${BASE}/shops/s1`, async () => {
+        calls += 1
+        if (calls === 1) {
+          await slow.opened
+          return HttpResponse.json(cafe)
+        }
+        // The shop as saved since (renamed by its manager).
+        return HttpResponse.json({ ...cafe, name: "Cafe Renamed" })
+      })
+    )
+    const store = makeStore()
+
+    const first = store.dispatch(fetchSingleShop("s1"))
+    await store.dispatch(fetchSingleShop("s1"))
+    slow.open()
+    await first
+
+    expect(store.getState().shops.selected?.name).toBe("Cafe Renamed")
+  })
+
   it("ignores an earlier shop's answer that lands after the latest one", async () => {
     const late = gate()
     server.use(
