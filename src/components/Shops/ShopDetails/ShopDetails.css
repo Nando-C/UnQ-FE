@@ -28,14 +28,6 @@
   max-width: 60rem;
 }
 
-.ShopDetails .list-group-item {
-  border: none;
-}
-
-.ShopDetails .menu-item {
-  border: none;
-}
-
 .ShopDetails .card .card-title {
   font-size: 1.2rem;
   font-weight: 600;

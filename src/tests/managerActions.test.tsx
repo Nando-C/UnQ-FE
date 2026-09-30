@@ -220,7 +220,6 @@ describe("table sheet actions", () => {
 
 describe("deleting a table with an open cart", () => {
   it("shows the BE's reason", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true)
     server.use(
       http.delete(`${BASE}/shops/s1/tables/t4`, () =>
         HttpResponse.json({ message: "This table has an open cart — close it first" }, { status: 409 })
@@ -230,9 +229,12 @@ describe("deleting a table with an open cart", () => {
       preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
     })
 
-    await user.click(screen.getByRole("button", { name: /delete/i }))
+    await user.click(screen.getByRole("button", { name: "Delete table" }))
+    expect(screen.getByText(/Its QR code will no longer take orders/)).toHaveFocus()
+    await user.click(screen.getAllByRole("button", { name: "Delete table" }).at(-1)!)
     expect(await screen.findByText("This table has an open cart — close it first")).toBeInTheDocument()
-    vi.restoreAllMocks()
+    // The question goes, so the reason shows with the dialog's usual buttons.
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument()
   })
 })
 

@@ -65,7 +65,7 @@ describe("a diner who has to sign in at a table goes back to it", () => {
     await user.type(screen.getByPlaceholderText("Enter email"), "a@b.c")
     await user.type(screen.getByPlaceholderText("Password"), "password123")
     await user.type(screen.getByPlaceholderText("Re-type Password"), "password123")
-    await user.click(screen.getByRole("button", { name: /sign ?up|register/i }))
+    await user.click(screen.getByRole("button", { name: "Sign up" }))
 
     expect(await screen.findByText("table page")).toBeInTheDocument()
     expect(takeReturnTo()).toBeNull()

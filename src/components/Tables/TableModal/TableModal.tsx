@@ -6,6 +6,7 @@ import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { ITable } from "../../../typings/shop";
 import "./TableModal.css";
 import { apiErrorMessage } from "../../../lib/errors";
+import { ConfirmFooter } from "../../Common/ConfirmFooter";
 
 interface TableModalProps {
   shopId: string;
@@ -50,6 +51,13 @@ const TableModal = ({
 
   // One create at a time: a double tap would otherwise send two.
   const [creating, setCreating] = useState(false);
+  // Deleting asks first, in the footer (ConfirmFooter), saying what goes. A
+  // question left open doesn't greet the next opening of the dialog.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  useEffect(() => {
+    if (show) setConfirmingDelete(false);
+  }, [show]);
   const createTable = async () => {
     if (creating) return;
     setError(null);
@@ -91,7 +99,7 @@ const TableModal = ({
   };
 
   const deleteTable = async () => {
-    if (!window.confirm("Delete this table?")) return;
+    setDeleting(true);
     setError(null);
     try {
       await backend.delete(`/shops/${shopId}/tables/${table._id}`);
@@ -99,6 +107,9 @@ const TableModal = ({
       handleClose();
     } catch (err) {
       setError(apiErrorMessage(err));
+      setConfirmingDelete(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -144,24 +155,35 @@ const TableModal = ({
         {/* Outside the scrolling body, so the actions stay in view however
             long the form is. The submit button reaches the form through its
             form attribute. */}
-        <Modal.Footer
-          className={tableId !== "new" ? "justify-content-between" : undefined}
-        >
-          {tableId !== "new" ? (
-            <>
-              <Button variant="outline-danger" onClick={deleteTable}>
-                Delete Table
+        {confirmingDelete ? (
+          <ConfirmFooter
+            message={`Delete table ${table.name}? Its QR code will no longer take orders.`}
+            confirmLabel="Delete table"
+            danger
+            busy={deleting}
+            onConfirm={deleteTable}
+            onCancel={() => setConfirmingDelete(false)}
+          />
+        ) : (
+          <Modal.Footer
+            className={tableId !== "new" ? "justify-content-between" : undefined}
+          >
+            {tableId !== "new" ? (
+              <>
+                <Button variant="outline-danger" onClick={() => setConfirmingDelete(true)}>
+                  Delete table
+                </Button>
+                <Button variant="primary" type="submit" form={formId}>
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary" onClick={createTable} disabled={creating}>
+                Create Table
               </Button>
-              <Button variant="primary" type="submit" form={formId}>
-                Save Changes
-              </Button>
-            </>
-          ) : (
-            <Button variant="primary" onClick={createTable} disabled={creating}>
-              Create Table
-            </Button>
-          )}
-        </Modal.Footer>
+            )}
+          </Modal.Footer>
+        )}
       </Modal>
     </>
   );

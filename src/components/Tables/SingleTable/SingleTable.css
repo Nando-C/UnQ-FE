@@ -1,6 +1,6 @@
 .SingleTable > .card {
   position: relative;
-  box-shadow: 0 6px 6px -4px #5c5c5c38;
+  box-shadow: var(--unq-card-shadow);
 }
 
 /* A teal pencil in the card's corner (variant="link" gives it the primary

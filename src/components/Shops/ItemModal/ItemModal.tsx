@@ -6,6 +6,7 @@ import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { IMenu } from "../../../typings/menu";
 import placeholder from "../../../assets/placeholder.svg";
 import { apiErrorMessage } from "../../../lib/errors";
+import { ConfirmFooter } from "../../Common/ConfirmFooter";
 
 // Why a typed price can't be sent, or null. Whole pence, as the BE requires:
 // refunds price each line on its own, so a fraction of a penny wouldn't add up.
@@ -47,6 +48,13 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   // making a second item. Forgotten when the dialog is opened again.
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // Deleting asks first, in the footer (ConfirmFooter), saying what goes. A
+  // question left open doesn't greet the next opening of the dialog.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  useEffect(() => {
+    if (show) setConfirmingDelete(false);
+  }, [show]);
   // Opening the dialog also drops the photo picked and the error shown last
   // time. Only on opening: an error set just after a save reloaded the menu
   // must stay.
@@ -178,7 +186,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   };
 
   const deleteItem = async () => {
-    if (!window.confirm("Delete this item?")) return;
+    setDeleting(true);
     setError(null);
     try {
       await backend.delete(`/shops/${shopId}/menu/${item._id}`);
@@ -186,6 +194,9 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       handleClose();
     } catch (err) {
       setError(apiErrorMessage(err));
+      setConfirmingDelete(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -334,24 +345,35 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
         {/* Outside the scrolling body, so the actions stay in view however
             long the form is. The submit button reaches the form through its
             form attribute. */}
-        <Modal.Footer
-          className={itemId !== "new" ? "justify-content-between" : undefined}
-        >
-          {itemId !== "new" ? (
-            <>
-              <Button variant="outline-danger" onClick={deleteItem}>
-                Delete Item
+        {confirmingDelete ? (
+          <ConfirmFooter
+            message={`Delete ${item.name} from the menu? Diners can no longer order it.`}
+            confirmLabel="Delete item"
+            danger
+            busy={deleting}
+            onConfirm={deleteItem}
+            onCancel={() => setConfirmingDelete(false)}
+          />
+        ) : (
+          <Modal.Footer
+            className={itemId !== "new" ? "justify-content-between" : undefined}
+          >
+            {itemId !== "new" ? (
+              <>
+                <Button variant="outline-danger" onClick={() => setConfirmingDelete(true)}>
+                  Delete item
+                </Button>
+                <Button variant="primary" type="submit" form={formId}>
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary" onClick={createItem} disabled={creating}>
+                Create Item
               </Button>
-              <Button variant="primary" type="submit" form={formId}>
-                Save Changes
-              </Button>
-            </>
-          ) : (
-            <Button variant="primary" onClick={createItem} disabled={creating}>
-              Create Item
-            </Button>
-          )}
-        </Modal.Footer>
+            )}
+          </Modal.Footer>
+        )}
       </Modal>
     </>
   );

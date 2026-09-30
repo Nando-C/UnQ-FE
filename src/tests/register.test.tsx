@@ -114,4 +114,44 @@ describe("Register", () => {
       password: "password123",
     })
   })
+
+  it("judges the retyped password only after it's left, and never shows green ticks", async () => {
+    const { user } = renderWithProviders(<Register />)
+    const again = screen.getByPlaceholderText("Re-type Password")
+
+    await user.type(screen.getByPlaceholderText("Password"), "password123")
+    await user.type(again, "pass")
+    // Still typing: no verdict yet. (The message under the field shows only
+    // while it's marked invalid; jsdom has no Bootstrap CSS to hide it.)
+    expect(again).not.toHaveClass("is-invalid")
+
+    await user.tab()
+    expect(again).toHaveClass("is-invalid")
+    expect(screen.getByText("Doesn't match the password above.")).toBeInTheDocument()
+
+    await user.type(again, "word123")
+    expect(again).not.toHaveClass("is-invalid")
+    expect(document.querySelectorAll(".is-valid")).toHaveLength(0)
+  })
+
+  it("shows why it can't sign up above the Sign up button", async () => {
+    const { user } = renderWithProviders(<Register />)
+
+    await user.click(screen.getByRole("button", { name: "Sign up" }))
+
+    const alert = await screen.findByRole("alert")
+    expect(alert).toHaveTextContent("All fields are required")
+    const button = screen.getByRole("button", { name: "Sign up" })
+    expect(alert.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it("offers the way to log in, and Google", () => {
+    renderWithProviders(<Register />)
+
+    expect(screen.getByRole("link", { name: "Log in" })).toHaveAttribute("href", "/login")
+    expect(screen.getByRole("button", { name: "Sign up with Google" })).toHaveAttribute(
+      "href",
+      `${BASE}/auth/googleLogin`
+    )
+  })
 })

@@ -6,7 +6,7 @@
 }
 
 .Item > .card {
-  box-shadow: 0 6px 6px -4px #5c5c5c38;
+  box-shadow: var(--unq-card-shadow);
 }
 
 /* The thumbnail on the left, with two rows stacked beside it: the name

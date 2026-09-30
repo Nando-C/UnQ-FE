@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 import { Alert, Badge, Button, Modal, Spinner } from "react-bootstrap";
 import { FiAlertTriangle } from "react-icons/fi";
+import { ConfirmFooter } from "../../Common/ConfirmFooter";
 import backend from "../../../backend/backend";
 import { useVisiblePolling } from "../../../lib/useVisiblePolling";
 import { formatPrice } from "../../../lib/price";
@@ -139,12 +140,6 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
   const open = carts?.open ?? [];
   const closed = carts?.recentlyClosed ?? [];
 
-  // The confirmation takes focus, so keyboard and screen-reader users land on it.
-  const confirmRef = useRef<HTMLParagraphElement>(null);
-  useEffect(() => {
-    if (pending) confirmRef.current?.focus();
-  }, [pending]);
-
   return (
     <Modal
       className="TableSheet d-print-none"
@@ -243,20 +238,18 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
           </details>
         )}
       </Modal.Body>
+      {/* The confirmation takes focus, so keyboard and screen-reader users
+          land on it. Keyed on the step, so a new one is focused afresh. */}
       {pending && (
-        <Modal.Footer className="flex-column align-items-stretch">
-          <p ref={confirmRef} tabIndex={-1} className="mb-2 sheet-confirm">
-            {pending.message}
-          </p>
-          <div className="d-flex justify-content-end gap-2">
-            <Button variant="outline-secondary" disabled={busy} onClick={() => setPending(null)}>
-              Cancel
-            </Button>
-            <Button variant={pending.danger ? "danger" : "primary"} disabled={busy} onClick={confirm}>
-              {busy ? "Working…" : pending.confirmLabel}
-            </Button>
-          </div>
-        </Modal.Footer>
+        <ConfirmFooter
+          key={pending.confirmLabel}
+          message={pending.message}
+          confirmLabel={pending.confirmLabel}
+          danger={pending.danger}
+          busy={busy}
+          onConfirm={confirm}
+          onCancel={() => setPending(null)}
+        />
       )}
     </Modal>
   );

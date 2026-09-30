@@ -13,9 +13,3 @@
   cursor: pointer;
   padding: 0.5rem 0;
 }
-
-/* The confirmation in the footer takes focus programmatically; it isn't a
- * control, so no focus ring. */
-.TableSheet .sheet-confirm:focus {
-  outline: 0;
-}

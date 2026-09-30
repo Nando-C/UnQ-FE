@@ -12,6 +12,22 @@ code {
     monospace;
 }
 
+/* Card elevation, shared by every card that sits on the page (menu, cart,
+ * shop, table and manager menu cards): at rest, and lifted under a mouse
+ * pointer (each gates its hover on (hover: hover), as phones keep :hover
+ * after a tap). */
+:root {
+  --unq-card-shadow: 0 6px 6px -4px #5c5c5c38;
+  --unq-card-shadow-hover: 0 5px 20px #5c5c5c44;
+}
+
+/* Every list group in the app is a plain stack of cards: no borders between
+ * rows, and no background of its own. */
+.list-group > .list-group-item {
+  border: none;
+  background-color: rgba(255, 255, 255, 0);
+}
+
 /* Bootstrap gives buttons, inputs and nav links a teal focus glow but leaves a
  * plain link (the logo, a shop card, a web address) to the browser, whose ring
  * is Chrome's blue. Same glow here. Buttons and nav links keep their own rules,
@@ -20,6 +36,12 @@ a:focus-visible {
   outline: 0;
   box-shadow: 0 0 0 var(--bs-focus-ring-width) var(--bs-focus-ring-color);
   border-radius: var(--bs-border-radius);
+}
+
+/* A dialog's confirmation question (ConfirmFooter) takes focus when it
+ * appears; it isn't a control, so no focus ring. */
+.confirm-message:focus {
+  outline: 0;
 }
 
 /* Tap area of at least 44×44 for a control that looks smaller (−/+, bin,

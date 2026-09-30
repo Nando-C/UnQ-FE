@@ -10,7 +10,6 @@ import {
 import CustomerShopCard from "../CustomerShopCard/CustomerShopCard";
 import ShopCardPlaceholder from "../CustomerShopCard/ShopCardPlaceholder";
 import { Loading, LoadFailed, NoMatch } from "../../Common/ScreenStates";
-import "./AllShopsList.css";
 
 const AllShopsList = () => {
   const dispatch = useAppDispatch();

@@ -9,6 +9,21 @@ import { IShop } from "../../../typings/shop";
 import placeholder from "../../../assets/placeholder.svg";
 import "./ShopModal.css";
 import { apiErrorMessage } from "../../../lib/errors";
+import { ConfirmFooter } from "../../Common/ConfirmFooter";
+
+const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+// What deleting a shop takes with it: its menu and its tables, whose printed
+// QR codes then lead nowhere.
+const deleteShopMessage = (shop: IShop | undefined) => {
+  if (!shop) return "Delete this shop?";
+  const tables = shop.tables.length;
+  return (
+    `Delete ${shop.name}? This also deletes its ${count(shop.menu.length, "menu item")} ` +
+    `and ${count(tables, "table")}` +
+    (tables ? ", and their QR codes stop working." : ".")
+  );
+};
 
 interface ShopModalProps {
   show: boolean;
@@ -43,12 +58,16 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   // making a second shop. Forgotten when the dialog is opened again.
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // Deleting asks first, in the footer (ConfirmFooter), saying what goes.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   // Opening the dialog also drops the cover picked and the error shown last
   // time. Only on opening: an error set just after a save reloaded the shop
   // must stay.
   useEffect(() => {
     if (!show) return;
     setCreatedId(null);
+    setConfirmingDelete(false);
     setImageFile(null);
     setError(null);
   }, [show]);
@@ -171,7 +190,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   };
 
   const deleteShop = async () => {
-    if (!window.confirm("Delete this shop?")) return;
+    setDeleting(true);
     setError(null);
     try {
       await backend.delete(`/shops/${editShop._id}`);
@@ -179,6 +198,9 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       handleClose();
     } catch (err) {
       setError(apiErrorMessage(err));
+      setConfirmingDelete(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -308,24 +330,35 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
         {/* Outside the scrolling body, so the actions stay in view however
             long the form is. The submit button reaches the form through its
             form attribute. */}
-        <Modal.Footer
-          className={shopId !== "new" ? "justify-content-between" : undefined}
-        >
-          {shopId !== "new" ? (
-            <>
-              <Button variant="outline-danger" onClick={deleteShop}>
-                Delete Shop
+        {confirmingDelete ? (
+          <ConfirmFooter
+            message={deleteShopMessage(shop)}
+            confirmLabel="Delete shop"
+            danger
+            busy={deleting}
+            onConfirm={deleteShop}
+            onCancel={() => setConfirmingDelete(false)}
+          />
+        ) : (
+          <Modal.Footer
+            className={shopId !== "new" ? "justify-content-between" : undefined}
+          >
+            {shopId !== "new" ? (
+              <>
+                <Button variant="outline-danger" onClick={() => setConfirmingDelete(true)}>
+                  Delete shop
+                </Button>
+                <Button variant="primary" type="submit" form={formId}>
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary" onClick={createShop} disabled={creating}>
+                Create Shop
               </Button>
-              <Button variant="primary" type="submit" form={formId}>
-                Save Changes
-              </Button>
-            </>
-          ) : (
-            <Button variant="primary" onClick={createShop} disabled={creating}>
-              Create Shop
-            </Button>
-          )}
-        </Modal.Footer>
+            )}
+          </Modal.Footer>
+        )}
       </Modal>
     </>
   );

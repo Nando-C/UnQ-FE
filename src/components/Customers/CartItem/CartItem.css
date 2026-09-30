@@ -20,14 +20,14 @@
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem;
-  box-shadow: 0 6px 6px -4px #5c5c5c38;
+  box-shadow: var(--unq-card-shadow);
   transition: box-shadow 0.1s ease-out;
 }
 
 /* Lift on mouse hover only: phones apply :hover on tap and keep it. */
 @media (hover: hover) {
   .CartItem:hover {
-    box-shadow: 0 5px 20px #5c5c5c44;
+    box-shadow: var(--unq-card-shadow-hover);
   }
 }
 

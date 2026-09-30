@@ -119,3 +119,32 @@ describe("creating a shop", () => {
     vi.restoreAllMocks()
   })
 })
+
+describe("deleting a shop", () => {
+  it("says what goes with it, and deletes only once confirmed", async () => {
+    let deletes = 0
+    server.use(
+      http.delete(`${BASE}/shops/s1`, () => {
+        deletes++
+        return HttpResponse.json({})
+      })
+    )
+    const shop = shopWith({
+      menu: [{ _id: "m1" }, { _id: "m2" }] as IShop["menu"],
+      tables: [{ _id: "t1", name: "1", Qr_Url: "" }] as IShop["tables"],
+    })
+    const { user } = openEditor(shop)
+
+    await user.click(screen.getByRole("button", { name: "Delete shop" }))
+    expect(
+      screen.getByText("Delete Cafe? This also deletes its 2 menu items and 1 table, and their QR codes stop working.")
+    ).toHaveFocus()
+    await user.click(screen.getByRole("button", { name: "Cancel" }))
+    expect(deletes).toBe(0)
+    expect(screen.getByRole("button", { name: "Save Changes" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Delete shop" }))
+    await user.click(screen.getAllByRole("button", { name: "Delete shop" }).at(-1)!)
+    await waitFor(() => expect(deletes).toBe(1))
+  })
+})

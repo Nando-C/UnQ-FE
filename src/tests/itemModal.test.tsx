@@ -247,15 +247,18 @@ describe("ItemModal", () => {
       <ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />,
       { preloadedState: { shops: { all: [], data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } } }
     )
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false)
 
-    await user.click(screen.getByRole("button", { name: "Delete Item" }))
-    expect(confirm).toHaveBeenCalledWith("Delete this item?")
+    // Asked in the dialog, saying what happens; Cancel sends nothing.
+    await user.click(screen.getByRole("button", { name: "Delete item" }))
+    const question = screen.getByText("Delete Latte from the menu? Diners can no longer order it.")
+    expect(question).toHaveFocus()
+    await user.click(screen.getByRole("button", { name: "Cancel" }))
     expect(deletes).toBe(0)
 
-    confirm.mockReturnValue(true)
-    await user.click(screen.getByRole("button", { name: "Delete Item" }))
+    await user.click(screen.getByRole("button", { name: "Delete item" }))
+    const confirm = screen.getAllByRole("button", { name: "Delete item" }).at(-1)!
+    expect(confirm).toHaveClass("btn-danger")
+    await user.click(confirm)
     await waitFor(() => expect(deletes).toBe(1))
-    vi.restoreAllMocks()
   })
 })
