@@ -10,7 +10,16 @@ export interface IShop {
     web_URL: string
     shopMg: string[]
     tables: ITable[]
+    // Tables the manager deleted (only in GET /shops/me; absent on shops from
+    // before they were kept). Their carts stay reachable for refunds.
+    deletedTables?: IDeletedTable[]
     menu: IMenu[]
+}
+
+export interface IDeletedTable {
+    _id: string
+    name: string
+    deletedAt: string
 }
 
 export interface ITable {

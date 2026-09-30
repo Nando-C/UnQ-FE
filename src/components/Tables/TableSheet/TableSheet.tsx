@@ -25,6 +25,8 @@ interface TableSheetProps {
   handleClose: () => void;
   // After an action changed the table, so the card can refresh its status.
   onChanged?: () => void;
+  // A deleted table: it takes no orders, only its last carts are shown.
+  deleted?: boolean;
 }
 
 // A manager action waiting for confirmation. `message` says in plain words
@@ -63,7 +65,7 @@ const unpaidOf = (item: IManagerCart["items"][number]) => item.qty - (item.qtyPa
 // release selections, remove unpaid items, close the table and merge duplicate
 // carts, refund payments and check payments PayPal hadn't confirmed, each after
 // a confirmation that says what will happen.
-const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onChanged }: TableSheetProps) => {
+const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onChanged, deleted }: TableSheetProps) => {
   const [carts, setCarts] = useState<ITableCarts | null>(null);
   const [error, setError] = useState(false);
   const [pending, setPending] = useState<PendingAction | null>(null);
@@ -192,7 +194,9 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
           </div>
         )}
         {carts && open.length === 0 && (
-          <p className="text-body-secondary">No open cart: this table is free.</p>
+          <p className="text-body-secondary">
+            {deleted ? "This table was deleted: it takes no more orders." : "No open cart: this table is free."}
+          </p>
         )}
         {open.map((cart, i) => (
           <section key={cart._id} className="mb-4">

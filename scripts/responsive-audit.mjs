@@ -358,6 +358,12 @@ const mockApi = async (route, role) => {
   if (p === "/shops/s2") return json(s2)
   if (p === "/shops/s1/tables/status") return json(fixtures.tableStatus)
   if (/^\/shops\/s1\/tables\/[^/]+\/carts$/.test(p)) return json(fixtures.tableCarts)
+  // The manager's own shops carry the tables they deleted; one deleted an hour
+  // ago (dated at run time) is still listed, so its section is checked too.
+  if (p === "/shops/me") {
+    const deletedAt = new Date(Date.now() - 3600_000).toISOString()
+    return json([{ ...s1, deletedTables: [{ _id: "t-gone", name: "Garden terrace by the fountain", deletedAt }] }, s2])
+  }
   if (p.startsWith("/shops")) return json(fixtures.shops)
   if (p === "/carts/tables/t1") return json(fixtures.cart)
   return json({ message: "Not mocked" }, 404)

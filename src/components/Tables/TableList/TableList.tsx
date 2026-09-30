@@ -5,13 +5,19 @@ import { useAppSelector } from "../../../redux/app/hooks";
 import backend from "../../../backend/backend";
 import { useVisiblePolling } from "../../../lib/useVisiblePolling";
 import { ITableStatus } from "../../../typings/tables";
+import { IDeletedTable } from "../../../typings/shop";
 import SingleTable from "../SingleTable/SingleTable";
+import TableSheet from "../TableSheet/TableSheet";
 import TableModal from "../TableModal/TableModal";
 import "./TableList.css";
 
 interface ShopMenuProps {
   shopId: string;
 }
+
+// How long a deleted table is listed: its carts closed in the last 24 hours
+// are all its sheet shows (it had no open cart when it was deleted).
+const DELETED_SHOWN_MS = 24 * 60 * 60 * 1000;
 
 const TableList = ({ shopId }: ShopMenuProps) => {
   const shop = useAppSelector((state) =>
@@ -40,6 +46,10 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
+
+  const recentlyDeleted = (shop?.deletedTables ?? []).filter(
+    (table) => Date.now() - Date.parse(table.deletedAt) < DELETED_SHOWN_MS
+  );
 
   // Shown once the manager's shops have loaded (the menu above shows
   // placeholders meanwhile): with nothing below the menu while it loads,
@@ -85,6 +95,21 @@ const TableList = ({ shopId }: ShopMenuProps) => {
           </Col>
         ))}
       </Row>
+      {recentlyDeleted.length > 0 && (
+        <section className="d-print-none mb-4" aria-labelledby="deleted-tables-heading">
+          <h3 id="deleted-tables-heading" className="h6">
+            Deleted tables
+          </h3>
+          <p className="small text-body-secondary">
+            Their carts from the last 24 hours, to refund if needed.
+          </p>
+          <div className="d-flex flex-wrap gap-2">
+            {recentlyDeleted.map((table) => (
+              <DeletedTable key={table._id} shopId={shopId} table={table} />
+            ))}
+          </div>
+        </section>
+      )}
       <TableModal
         shopId={shopId}
         show={show}
@@ -92,6 +117,30 @@ const TableList = ({ shopId }: ShopMenuProps) => {
         tableId={"new"}
       />
     </section>
+  );
+};
+
+// A deleted table: its name, opening its sheet.
+const DeletedTable = ({ shopId, table }: { shopId: string; table: IDeletedTable }) => {
+  const [show, setShow] = useState(false);
+  return (
+    <>
+      <Button
+        variant="outline-secondary"
+        onClick={() => setShow(true)}
+        aria-label={`View deleted table ${table.name}`}
+      >
+        {table.name}
+      </Button>
+      <TableSheet
+        shopId={shopId}
+        tableId={table._id}
+        tableName={table.name}
+        show={show}
+        handleClose={() => setShow(false)}
+        deleted
+      />
+    </>
   );
 };
 
