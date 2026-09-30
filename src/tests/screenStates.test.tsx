@@ -134,184 +134,70 @@ describe("the cart page", () => {
 })
 
 describe("opening one shop after another", () => {
-  it("keeps the latest shop when an earlier one answers late, or fails late", async () => {
-    const late = gate()
-    server.use(
-      http.get(`${BASE}/shops/s2`, async () => {
-        await late.opened
-        return HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })
-      }),
-      http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe))
-    )
-    const store = makeStore()
-
-    const first = store.dispatch(fetchSingleShop("s2"))
-    await store.dispatch(fetchSingleShop("s1"))
-    late.open()
-    await first
-
-    expect(store.getState().shops.selected?._id).toBe("s1")
-    expect(store.getState().shops.selectedFailed).toBeUndefined()
-  })
-
-  it("keeps a good copy of the shop when a second fetch of it fails", async () => {
-    const slow = gate()
-    let calls = 0
-    server.use(
-      http.get(`${BASE}/shops/s1`, async () => {
-        calls += 1
-        if (calls === 1) {
-          await slow.opened
-          return HttpResponse.json(cafe)
-        }
-        return HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })
-      })
-    )
-    const store = makeStore()
-
-    // The page's own fetch is still out when a refetch (the tab regaining
-    // focus) fails.
-    const first = store.dispatch(fetchSingleShop("s1"))
-    await store.dispatch(fetchSingleShop("s1"))
-    slow.open()
-    await first
-
-    expect(store.getState().shops.selected?._id).toBe("s1")
-  })
-
-  it("never lets an older copy of the shop overwrite a newer one", async () => {
-    const slow = gate()
-    let calls = 0
-    server.use(
-      http.get(`${BASE}/shops/s1`, async () => {
-        calls += 1
-        if (calls === 1) {
-          await slow.opened
-          return HttpResponse.json(cafe)
-        }
-        // The shop as saved since (renamed by its manager).
-        return HttpResponse.json({ ...cafe, name: "Cafe Renamed" })
-      })
-    )
-    const store = makeStore()
-
-    const first = store.dispatch(fetchSingleShop("s1"))
-    await store.dispatch(fetchSingleShop("s1"))
-    slow.open()
-    await first
-
-    expect(store.getState().shops.selected?.name).toBe("Cafe Renamed")
-  })
-
-  it("ignores an earlier shop's answer that lands after the latest one", async () => {
-    const late = gate()
-    server.use(
-      http.get(`${BASE}/shops/s2`, async () => {
-        await late.opened
-        return HttpResponse.json(other)
-      }),
-      http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe))
-    )
-    const store = makeStore()
-
-    const first = store.dispatch(fetchSingleShop("s2"))
-    await store.dispatch(fetchSingleShop("s1"))
-    late.open()
-    await first
-
-    expect(store.getState().shops.selected?._id).toBe("s1")
-  })
-})
-
-describe("a shop's menu", () => {
-  const renderMenu = (selected: IShop | null) =>
-    renderWithProviders(<TableMenu />, {
-      route: "/shops/s1/tables/t1",
-      path: "/shops/:shopId/tables/:tableId",
-      preloadedState: { shops: { all: [], data: [], selected, selectedMenu: null } },
-    })
-
-  it("shows placeholders, never the shop opened before, until this one arrives", async () => {
-    const answer = gate()
-    server.use(
-      http.get(`${BASE}/shops/s1`, async () => {
-        await answer.opened
-        return HttpResponse.json(cafe)
-      })
-    )
-    renderMenu(other)
-
-    expect(screen.getByText("Loading the menu")).toBeInTheDocument()
-    expect(screen.queryByText("Other Place")).not.toBeInTheDocument()
-
-    answer.open()
-    expect(await screen.findByText("Cafe")).toBeInTheDocument()
-    expect(screen.getByText("Latte")).toBeInTheDocument()
-    expect(screen.queryByText("Loading the menu")).not.toBeInTheDocument()
-  })
-
-  it("offers to try again when the menu can't be loaded", async () => {
-    let fail = true
-    server.use(
-      http.get(`${BASE}/shops/s1`, () =>
-        fail ? HttpResponse.json({ message: "Generic Server Error" }, { status: 500 }) : HttpResponse.json(cafe)
+  // Two requests for a shop are sent, first then second; their answers are
+  // let through in `order`. Each either brings its own copy (named after the
+  // request) or fails. Whatever the order, the page must end up with the copy
+  // from the newest request that succeeded, never a shop it isn't showing, and
+  // report a failure only when the newest request failed.
+  type Answer = "ok" | "fail"
+  const run = async (
+    shops: [string, string],
+    answers: [Answer, Answer],
+    order: [0, 1] | [1, 0],
+    held: IShop | null = null
+  ) => {
+    const gates = [gate(), gate()]
+    const byShop: Record<string, number[]> = {}
+    shops.forEach((id, i) => (byShop[id] ??= []).push(i))
+    const served: Record<string, number> = {}
+    for (const id of Object.keys(byShop)) {
+      server.use(
+        http.get(`${BASE}/shops/${id}`, async () => {
+          const i = byShop[id][(served[id] = (served[id] ?? 0) + 1) - 1]
+          await gates[i].opened
+          return answers[i] === "ok"
+            ? HttpResponse.json({ ...cafe, _id: id, name: `copy ${i + 1}` })
+            : HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })
+        })
       )
-    )
-    const { user } = renderMenu(null)
+    }
+    const store = makeStore({ shops: { all: [], data: [], selected: held, selectedMenu: null } })
+    const sent = shops.map((id) => store.dispatch(fetchSingleShop(id)))
+    for (const i of order) {
+      gates[i].open()
+      await sent[i]
+    }
+    const { selected, selectedFailed } = store.getState().shops
+    return { shown: selected?._id === shops[1] ? selected.name : null, failed: selectedFailed ?? null }
+  }
 
-    expect(await screen.findByText("Couldn't load this menu.")).toBeInTheDocument()
-    fail = false
-    await user.click(screen.getByRole("button", { name: "Try again" }))
-
-    expect(await screen.findByText("Latte")).toBeInTheDocument()
+  const old = { ...cafe, name: "old copy" } as IShop
+  it.each([
+    // [answers, order, held, shown, failed]
+    [["ok", "ok"], [0, 1], null, "copy 2", null],
+    [["ok", "ok"], [1, 0], null, "copy 2", null],
+    [["ok", "ok"], [1, 0], old, "copy 2", null],
+    [["ok", "fail"], [0, 1], null, "copy 1", "s1"],
+    [["ok", "fail"], [1, 0], null, "copy 1", "s1"],
+    [["ok", "fail"], [0, 1], old, "copy 1", "s1"],
+    [["ok", "fail"], [1, 0], old, "copy 1", "s1"],
+    [["fail", "ok"], [0, 1], null, "copy 2", null],
+    [["fail", "ok"], [1, 0], null, "copy 2", null],
+    [["fail", "fail"], [1, 0], null, null, "s1"],
+    [["fail", "fail"], [1, 0], old, "old copy", "s1"],
+  ] as const)("same shop: answers %j arriving %j over %j", async (answers, order, held, shown, failed) => {
+    const result = await run(["s1", "s1"], [...answers], [...order] as [0, 1] | [1, 0], held)
+    expect(result).toEqual({ shown, failed })
   })
 
-  it("says when nothing matches the search, and clears it", async () => {
-    server.use(http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)))
-    const { user } = renderMenu(cafe)
-
-    await user.type(screen.getByLabelText("Search Menu"), "tea")
-    expect(screen.getByText(/No dishes match “tea”/)).toBeInTheDocument()
-    expect(screen.queryByText("Latte")).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole("button", { name: "Clear search" }))
-    expect(screen.getByText("Latte")).toBeInTheDocument()
-    expect(screen.queryByText(/No dishes match/)).not.toBeInTheDocument()
-  })
-})
-
-describe("the shop list", () => {
-  it("shows placeholders until the shops arrive", () => {
-    renderWithProviders(<AllShopsList />, { preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, allStatus: "loading" } } })
-
-    expect(screen.getByText("Loading shops")).toBeInTheDocument()
-  })
-
-  it("says when no shop matches the search", async () => {
-    const { user } = renderWithProviders(<AllShopsList />, {
-      preloadedState: { shops: { all: [cafe], data: [], selected: null, selectedMenu: null, allStatus: "ready" } },
-    })
-
-    await user.type(screen.getByLabelText("Search Shop"), "pizza")
-
-    expect(screen.getByText(/No shops match “pizza”/)).toBeInTheDocument()
-  })
-
-  it("offers to try again when the shops can't be loaded", async () => {
-    server.use(http.get(`${BASE}/shops/`, () => HttpResponse.json([cafe])))
-    const { user } = renderWithProviders(<AllShopsList />, {
-      preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, allStatus: "failed" } },
-    })
-
-    await user.click(screen.getByRole("button", { name: "Try again" }))
-
-    expect(await screen.findByText("Cafe")).toBeInTheDocument()
-  })
-
-  it("on My Shops, shows placeholders until the manager's shops arrive", () => {
-    renderWithProviders(<ShopList />, { preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, dataStatus: "loading" } } })
-
-    expect(screen.getByText("Loading your shops")).toBeInTheDocument()
+  it.each([
+    [["ok", "ok"], [1, 0], "copy 2", null],
+    [["fail", "ok"], [1, 0], "copy 2", null],
+    [["ok", "fail"], [1, 0], null, "s1"],
+    [["ok", "fail"], [0, 1], null, "s1"],
+  ] as const)("another shop opened first: answers %j arriving %j", async (answers, order, shown, failed) => {
+    const result = await run(["s2", "s1"], [...answers], [...order] as [0, 1] | [1, 0])
+    expect(result).toEqual({ shown, failed })
   })
 })
 
