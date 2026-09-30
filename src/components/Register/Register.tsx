@@ -90,10 +90,11 @@ const Register = () => {
           <Form onSubmit={handleSignUp}>
             <Row>
               <Col>
-                <Form.Group className="mb-3" controlId="formBasicEmail">
-                  <FloatingLabel controlId="floatingInput" label="First Name">
+                <Form.Group className="mb-3">
+                  <FloatingLabel controlId="register-name" label="First Name">
                     <Form.Control
                       placeholder="First name"
+                      autoComplete="given-name"
                       value={credentials.name}
                       onChange={(e) =>
                         setCredentials({ ...credentials, name: e.target.value })
@@ -104,10 +105,11 @@ const Register = () => {
                 </Form.Group>
               </Col>
               <Col>
-                <Form.Group className="mb-3" controlId="formBasicEmail">
-                  <FloatingLabel controlId="floatingInput" label="Last Name">
+                <Form.Group className="mb-3">
+                  <FloatingLabel controlId="register-surname" label="Last Name">
                     <Form.Control
                       placeholder="Last name"
+                      autoComplete="family-name"
                       value={credentials.surname}
                       onChange={(e) =>
                         setCredentials({
@@ -121,11 +123,12 @@ const Register = () => {
                 </Form.Group>
               </Col>
             </Row>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Email address">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId="register-email" label="Email address">
                 <Form.Control
                   type="email"
                   placeholder="Enter email"
+                  autoComplete="email"
                   value={credentials.email}
                   onChange={(e) =>
                     setCredentials({ ...credentials, email: e.target.value })
@@ -134,11 +137,12 @@ const Register = () => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicPassword">
-              <FloatingLabel controlId="floatingPassword" label="Password">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId="register-password" label="Password">
                 <Form.Control
                   type="password"
                   placeholder="Password"
+                  autoComplete="new-password"
                   value={credentials.password}
                   onChange={(e) =>
                     setCredentials({ ...credentials, password: e.target.value })
@@ -150,14 +154,15 @@ const Register = () => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicPassword">
+            <Form.Group className="mb-3">
               <FloatingLabel
-                controlId="floatingPassword"
+                controlId="register-password-again"
                 label="Re-type Password"
               >
                 <Form.Control
                   type="password"
                   placeholder="Re-type Password"
+                  autoComplete="new-password"
                   value={verifyPassword}
                   onChange={(e) => setVerifyPassword(e.target.value)}
                   isInvalid={
@@ -171,7 +176,7 @@ const Register = () => {
               </FloatingLabel>
             </Form.Group>
             <Button variant="primary" type="submit" disabled={loading}>
-              SignUp
+              Sign up
             </Button>
             {error && (
               <Alert className="my-3" variant="danger">

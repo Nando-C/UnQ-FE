@@ -79,11 +79,11 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Sold out: still listed and searchable, but visibly out of play. Text is
- * dimmed rather than recoloured so the palette's contrast pairs still hold. */
-.MenuItem.sold-out .menu-text,
-.MenuItem.sold-out .price {
-  opacity: 0.55;
+/* Sold out: still listed and searchable, but visibly out of play. Text turns
+ * the secondary grey (the price drops its teal in MenuItem.tsx) rather than
+ * fading: faded text fell to about 2.5:1 on white, grey stays AA. */
+.MenuItem.sold-out .menu-text {
+  color: var(--bs-secondary-color);
 }
 
 .MenuItem.sold-out .menu-photo img {

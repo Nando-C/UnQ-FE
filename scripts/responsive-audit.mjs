@@ -17,6 +17,8 @@
 // 44px, or one under 32px), inline links under 24px,
 // text under 12px, stretched images, sheets or dialogs whose content has to
 // be scrolled, runtime errors on the page.
+// Also errors: an id used twice (it breaks label and ARIA links), and a
+// control reached with Tab that ends up under a fixed header or bottom bar.
 
 import { chromium } from "playwright-core"
 import { createServer } from "vite"
@@ -67,9 +69,8 @@ const VIEWPORTS = [
 
 const ACTIONS = {
   tables: (p) => p.getByRole("button", { name: /select table/i }).first(),
-  checkout: (p) => p.getByRole("button", { name: /checkout/i }).first(),
-  // The first icon button on the Account page: the edit pencil.
-  editAccount: (p) => p.locator("button:has(svg)").first(),
+  checkout: (p) => p.getByRole("button", { name: /check ?out/i }).first(),
+  editAccount: (p) => p.getByRole("button", { name: /edit profile/i }).first(),
   editShop: (p) => p.getByRole("button", { name: /edit details/i }).first(),
   addItem: (p) => p.getByRole("button", { name: /add menu item/i }).first(),
   addTable: (p) => p.getByRole("button", { name: /add table/i }).first(),
@@ -221,8 +222,14 @@ function audit() {
       clippedBody.push(`${Math.round(body.scrollHeight - body.clientHeight)}px of the ${layer.classList.contains("modal") ? "dialog" : "sheet"} is scrolled out of view (${body.clientHeight}px shown of ${body.scrollHeight}px)`)
   }
 
+  // An id used more than once: a <label for> or aria-* reference reaches only
+  // the first element with it.
+  const seen = {}
+  for (const el of document.querySelectorAll("[id]")) seen[el.id] = (seen[el.id] || 0) + 1
+  const dupIds = Object.entries(seen).filter(([, n]) => n > 1).map(([id, n]) => `id "${id}" is used ${n} times`)
+
   return {
-    vw, vh, docW: document.documentElement.scrollWidth, layer: !!layer, clippedBody,
+    vw, vh, docW: document.documentElement.scrollWidth, layer: !!layer, clippedBody, dupIds,
     spills: spills.slice(0, 6).map((x) => x.text),
     overflow: over.slice(0, 6).map(({ el, r }) => `${desc(el)} spans ${Math.round(r.left)}..${Math.round(r.right)}px of ${vw}`),
     targets, tiny, distorted,
@@ -263,6 +270,29 @@ function covered(where) {
     if (b > lastBottom) { lastBottom = b; last = el }
   }
   return lastBottom > barTop + 1 ? `"${label(last)}" ends at ${Math.round(lastBottom)}px, under the bottom bar at ${Math.round(barTop)}px` : null
+}
+
+// Where keyboard focus lands. Called after each Tab: the focused control, if
+// a fixed bar (one it isn't part of) hides more of it than it must. Something
+// taller than the space between the bars can't be fully shown, so it only has
+// to fill that space.
+function focusUnderBar() {
+  const el = document.activeElement
+  if (!el || el === document.body) return null
+  const r = el.getBoundingClientRect()
+  if (!r.width || !r.height) return null
+  let top = 0, bottom = innerHeight
+  for (const bar of document.querySelectorAll("body *")) {
+    if (getComputedStyle(bar).position !== "fixed" || bar.contains(el) || bar.closest(".offcanvas, .modal")) continue
+    const b = bar.getBoundingClientRect()
+    if (!b.width || !b.height || b.height > innerHeight * 0.5) continue
+    if (b.top <= 1) top = Math.max(top, b.bottom)
+    else if (b.bottom >= innerHeight - 1) bottom = Math.min(bottom, b.top)
+  }
+  const shown = Math.min(r.bottom, bottom) - Math.max(r.top, top)
+  if (shown >= Math.min(r.height, bottom - top) - 1) return null
+  const name = (el.getAttribute("aria-label") || el.textContent || el.tagName).trim().replace(/\s+/g, " ").slice(0, 40)
+  return `"${name}" is ${Math.round(r.height - Math.max(0, shown))}px under a fixed bar when focused (visible band ${Math.round(top)}..${Math.round(bottom)}px)`
 }
 
 // ---------------------------------------------------------------- runner
@@ -322,6 +352,9 @@ const run = async ([id, role, url, action], vp) => {
     deviceScaleFactor: 1,
     isMobile: vp.mobile,
     hasTouch: vp.mobile,
+    // Instant scrolling, so a focused control is checked where it ends up
+    // rather than mid smooth-scroll (Bootstrap turns smooth scrolling on).
+    reducedMotion: "reduce",
   })
   const page = await ctx.newPage()
   const r = { screen: id, viewport: vp.name, errors: [], warnings: [], shots: [] }
@@ -378,6 +411,7 @@ const run = async ([id, role, url, action], vp) => {
     if (a.docW > a.vw + 1 || a.overflow.length)
       r.errors.push({ kind: "overflow", text: a.overflow.length ? a.overflow.join("; ") : `page is ${a.docW}px wide on a ${a.vw}px screen` })
     for (const t of a.spills) r.errors.push({ kind: "spill", text: t })
+    for (const t of a.dupIds) r.errors.push({ kind: "duplicate id", text: t })
     for (const t of a.targets)
       (t.level === "error" ? r.errors : r.warnings).push({
         kind: "target",
@@ -389,6 +423,18 @@ const run = async ([id, role, url, action], vp) => {
     if (!action) {
       const top = await page.evaluate(covered, "top")
       if (top) r.errors.push({ kind: "covered", text: top })
+    }
+    // Tab through the page (at most 40 stops) and report controls that land
+    // under a fixed bar. Screens with an open sheet or dialog trap focus in
+    // it, so only plain pages are walked.
+    if (!action) {
+      for (let i = 0; i < 40; i++) {
+        await page.keyboard.press("Tab")
+        const hit = await page.evaluate(focusUnderBar)
+        if (hit) { r.errors.push({ kind: "focus hidden", text: hit }); break }
+      }
+      await page.evaluate(() => { document.activeElement?.blur(); scrollTo(0, 0) })
+      await page.waitForTimeout(100)
     }
     const landscape = vp.width > vp.height && vp.mobile
     await shot("", !action && !landscape)
@@ -456,7 +502,7 @@ const lines = [
   "",
   `${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC · ${screens.length} screens × ${viewports.length} viewports`,
   "",
-  "✗ errors (overflow, spill out of a card/sheet/dialog, control under 24px, content under a fixed bar) · ⚠ warnings (control under 44×32: both sides under 44px or one under 32px, inline link under 24px, text under 12px, stretched image, sheet or dialog content scrolled out of view, page error). Counts are distinct findings.",
+  "✗ errors (overflow, spill out of a card/sheet/dialog, control under 24px, content or a focused control under a fixed bar, duplicate id) · ⚠ warnings (control under 44×32: both sides under 44px or one under 32px, inline link under 24px, text under 12px, stretched image, sheet or dialog content scrolled out of view, page error). Counts are distinct findings.",
   "",
   `| Screen | ${viewports.map((v) => v.name).join(" | ")} |`,
   `|---|${viewports.map(() => "---").join("|")}|`,

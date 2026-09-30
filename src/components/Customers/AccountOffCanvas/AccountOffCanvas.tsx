@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useId, useRef, useState } from "react";
 import {
   Alert,
   Form,
@@ -20,6 +20,7 @@ interface AccountOffCanvasProps {
   handleClose: () => void;
 }
 const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
+  const fieldId = useId();
   const dispatch = useAppDispatch();
   const myUser = useAppSelector(selectUserData);
 
@@ -157,8 +158,8 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 )}
               </div>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Name">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${fieldId}-name`} label="Name">
                 <Form.Control
                   placeholder="Name"
                   value={user.name}
@@ -166,8 +167,8 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Surname">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${fieldId}-surname`} label="Surname">
                 <Form.Control
                   placeholder="Surname"
                   value={user.surname}
@@ -177,8 +178,8 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Email">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${fieldId}-email`} label="Email">
                 <Form.Control
                   type="email"
                   placeholder="Email"
@@ -188,8 +189,8 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
               </FloatingLabel>
             </Form.Group>
             {needsPassword && (
-              <Form.Group className="mb-3" controlId="accountCurrentPassword">
-                <FloatingLabel label="Current password">
+              <Form.Group className="mb-3">
+                <FloatingLabel controlId={`${fieldId}-password`} label="Current password">
                   <Form.Control
                     type="password"
                     placeholder="Current password"

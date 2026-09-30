@@ -63,7 +63,7 @@ const renderCartAt = (entries: string[]) => {
 }
 
 const pay = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(await screen.findByRole("button", { name: /CheckOut/ }))
+  await user.click(await screen.findByRole("button", { name: /Check out/ }))
   await user.click(await screen.findByRole("button", { name: "Approve" }))
 }
 
@@ -86,7 +86,7 @@ describe("after paying", () => {
     expect(screen.getByText(message)).toBeInTheDocument()
   }, 10_000)
 
-  it("keeps saying what happened while a closed message slides away, never \"Success!\"", async () => {
+  it("keeps saying what happened while a closed message slides away, never \"Payment successful\"", async () => {
     server.use(
       http.post(`${BASE}/carts/tables/t1/cart1/captureCheckout`, () => HttpResponse.json(cart, { status: 202 }))
     )
@@ -96,10 +96,10 @@ describe("after paying", () => {
 
     await user.click(within(sheet).getByRole("button", { name: "Close" }))
 
-    expect(screen.queryByText("Success!")).not.toBeInTheDocument()
-    expect(screen.queryByText(/The Transaction Was Successful/)).not.toBeInTheDocument()
+    expect(screen.queryByText("Payment successful")).not.toBeInTheDocument()
+    expect(screen.queryByText(/Your payment went through/)).not.toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText("Payment under review")).not.toBeInTheDocument())
-    expect(screen.queryByText("Success!")).not.toBeInTheDocument()
+    expect(screen.queryByText("Payment successful")).not.toBeInTheDocument()
     // Closing a message that isn't a success stays on the cart.
     expect(screen.queryByText("table menu")).not.toBeInTheDocument()
   })
@@ -127,7 +127,7 @@ describe("after paying", () => {
     const user = renderCartAt(["/shops/s1/tables/t1", "/login", "/shops/s1/tables/t1/cart"])
 
     await pay(user)
-    expect(await screen.findByText("Success!")).toBeInTheDocument()
+    expect(await screen.findByText("Payment successful")).toBeInTheDocument()
 
     expect(await screen.findByText("table menu", {}, { timeout: 4000 })).toBeInTheDocument()
   }, 10_000)
@@ -195,7 +195,7 @@ describe("signing in on the way to a table's page", () => {
     const user = userEvent.setup()
     await user.type(screen.getByPlaceholderText(/email/i), "a@b.c")
     await user.type(screen.getByPlaceholderText(/password/i), "password123")
-    await user.click(screen.getByRole("button", { name: "Login" }))
+    await user.click(screen.getByRole("button", { name: "Log in" }))
     await user.click(await screen.findByRole("button", { name: "browser back" }))
 
     await waitFor(() => expect(screen.getByText("page before")).toBeInTheDocument())

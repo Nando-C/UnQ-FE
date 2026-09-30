@@ -83,11 +83,12 @@ const Login = () => {
         </Col>
         <Col xs={12} sm={6}>
           <Form onSubmit={handleLogin}>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Email address">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId="login-email" label="Email address">
                 <Form.Control
                   type="email"
                   placeholder="Enter email"
+                  autoComplete="email"
                   value={credentials.email}
                   onChange={(e) =>
                     setCredentials({ ...credentials, email: e.target.value })
@@ -95,11 +96,12 @@ const Login = () => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicPassword">
-              <FloatingLabel controlId="floatingPassword" label="Password">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId="login-password" label="Password">
                 <Form.Control
                   type="password"
                   placeholder="Password"
+                  autoComplete="current-password"
                   value={credentials.password}
                   onChange={(e) =>
                     setCredentials({ ...credentials, password: e.target.value })
@@ -112,7 +114,7 @@ const Login = () => {
                 Don't have an account?{" "}
                 {/* Padded to a 24px+ tap height; still reads as a link. */}
                 <Link to="/register" replace className="d-inline-block py-1">
-                  SignUp
+                  Sign up
                 </Link>
               </p>
             </Form.Group>
@@ -122,7 +124,7 @@ const Login = () => {
               </Alert>
             )}
             <Button variant="primary" type="submit" disabled={loading}>
-              Login
+              Log in
             </Button>
             <Form.Group className="my-3">
               <Button
@@ -132,7 +134,7 @@ const Login = () => {
                 href={`${import.meta.env.VITE_BE_URL}/auth/googleLogin`}
               >
                 <FcGoogle className="me-2" size={25} />
-                Login with Google
+                Log in with Google
               </Button>
             </Form.Group>
           </Form>

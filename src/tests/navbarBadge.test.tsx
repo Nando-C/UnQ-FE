@@ -82,6 +82,8 @@ describe("NavigationBar cart badge", () => {
       expect(container.querySelector("span.cart-link")).not.toBeNull()
     )
     expect(container.querySelector("a.cart-link")).toBeNull()
+    // Named and marked unavailable, so a screen reader says why it does nothing.
+    expect(screen.getByRole("link", { name: "Cart, choose a table first" })).toHaveAttribute("aria-disabled", "true")
   })
 })
 

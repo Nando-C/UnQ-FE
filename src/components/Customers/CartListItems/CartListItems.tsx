@@ -191,13 +191,13 @@ const CartListItems = () => {
         </label>
         <div className="cart-totals">
           <div>
-            {remainingCartTotal !== totalCart ? "Remaining Cart Total" : "Cart Total"}{" "}
+            {remainingCartTotal !== totalCart ? "Remaining cart total" : "Cart total"}{" "}
             <strong className="text-nowrap">
               {formatPrice(remainingCartTotal)}
             </strong>
           </div>
           <div>
-            Total Payed{" "}
+            Total paid{" "}
             <strong className="text-nowrap">{formatPrice(totalSplitPayed)}</strong>
           </div>
         </div>
@@ -228,7 +228,7 @@ const CartListItems = () => {
           // that's the amount shown, and with nothing selected there's nothing
           // to pay.
           <Button onClick={handleShow} disabled={syncing || mySplit <= 0} className="mb-3">
-            CheckOut <strong>{formatPrice(mySplit)}</strong>
+            Check out <strong>{formatPrice(mySplit)}</strong>
           </Button>
         )}
       </Row>

@@ -1,9 +1,3 @@
-body {
-  font-family: "Georama", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-    "Helvetica Neue", sans-serif;
-}
-
 /* dvh follows the visible viewport as a phone's toolbars show and hide; 100vh
  * is the fallback for browsers without it. */
 .App {

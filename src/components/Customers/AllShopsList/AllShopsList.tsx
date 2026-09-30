@@ -15,8 +15,8 @@ const AllShopsList = () => {
     <div className="AllShopsList bg-light pt-5 pb-5">
       <Row>
         <Col>
-          <Form.Group className="search-bar mb-3" controlId="formBasicEmail">
-            <FloatingLabel controlId="floatingInput" label="Search Shop">
+          <Form.Group className="search-bar mb-3">
+            <FloatingLabel controlId="shop-search" label="Search Shop">
               <Form.Control
                 placeholder="Search Shop"
                 value={query}

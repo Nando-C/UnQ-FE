@@ -90,7 +90,7 @@ describe("a diner who has to sign in at a table goes back to it", () => {
 
     expect(takeReturnTo()).toBe("/shops/s1/tables/t1")
     // Sign-up is an in-app link, not a page reload.
-    expect(screen.getByRole("link", { name: "SignUp" })).toHaveAttribute("href", "/register")
+    expect(screen.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/register")
   })
 
   it("to the table they're at now, not one from an earlier sign-in they didn't finish", () => {

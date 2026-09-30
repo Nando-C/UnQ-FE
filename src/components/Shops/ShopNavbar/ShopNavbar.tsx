@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Container, Navbar } from "react-bootstrap";
 import { FaRegUserCircle } from "react-icons/fa";
-import { NavLink, useMatch } from "react-router-dom";
+import { Link, NavLink, useMatch } from "react-router-dom";
 import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import { useAppSelector } from "../../../redux/app/hooks";
 import { selectSelectedShop } from "../../../redux/slices/shopSlice";
@@ -48,7 +48,8 @@ const ShopNavbar = () => {
     <header ref={headerRef} className="ShopHeader fixed-top">
       <Navbar className="ShopNavbar bg-white border-bottom py-1">
         <Container className="shop-bar">
-          <Navbar.Brand href="#home">
+          {/* The logo goes home (My Shops), as a logo is expected to. */}
+          <Navbar.Brand as={Link} to="/">
             <img
               src={wordmark}
               width="54"

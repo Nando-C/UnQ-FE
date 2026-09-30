@@ -29,6 +29,12 @@ describe("manager header", () => {
     expect(within(sections).getByRole("link", { name: "Tables" })).toHaveAttribute("href", "#tableList")
   })
 
+  it("links the logo to My Shops", () => {
+    renderAt("/shop/s1")
+
+    expect(screen.getByRole("link", { name: "UnQ" })).toHaveAttribute("href", "/")
+  })
+
   it("has no shop name or tabs on My Shops, even with a shop still selected", () => {
     renderAt("/")
 

@@ -273,7 +273,7 @@ describe("clicking faster than the BE answers", () => {
   })
 
   const qtyShown = () => document.querySelector(".stepper .qty")?.textContent
-  const checkout = () => screen.getByRole("button", { name: /CheckOut/ })
+  const checkout = () => screen.getByRole("button", { name: /Check out/ })
 
   it("shows a tap at once, holds checkout until the BE agrees, and caps + at what's in the cart", async () => {
     // m1 has 2 in the cart and I hold 1, so exactly one more can be claimed.

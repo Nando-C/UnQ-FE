@@ -127,7 +127,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
           stepper and Add wrap under the price together when there's no room,
           and Add under the stepper at very large text sizes. */}
       <div className="actions">
-        <span className="price text-primary text-nowrap">
+        <span className={`price text-nowrap ${soldOut ? "text-body-secondary" : "text-primary"}`}>
           {formatPrice(menuItem?.price)}
         </span>
         {tableId && !soldOut && (

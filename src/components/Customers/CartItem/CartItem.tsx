@@ -176,7 +176,8 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
           {/* Price left, controls right; the controls drop under the price
               when the row is too narrow for both. */}
           <div className="cart-line">
-            <span className="price text-primary text-nowrap">
+            {/* Grey, not faded teal, when sold out: faded text falls below AA. */}
+            <span className={`price text-nowrap ${soldOut ? "text-body-secondary" : "text-primary"}`}>
               {formatPrice(cartItem.menuId?.price)}
             </span>
             {/* Removing is the way forward for a sold-out row, so its bin

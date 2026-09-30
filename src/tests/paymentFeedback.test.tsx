@@ -12,7 +12,7 @@ describe("PaymentFeedback", () => {
       />
     )
 
-    expect(screen.getByText(/Successful/)).toBeInTheDocument()
+    expect(screen.getByText(/went through/)).toBeInTheDocument()
     expect(screen.queryByText(/Payment not completed/)).not.toBeInTheDocument()
   })
 
@@ -30,6 +30,6 @@ describe("PaymentFeedback", () => {
     expect(
       screen.getByText("Payment cancelled — nothing was charged.")
     ).toBeInTheDocument()
-    expect(screen.queryByText(/Successful/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/went through/)).not.toBeInTheDocument()
   })
 })

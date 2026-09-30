@@ -14,7 +14,7 @@ describe("Login", () => {
 
     await user.type(screen.getByPlaceholderText("Enter email"), "a@b.com")
     await user.type(screen.getByPlaceholderText("Password"), "wrongpass")
-    await user.click(screen.getByRole("button", { name: "Login" }))
+    await user.click(screen.getByRole("button", { name: "Log in" }))
 
     expect(await screen.findByText("Wrong email or password")).toBeInTheDocument()
   })
@@ -39,7 +39,7 @@ describe("Login", () => {
 
     await user.type(screen.getByPlaceholderText("Enter email"), "a@b.com")
     await user.type(screen.getByPlaceholderText("Password"), "correcthorse")
-    await user.click(screen.getByRole("button", { name: "Login" }))
+    await user.click(screen.getByRole("button", { name: "Log in" }))
 
     await waitFor(() => expect(meSpy).toHaveBeenCalled())
     await waitFor(() =>

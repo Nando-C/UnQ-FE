@@ -247,8 +247,8 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 )}
               </div>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Name">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-name`} label="Name">
                 <Form.Control
                   placeholder="Name"
                   value={item.name}
@@ -256,9 +256,9 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicPassword">
+            <Form.Group className="mb-3">
               <FloatingLabel
-                controlId="ffloatingTextarea"
+                controlId={`${formId}-short-description`}
                 label="Short Description"
               >
                 <Form.Control
@@ -272,8 +272,8 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicPassword">
-              <FloatingLabel controlId="ffloatingTextarea" label="Description">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-description`} label="Description">
                 <Form.Control
                   as="textarea"
                   placeholder="Description"
@@ -285,8 +285,8 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Price">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-price`} label="Price">
                 <Form.Control
                   type="number"
                   step="0.01"
@@ -297,10 +297,10 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
+            <Form.Group className="mb-3">
               <Form.Check
                 type="switch"
-                id="custom-switch"
+                id={`${formId}-available`}
                 checked={item.available}
                 onChange={(e) =>
                   setItem({
@@ -311,8 +311,8 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 label="Available"
               />
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingSelect" label="Category">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-category`} label="Category">
                 <Form.Select
                   value={item.category}
                   onChange={(e) =>

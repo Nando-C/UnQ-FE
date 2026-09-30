@@ -18,7 +18,7 @@ const menu = (id: string, price: number): IMenu => ({
   category: "food",
 })
 
-// Cart Total = 2*4.5 + 1*3 = 12
+// Cart total = 2*4.5 + 1*3 = 12
 // open split = 1*4.5 = 4.5  (to pay now)
 // closed split = 1*3 = 3    (already paid)
 // Remaining = 12 - 3 - 4.5 = 4.5
@@ -51,7 +51,7 @@ const fixtureCart: ICart = {
 }
 
 describe("CartListItems totals", () => {
-  it("renders Cart Total, Remaining, and Total Payed from the reduce math", async () => {
+  it("renders Cart total, Remaining, and Total paid from the reduce math", async () => {
     server.use(
       http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(fixtureCart))
     )
@@ -68,13 +68,13 @@ describe("CartListItems totals", () => {
       path: "/shops/:shopId/tables/:tableId/cart",
     })
 
-    // Once any open split exists the header switches to "Remaining Cart Total".
-    expect(await screen.findByText(/Remaining Cart Total/)).toHaveTextContent(
+    // Once any open split exists the header switches to "Remaining cart total".
+    expect(await screen.findByText(/Remaining cart total/)).toHaveTextContent(
       "£4.50"
     )
-    expect(screen.getByText(/Total Payed/)).toHaveTextContent("£3.00")
-    // CheckOut button shows my own open-split total (all of it is mine here).
-    expect(screen.getByRole("button", { name: /CheckOut/ })).toHaveTextContent(
+    expect(screen.getByText(/Total paid/)).toHaveTextContent("£3.00")
+    // The Check out button shows my own open-split total (all of it is mine here).
+    expect(screen.getByRole("button", { name: /Check out/ })).toHaveTextContent(
       "£4.50"
     )
   })

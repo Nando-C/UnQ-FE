@@ -1,3 +1,11 @@
+/* Moving focus (Tab) or jumping to an anchor scrolls the target clear of the
+ * fixed bottom bar instead of underneath it. --unq-footer-h is measured by
+ * NavigationBar and removed when it unmounts, so the manager side (which has
+ * no bottom bar) is unaffected. */
+html {
+  scroll-padding-bottom: var(--unq-footer-h, 0px);
+}
+
 /* Resting icons stay Bootstrap's navbar grey; teal marks meaning only. The page
  * you're on is teal (NavLink sets .active), and on a device that can hover, so is
  * the icon under the pointer. Hover is gated on (hover: hover) because phones apply

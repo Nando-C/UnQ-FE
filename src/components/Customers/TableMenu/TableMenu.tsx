@@ -87,8 +87,8 @@ const TableMenu = () => {
         </div>
         <Row>
           <Col>
-            <Form.Group className="search-bar mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Search Menu">
+            <Form.Group className="search-bar mb-3">
+              <FloatingLabel controlId="menu-search" label="Search Menu">
                 <Form.Control
                   placeholder="Search Menu"
                   value={query}

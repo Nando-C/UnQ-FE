@@ -38,8 +38,9 @@ const Account = () => {
               {user.name} {user.surname}
             </Card.Title>
             <Card.Body>
-              <Card.Text className="text-break">email: {user.email}</Card.Text>
-              <Card.Text>Role: {user.role}</Card.Text>
+              <Card.Text className="text-break">{user.email}</Card.Text>
+              {/* Diners aren't shown a role; a manager sees they are one. */}
+              {user.role === "shopMg" && <Card.Text>Shop manager</Card.Text>}
             </Card.Body>
             <Button
               className="edit-profile"
@@ -52,7 +53,7 @@ const Account = () => {
             </Button>
           </Card>
           <Button className="my-5" onClick={logMeOut}>
-            LogOut
+            Log out
           </Button>
         </Container>
       ) : status === "guest" ? (

@@ -240,8 +240,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 )}
               </div>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Name">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-name`} label="Name">
                 <Form.Control
                   placeholder="Name"
                   value={editShop.name}
@@ -251,8 +251,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicPassword">
-              <FloatingLabel controlId="ffloatingTextarea" label="Bio">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-bio`} label="Bio">
                 <Form.Control
                   as="textarea"
                   placeholder="Bio"
@@ -264,8 +264,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Open Times">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-open-times`} label="Open Times">
                 <Form.Control
                   placeholder="Open Times"
                   value={editShop.open_times}
@@ -275,8 +275,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Phone Number">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-phone`} label="Phone Number">
                 <Form.Control
                   type="tel"
                   placeholder="Phone Number"
@@ -287,8 +287,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Web URL">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-web-url`} label="Web URL">
                 <Form.Control
                   placeholder="Web URL"
                   value={editShop.web_URL}

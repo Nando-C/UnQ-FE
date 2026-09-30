@@ -32,8 +32,8 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
       <Card.Title className="m-5">MENU</Card.Title>
       <Row>
         <Col>
-          <Form.Group className="mb-3" controlId="formBasicEmail">
-            <FloatingLabel controlId="floatingInput" label="Search Menu">
+          <Form.Group className="mb-3">
+            <FloatingLabel controlId="manager-menu-search" label="Search Menu">
               <Form.Control
                 placeholder="Search Menu"
                 value={query}

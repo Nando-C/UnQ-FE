@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Badge, Container, Nav, Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
@@ -31,13 +31,31 @@ const NavigationBar = () => {
     }
   }, [dispatch, tableId]);
 
+  // The bar's height (it grows with the text size) is published as
+  // --unq-footer-h, which NavigationBar.css turns into the page's bottom
+  // scroll padding, so a control reached with Tab is never left under the bar.
+  const barRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar || typeof ResizeObserver === "undefined") return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() =>
+      root.style.setProperty("--unq-footer-h", `${bar.offsetHeight}px`)
+    );
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--unq-footer-h");
+    };
+  }, []);
+
   const items = useAppSelector(selectCartsData).items.filter((item) => unpaidQty(item) > 0);
   const itemsQty = items.reduce((total, item) => total + unpaidQty(item), 0);
 
   return (
     <>
       <Container className="NavigationBar" fluid>
-        <Navbar className="p-0" fixed="bottom" bg="light" variant="light">
+        <Navbar ref={barRef} className="p-0" fixed="bottom" bg="light" variant="light">
           <Container fluid className="px-0 bg-white border-top">
             {/* NavLink marks the page you're on (class "active" plus
                 aria-current="page"), which NavigationBar.css turns teal. These
@@ -69,7 +87,14 @@ const NavigationBar = () => {
                   </span>
                 </NavLink>
               ) : (
-                <span className="cart-link nav-link">
+                // No table yet, so no cart to open. Named, and marked
+                // unavailable, so a screen reader says why it does nothing.
+                <span
+                  className="cart-link nav-link"
+                  role="link"
+                  aria-disabled="true"
+                  aria-label="Cart, choose a table first"
+                >
                   <span className="cart-icon">
                     <IoCartOutline className="mt-1" size="2.2em" />
                   </span>

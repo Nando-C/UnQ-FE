@@ -30,6 +30,18 @@ const fill = async (
 }
 
 describe("Register", () => {
+  it("ties each field to its own label, with no id used twice", () => {
+    renderWithProviders(<Register />)
+
+    expect(screen.getByLabelText("First Name")).toHaveAttribute("placeholder", "First name")
+    expect(screen.getByLabelText("Last Name")).toHaveAttribute("placeholder", "Last name")
+    expect(screen.getByLabelText("Email address")).toHaveAttribute("placeholder", "Enter email")
+    expect(screen.getByLabelText("Password")).toHaveAttribute("placeholder", "Password")
+    expect(screen.getByLabelText("Re-type Password")).toHaveAttribute("placeholder", "Re-type Password")
+    const ids = [...document.querySelectorAll("[id]")].map((el) => el.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
   it("blocks submit and fires no request when passwords do not match", async () => {
     const registerSpy = vi.fn()
     server.use(
@@ -41,7 +53,7 @@ describe("Register", () => {
     const { user } = renderWithProviders(<Register />)
 
     await fill(user, { password: "password123", verify: "different1" })
-    await user.click(screen.getByRole("button", { name: "SignUp" }))
+    await user.click(screen.getByRole("button", { name: "Sign up" }))
 
     expect(await screen.findByText("Passwords do not match")).toBeInTheDocument()
     expect(registerSpy).not.toHaveBeenCalled()
@@ -58,7 +70,7 @@ describe("Register", () => {
     const { user } = renderWithProviders(<Register />)
 
     await fill(user, { password: "short", verify: "short" })
-    await user.click(screen.getByRole("button", { name: "SignUp" }))
+    await user.click(screen.getByRole("button", { name: "Sign up" }))
 
     expect(
       await screen.findByText("Password must be at least 8 characters")
@@ -76,7 +88,7 @@ describe("Register", () => {
     const { user } = renderWithProviders(<Register />)
 
     await fill(user)
-    await user.click(screen.getByRole("button", { name: "SignUp" }))
+    await user.click(screen.getByRole("button", { name: "Sign up" }))
 
     expect(await screen.findByText("Email already registered")).toBeInTheDocument()
   })
@@ -92,7 +104,7 @@ describe("Register", () => {
     const { user } = renderWithProviders(<Register />)
 
     await fill(user)
-    await user.click(screen.getByRole("button", { name: "SignUp" }))
+    await user.click(screen.getByRole("button", { name: "Sign up" }))
 
     await waitFor(() => expect(body).toBeDefined())
     expect(body).toEqual({

@@ -125,8 +125,8 @@ const TableModal = ({
               void createTable();
             }}
           >
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Name">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-name`} label="Name">
                 <Form.Control
                   placeholder="Name"
                   value={table.name}

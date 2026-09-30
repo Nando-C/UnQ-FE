@@ -276,8 +276,8 @@ describe("cart with a sold-out item", () => {
 
     // Total = 2 × 4.50 (m1) + 1 paid × 3 (m2) = 12; the 2 unpaid m2 units are
     // not owed. Minus the £3 paid, £9 remains.
-    expect(screen.getByText(/Remaining Cart Total/)).toHaveTextContent("£9.00")
-    expect(screen.getByText(/Total Payed/)).toHaveTextContent("£3.00")
+    expect(screen.getByText(/Remaining cart total/)).toHaveTextContent("£9.00")
+    expect(screen.getByText(/Total paid/)).toHaveTextContent("£3.00")
   })
 
   it("disables checkout with an explanation while I hold a sold-out selection", async () => {
@@ -290,7 +290,7 @@ describe("cart with a sold-out item", () => {
 
     await user.click(boxes()[2]) // un-select it
 
-    expect(await screen.findByRole("button", { name: /CheckOut/ })).toBeEnabled()
+    expect(await screen.findByRole("button", { name: /Check out/ })).toBeEnabled()
   })
 })
 

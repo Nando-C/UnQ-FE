@@ -79,13 +79,9 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Sold out after it was added: dimmed and desaturated, like the menu card. */
+/* Sold out after it was added: the photo is dimmed and desaturated, like the
+ * menu card's. */
 .CartItem.sold-out .cart-thumb {
   filter: grayscale(1);
   opacity: 0.7;
-}
-
-.CartItem.sold-out .price,
-.CartItem.sold-out .cart-meta {
-  opacity: 0.55;
 }

@@ -185,7 +185,7 @@ describe("useVisiblePolling", () => {
   })
 })
 
-describe("diner's Total Payed", () => {
+describe("diner's Total paid", () => {
   it("counts paid units at the price they were paid at, not today's", async () => {
     // A Latte paid at £3 that now costs £9, and one more still to pay.
     const cart: ICart = {
@@ -203,8 +203,8 @@ describe("diner's Total Payed", () => {
       path: "/shops/:shopId/tables/:tableId/cart",
     })
 
-    expect(await screen.findByText(/Total Payed/)).toHaveTextContent("£3.00")
+    expect(await screen.findByText(/Total paid/)).toHaveTextContent("£3.00")
     // One £9 Latte still to pay.
-    expect(screen.getByText(/Remaining Cart Total/)).toHaveTextContent("£9.00")
+    expect(screen.getByText(/Remaining cart total/)).toHaveTextContent("£9.00")
   })
 })

@@ -44,7 +44,7 @@ const renderCart = (cart: ICart) =>
     path: "/shops/:shopId/tables/:tableId/cart",
   })
 
-const checkout = () => screen.getByRole("button", { name: /CheckOut/ })
+const checkout = () => screen.getByRole("button", { name: /Check out/ })
 
 describe("Checkout amount", () => {
   it("shows only what I selected, not other diners' selections", async () => {
@@ -59,7 +59,7 @@ describe("Checkout amount", () => {
     expect(checkout()).toHaveTextContent("£3.00")
     expect(checkout()).toBeEnabled()
     // The table's remaining total still counts everyone's selections.
-    expect(screen.getByText(/Remaining Cart Total/)).toHaveTextContent("£4.50")
+    expect(screen.getByText(/Remaining cart total/)).toHaveTextContent("£4.50")
   })
 
   it("is off when I've selected nothing, even if others have", async () => {

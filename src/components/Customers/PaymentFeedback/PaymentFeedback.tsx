@@ -7,7 +7,7 @@ import "./PaymentFeedback.css";
 export type FeedbackVariant = "success" | "failure" | "pending";
 
 const TITLES: Record<FeedbackVariant, string> = {
-  success: "Success!",
+  success: "Payment successful",
   failure: "Payment not completed",
   pending: "Payment under review",
 };
@@ -44,7 +44,7 @@ const PaymentFeedback = ({
             <Row>
               {ICONS[variant]}
               <Card.Subtitle className="mt-4 text-center">
-                {variant === "success" ? "The Transaction Was Successful!" : message}
+                {variant === "success" ? "Your payment went through." : message}
               </Card.Subtitle>
             </Row>
           </Offcanvas.Body>

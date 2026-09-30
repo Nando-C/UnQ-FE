@@ -26,6 +26,18 @@ const renderAccount = (me: IUser = ada) => {
 }
 
 describe("editing the account", () => {
+  it("ties each field to its own label", async () => {
+    const { user } = renderAccount()
+
+    expect(screen.getByLabelText("Name")).toHaveValue("Ada")
+    expect(screen.getByLabelText("Surname")).toHaveValue("Lovelace")
+    const email = screen.getByLabelText("Email")
+    expect(email).toHaveValue("ada@example.com")
+    await user.clear(email)
+    await user.type(email, "new@example.com")
+    expect(screen.getByLabelText("Current password")).toHaveAttribute("type", "password")
+  })
+
   it("saves the name without asking for the password", async () => {
     const { user, sent } = renderAccount()
 
