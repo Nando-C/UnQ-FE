@@ -1,4 +1,4 @@
-import { useEffect, useState, useId } from "react";
+import { useEffect, useRef, useState, useId } from "react";
 import { FloatingLabel, Form, Modal, Button, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
@@ -54,6 +54,8 @@ const TableModal = ({
   // Deleting asks first, in the footer (ConfirmFooter), saying what goes. A
   // question left open doesn't greet the next opening of the dialog.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Focus goes back to it when the question closes without deleting.
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const [deleting, setDeleting] = useState(false);
   useEffect(() => {
     if (show) setConfirmingDelete(false);
@@ -164,6 +166,7 @@ const TableModal = ({
             busy={deleting}
             onConfirm={deleteTable}
             onCancel={() => setConfirmingDelete(false)}
+            returnFocus={() => deleteButtonRef.current}
           />
         ) : (
           <Modal.Footer
@@ -171,7 +174,11 @@ const TableModal = ({
           >
             {tableId !== "new" ? (
               <>
-                <Button variant="outline-danger" onClick={() => setConfirmingDelete(true)}>
+                <Button
+                ref={deleteButtonRef}
+                variant="outline-danger"
+                onClick={() => setConfirmingDelete(true)}
+              >
                   Delete table
                 </Button>
                 <Button variant="primary" type="submit" form={formId}>

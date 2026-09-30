@@ -208,6 +208,16 @@ describe("table sheet actions", () => {
     await waitFor(() => expect(cartLoads).toBeGreaterThan(loadsBefore))
   })
 
+  it("returns focus to the action when its question is cancelled", async () => {
+    const { user, sheet } = await openSheet()
+    const action = within(sheet).getByRole("button", { name: "Remove 1 unpaid" })
+
+    await user.click(action)
+    await user.click(within(sheet).getByRole("button", { name: "Cancel" }))
+
+    await waitFor(() => expect(action).toHaveFocus())
+  })
+
   it("shows the BE's reason for any other refusal", async () => {
     answer = () => HttpResponse.json({ message: "Nothing unpaid to remove" }, { status: 409 })
     const { user, sheet } = await openSheet()
@@ -249,8 +259,10 @@ describe("deleting a table with an open cart", () => {
     expect(screen.getByText(/Its QR code will no longer take orders/)).toHaveFocus()
     await user.click(screen.getAllByRole("button", { name: "Delete table" }).at(-1)!)
     expect(await screen.findByText("This table has an open cart — close it first")).toBeInTheDocument()
-    // The question goes, so the reason shows with the dialog's usual buttons.
+    // The question goes, so the reason shows with the dialog's usual buttons,
+    // and focus is back on Delete table.
     expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole("button", { name: "Delete table" })).toHaveFocus())
   })
 })
 

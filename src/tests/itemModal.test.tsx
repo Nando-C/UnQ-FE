@@ -254,6 +254,8 @@ describe("ItemModal", () => {
     expect(question).toHaveFocus()
     await user.click(screen.getByRole("button", { name: "Cancel" }))
     expect(deletes).toBe(0)
+    // Focus goes back to the button that asked, not to the page.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Delete item" })).toHaveFocus())
 
     await user.click(screen.getByRole("button", { name: "Delete item" }))
     const confirm = screen.getAllByRole("button", { name: "Delete item" }).at(-1)!

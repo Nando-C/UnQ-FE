@@ -115,7 +115,9 @@ const ShopDetails = () => {
       ) : (
         <div key="loading">
           <div className="page-head">
-            <h1>
+            {/* Full width: in the flex row a heading is only as wide as its
+                text, and the placeholder bar is a share of that. */}
+            <h1 className="flex-grow-1">
               {failed ? (
                 "Shop"
               ) : (

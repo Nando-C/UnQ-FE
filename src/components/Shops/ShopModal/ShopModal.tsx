@@ -60,6 +60,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   const [creating, setCreating] = useState(false);
   // Deleting asks first, in the footer (ConfirmFooter), saying what goes.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Focus goes back to it when the question closes without deleting.
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const [deleting, setDeleting] = useState(false);
   // Opening the dialog also drops the cover picked and the error shown last
   // time. Only on opening: an error set just after a save reloaded the shop
@@ -338,6 +340,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
             busy={deleting}
             onConfirm={deleteShop}
             onCancel={() => setConfirmingDelete(false)}
+            returnFocus={() => deleteButtonRef.current}
           />
         ) : (
           <Modal.Footer
@@ -345,7 +348,11 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
           >
             {shopId !== "new" ? (
               <>
-                <Button variant="outline-danger" onClick={() => setConfirmingDelete(true)}>
+                <Button
+                ref={deleteButtonRef}
+                variant="outline-danger"
+                onClick={() => setConfirmingDelete(true)}
+              >
                   Delete shop
                 </Button>
                 <Button variant="primary" type="submit" form={formId}>

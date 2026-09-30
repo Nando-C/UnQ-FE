@@ -51,6 +51,8 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   // Deleting asks first, in the footer (ConfirmFooter), saying what goes. A
   // question left open doesn't greet the next opening of the dialog.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  // Focus goes back to it when the question closes without deleting.
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
   const [deleting, setDeleting] = useState(false);
   useEffect(() => {
     if (show) setConfirmingDelete(false);
@@ -354,6 +356,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
             busy={deleting}
             onConfirm={deleteItem}
             onCancel={() => setConfirmingDelete(false)}
+            returnFocus={() => deleteButtonRef.current}
           />
         ) : (
           <Modal.Footer
@@ -361,7 +364,11 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
           >
             {itemId !== "new" ? (
               <>
-                <Button variant="outline-danger" onClick={() => setConfirmingDelete(true)}>
+                <Button
+                ref={deleteButtonRef}
+                variant="outline-danger"
+                onClick={() => setConfirmingDelete(true)}
+              >
                   Delete item
                 </Button>
                 <Button variant="primary" type="submit" form={formId}>
