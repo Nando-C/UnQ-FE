@@ -17,10 +17,10 @@ import TableList from "../../Tables/TableList/TableList";
 import {
   fetchShopList,
   fetchSingleShop,
-  selectSelectedFailed,
-  selectSelectedShop,
+  selectShopFailed,
+  selectShopFor,
 } from "../../../redux/slices/shopSlice";
-import { Loading, LoadFailed } from "../../Common/ScreenStates";
+import { HeadingPlaceholder, Loading, LoadFailed } from "../../Common/ScreenStates";
 import { usePageTitle } from "../../../lib/usePageTitle";
 
 // The manager's page for one shop: its details, menu and tables, one after
@@ -35,9 +35,8 @@ const ShopDetails = () => {
 
   // The store may still hold the shop opened before this one; until this
   // one's arrives, its details card shows placeholders.
-  const selected = useAppSelector(selectSelectedShop);
-  const shop = selected?._id === shopId ? selected : null;
-  const failed = useAppSelector(selectSelectedFailed) === shopId;
+  const shop = useAppSelector((state) => selectShopFor(state, shopId));
+  const failed = useAppSelector((state) => selectShopFailed(state, shopId));
   // A shop that failed to load still names the page (the retry is below).
   usePageTitle(shop ? `Manage ${shop.name}` : failed ? "Shop" : "");
 
@@ -121,9 +120,7 @@ const ShopDetails = () => {
               {failed ? (
                 "Shop"
               ) : (
-                <span className="placeholder-glow" aria-hidden="true">
-                  <span className="placeholder col-6" />
-                </span>
+                <HeadingPlaceholder />
               )}
             </h1>
           </div>

@@ -11,14 +11,14 @@ import {
 } from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
-  selectSelectedFailed,
-  selectSelectedShop,
+  selectShopFailed,
+  selectShopFor,
 } from "../../../redux/slices/shopSlice";
 import CartListItems from "../CartListItems/CartListItems";
 import PaymentFeedback, { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
 import CartNotices from "../CartNotices/CartNotices";
 import CartItemPlaceholder from "../CartItem/CartItemPlaceholder";
-import { Loading, LoadFailed } from "../../Common/ScreenStates";
+import { HeadingPlaceholder, Loading, LoadFailed } from "../../Common/ScreenStates";
 import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import "./Cart.css";
 import { tablePath } from "../../../lib/paths";
@@ -33,9 +33,8 @@ const Cart = () => {
 
   // The store may hold another shop (opened before); only this one names the
   // table. Once it has loaded, a table it doesn't list shows no name.
-  const selected = useAppSelector(selectSelectedShop);
-  const shop = selected?._id === shopId ? selected : null;
-  const shopFailed = useAppSelector(selectSelectedFailed) === shopId;
+  const shop = useAppSelector((state) => selectShopFor(state, shopId));
+  const shopFailed = useAppSelector((state) => selectShopFailed(state, shopId));
   const tableName =
     shop?.tables.find((table) => table._id === tableId)?.name ?? "";
   usePageTitle(tableName ? `Cart · Table ${tableName}` : "Cart");
@@ -107,9 +106,7 @@ const Cart = () => {
                 {tableName ? (
                   <span>Table: {tableName}</span>
                 ) : !shop && !shopFailed ? (
-                  <span className="placeholder-glow" aria-hidden="true">
-                    <span className="placeholder col-6" />
-                  </span>
+                  <HeadingPlaceholder />
                 ) : null}
               </h1>
             </Col>

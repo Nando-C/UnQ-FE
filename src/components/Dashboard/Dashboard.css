@@ -2,6 +2,6 @@
  * it as --unq-header-h, and until then App.css's --header-guess stands in),
  * then the usual page spacing. */
 .MyShops {
-  padding-top: calc(var(--unq-header-h, var(--header-guess, 55px)) + 1.5rem);
+  padding-top: calc(var(--unq-header-h, var(--header-guess)) + 1.5rem);
   padding-bottom: 3rem;
 }

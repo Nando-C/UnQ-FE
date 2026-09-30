@@ -188,7 +188,7 @@ const CartListItems = ({ handleShowFbk }: CartListItemsProps) => {
       )}
       <ListGroup className="px-0" variant="flush">
         {visibleItems.map((item) => (
-          <ListGroup.Item key={item._id} className="px-0 menu-item">
+          <ListGroup.Item key={item._id} className="px-0">
             <CartItem cartId={cart._id} itemId={item._id} />
           </ListGroup.Item>
         ))}

@@ -23,22 +23,30 @@ export const LoadFailed = ({ message, onRetry }: { message: string; onRetry: () 
   </Alert>
 );
 
+// A heading's stand-in while the name it shows loads.
+export const HeadingPlaceholder = () => (
+  <span className="placeholder-glow" aria-hidden="true">
+    <span className="placeholder col-6" />
+  </span>
+);
+
 // Under a searched list: says when nothing matches, with a way back to the full
 // list. Always mounted (a live region inserted with its text is often not
 // announced); empty while something matches.
 export const NoMatch = ({
-  show,
+  count,
   what,
   query,
   onClear,
 }: {
-  show: boolean;
+  // How many items match the query.
+  count: number;
   what: string;
   query: string;
   onClear: () => void;
 }) => (
   <div className="NoMatch" role="status">
-    {show && (
+    {!!query.trim() && count === 0 && (
       <p className="text-body-secondary text-center py-3 mb-0">
         No {what} match “{query.trim()}”.{" "}
         <Button variant="link" className="p-0 align-baseline" onClick={onClear}>

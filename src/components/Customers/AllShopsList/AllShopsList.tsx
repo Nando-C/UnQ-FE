@@ -60,7 +60,7 @@ const AllShopsList = () => {
             ))}
           </ul>
           <NoMatch
-            show={!!query.trim() && matches.length === 0}
+            count={matches.length}
             what="shops"
             query={query}
             onClear={() => setQuery("")}

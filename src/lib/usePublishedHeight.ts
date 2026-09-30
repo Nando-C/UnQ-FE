@@ -9,9 +9,13 @@ export const usePublishedHeight = (ref: RefObject<HTMLElement | null>, cssVar: s
     const el = ref.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const root = document.documentElement;
-    const observer = new ResizeObserver(() =>
-      root.style.setProperty(cssVar, `${el.offsetHeight}px`)
-    );
+    // Resizes that leave the height alone (most are width-only) change nothing.
+    let published: number | undefined;
+    const observer = new ResizeObserver(() => {
+      if (el.offsetHeight === published) return;
+      published = el.offsetHeight;
+      root.style.setProperty(cssVar, `${published}px`);
+    });
     observer.observe(el);
     return () => {
       observer.disconnect();

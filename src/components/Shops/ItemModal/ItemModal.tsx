@@ -7,6 +7,7 @@ import { IMenu } from "../../../typings/menu";
 import placeholder from "../../../assets/placeholder.svg";
 import { apiErrorMessage } from "../../../lib/errors";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
+import { useConfirmDelete } from "../../../lib/useConfirmDelete";
 
 // Why a typed price can't be sent, or null. Whole pence, as the BE requires:
 // refunds price each line on its own, so a fraction of a penny wouldn't add up.
@@ -48,19 +49,8 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   // making a second item. Forgotten when the dialog is opened again.
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  // Deleting asks first, in the footer (ConfirmFooter), saying what goes. A
-  // question left open doesn't greet the next opening of the dialog.
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  // Focus goes back to it when the question closes without deleting.
-  const deleteButtonRef = useRef<HTMLButtonElement>(null);
-  const [deleting, setDeleting] = useState(false);
-  // A question left open when the dialog closed (Esc, the backdrop) is dropped
-  // in the render that reopens it, so it never shows, or takes focus, again.
-  const [wasShown, setWasShown] = useState(show);
-  if (show !== wasShown) {
-    setWasShown(show);
-    if (show) setConfirmingDelete(false);
-  }
+  // Deleting asks first, in the footer (ConfirmFooter), saying what goes.
+  const confirmDelete = useConfirmDelete(show);
   // Opening the dialog also drops the photo picked and the error shown last
   // time. Only on opening: an error set just after a save reloaded the menu
   // must stay.
@@ -191,19 +181,16 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
     }
   };
 
-  const deleteItem = async () => {
-    setDeleting(true);
+  const deleteItem = () => {
     setError(null);
-    try {
-      await backend.delete(`/shops/${shopId}/menu/${item._id}`);
-      dispatch(fetchShopList());
-      handleClose();
-    } catch (err) {
-      setError(apiErrorMessage(err));
-      setConfirmingDelete(false);
-    } finally {
-      setDeleting(false);
-    }
+    return confirmDelete.run(
+      async () => {
+        await backend.delete(`/shops/${shopId}/menu/${item._id}`);
+        dispatch(fetchShopList());
+        handleClose();
+      },
+      (err) => setError(apiErrorMessage(err))
+    );
   };
 
   return (
@@ -351,16 +338,16 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
         {/* Outside the scrolling body, so the actions stay in view however
             long the form is. The submit button reaches the form through its
             form attribute. */}
-        {confirmingDelete ? (
+        {confirmDelete.confirming ? (
           <ConfirmFooter
             // The saved name: that is the item deleted, whatever the form says.
             message={`Delete ${menuItem?.name ?? "this item"} from the menu? Diners can no longer order it.`}
             confirmLabel="Delete item"
             danger
-            busy={deleting}
+            busy={confirmDelete.busy}
             onConfirm={deleteItem}
-            onCancel={() => setConfirmingDelete(false)}
-            returnFocus={() => deleteButtonRef.current}
+            onCancel={confirmDelete.cancel}
+            returnFocus={() => confirmDelete.buttonRef.current}
           />
         ) : (
           <Modal.Footer
@@ -369,10 +356,10 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
             {itemId !== "new" ? (
               <>
                 <Button
-                ref={deleteButtonRef}
-                variant="outline-danger"
-                onClick={() => setConfirmingDelete(true)}
-              >
+                  ref={confirmDelete.buttonRef}
+                  variant="outline-danger"
+                  onClick={confirmDelete.ask}
+                >
                   Delete item
                 </Button>
                 <Button variant="primary" type="submit" form={formId}>

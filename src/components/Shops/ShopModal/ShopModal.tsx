@@ -10,6 +10,7 @@ import placeholder from "../../../assets/placeholder.svg";
 import "./ShopModal.css";
 import { apiErrorMessage } from "../../../lib/errors";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
+import { useConfirmDelete } from "../../../lib/useConfirmDelete";
 
 const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
@@ -59,17 +60,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   // Deleting asks first, in the footer (ConfirmFooter), saying what goes.
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  // Focus goes back to it when the question closes without deleting.
-  const deleteButtonRef = useRef<HTMLButtonElement>(null);
-  const [deleting, setDeleting] = useState(false);
-  // A question left open when the dialog closed (Esc, the backdrop) is dropped
-  // in the render that reopens it, so it never shows, or takes focus, again.
-  const [wasShown, setWasShown] = useState(show);
-  if (show !== wasShown) {
-    setWasShown(show);
-    if (show) setConfirmingDelete(false);
-  }
+  const confirmDelete = useConfirmDelete(show);
   // Opening the dialog also drops the cover picked and the error shown last
   // time. Only on opening: an error set just after a save reloaded the shop
   // must stay.
@@ -197,19 +188,16 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
     }
   };
 
-  const deleteShop = async () => {
-    setDeleting(true);
+  const deleteShop = () => {
     setError(null);
-    try {
-      await backend.delete(`/shops/${editShop._id}`);
-      navigate("/");
-      handleClose();
-    } catch (err) {
-      setError(apiErrorMessage(err));
-      setConfirmingDelete(false);
-    } finally {
-      setDeleting(false);
-    }
+    return confirmDelete.run(
+      async () => {
+        await backend.delete(`/shops/${editShop._id}`);
+        navigate("/");
+        handleClose();
+      },
+      (err) => setError(apiErrorMessage(err))
+    );
   };
 
   return (
@@ -338,15 +326,15 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
         {/* Outside the scrolling body, so the actions stay in view however
             long the form is. The submit button reaches the form through its
             form attribute. */}
-        {confirmingDelete ? (
+        {confirmDelete.confirming ? (
           <ConfirmFooter
             message={deleteShopMessage(shop)}
             confirmLabel="Delete shop"
             danger
-            busy={deleting}
+            busy={confirmDelete.busy}
             onConfirm={deleteShop}
-            onCancel={() => setConfirmingDelete(false)}
-            returnFocus={() => deleteButtonRef.current}
+            onCancel={confirmDelete.cancel}
+            returnFocus={() => confirmDelete.buttonRef.current}
           />
         ) : (
           <Modal.Footer
@@ -355,10 +343,10 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
             {shopId !== "new" ? (
               <>
                 <Button
-                ref={deleteButtonRef}
-                variant="outline-danger"
-                onClick={() => setConfirmingDelete(true)}
-              >
+                  ref={confirmDelete.buttonRef}
+                  variant="outline-danger"
+                  onClick={confirmDelete.ask}
+                >
                   Delete shop
                 </Button>
                 <Button variant="primary" type="submit" form={formId}>

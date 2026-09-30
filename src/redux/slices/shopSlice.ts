@@ -130,6 +130,12 @@ export const selectSelectedShop = (state: RootState) => state.shops.selected
 export const selectSelectedMenu = (state: RootState) => state.shops.selectedMenu
 export const selectAllShopsStatus = (state: RootState) => state.shops.allStatus
 export const selectShopsDataStatus = (state: RootState) => state.shops.dataStatus
-export const selectSelectedFailed = (state: RootState) => state.shops.selectedFailed
+// A page's own shop: the one selected, but only once it is the one the page
+// asked for (the store may still hold another shop), else null.
+export const selectShopFor = (state: RootState, shopId: string | undefined) =>
+    state.shops.selected?._id === shopId ? state.shops.selected : null
+// Whether loading the page's own shop failed.
+export const selectShopFailed = (state: RootState, shopId: string | undefined) =>
+    state.shops.selectedFailed === shopId
 
 export default shopsSlice.reducer

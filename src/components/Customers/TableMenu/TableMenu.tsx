@@ -14,12 +14,12 @@ import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { selectCartPointers, storeCartPointers } from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
-  selectSelectedFailed,
-  selectSelectedShop,
+  selectShopFailed,
+  selectShopFor,
 } from "../../../redux/slices/shopSlice";
 import MenuItem from "../MenuItem/MenuItem";
 import MenuItemPlaceholder from "../MenuItem/MenuItemPlaceholder";
-import { Loading, LoadFailed, NoMatch } from "../../Common/ScreenStates";
+import { HeadingPlaceholder, Loading, LoadFailed, NoMatch } from "../../Common/ScreenStates";
 import ShopTablesOffCanvas from "../ShopTablesOffCanvas/ShopTablesOffCanvas";
 import "./TableMenu.css";
 import { tablePath } from "../../../lib/paths";
@@ -69,9 +69,8 @@ const TableMenu = () => {
 
   // The store may still hold the shop opened before this one: until this
   // shop's own arrives, the page shows placeholders, never the other's menu.
-  const selected = useAppSelector(selectSelectedShop);
-  const shop = selected?._id === shopId ? selected : null;
-  const failed = useAppSelector(selectSelectedFailed) === shopId;
+  const shop = useAppSelector((state) => selectShopFor(state, shopId));
+  const failed = useAppSelector((state) => selectShopFailed(state, shopId));
   // A menu that failed to load still names the page (the retry is below).
   usePageTitle(shop ? shop.name : failed ? "Menu" : "");
 
@@ -129,13 +128,13 @@ const TableMenu = () => {
             <div className="mb-5">
               <ListGroup className="px-0" variant="flush">
                 {matches.map((menuItem) => (
-                  <ListGroup.Item key={menuItem._id} className="px-0 menu-item">
+                  <ListGroup.Item key={menuItem._id} className="px-0">
                     <MenuItem shopId={shopId} itemId={menuItem._id} />
                   </ListGroup.Item>
                 ))}
               </ListGroup>
               <NoMatch
-                show={!!query.trim() && matches.length === 0}
+                count={matches.length}
                 what="dishes"
                 query={query}
                 onClear={() => setQuery("")}
@@ -149,9 +148,7 @@ const TableMenu = () => {
                 {failed ? (
                   "Menu"
                 ) : (
-                  <span className="placeholder-glow" aria-hidden="true">
-                    <span className="placeholder col-6" />
-                  </span>
+                  <HeadingPlaceholder />
                 )}
               </Card.Title>
             </div>
@@ -164,7 +161,7 @@ const TableMenu = () => {
               <Loading label="Loading the menu">
                 <ListGroup className="px-0" variant="flush">
                   {[0, 1, 2].map((i) => (
-                    <ListGroup.Item key={i} className="px-0 menu-item">
+                    <ListGroup.Item key={i} className="px-0">
                       <MenuItemPlaceholder />
                     </ListGroup.Item>
                   ))}

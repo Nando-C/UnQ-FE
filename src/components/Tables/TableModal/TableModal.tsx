@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useId } from "react";
+import { useEffect, useState, useId } from "react";
 import { FloatingLabel, Form, Modal, Button, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
@@ -7,6 +7,7 @@ import { ITable } from "../../../typings/shop";
 import "./TableModal.css";
 import { apiErrorMessage } from "../../../lib/errors";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
+import { useConfirmDelete } from "../../../lib/useConfirmDelete";
 
 interface TableModalProps {
   shopId: string;
@@ -51,19 +52,8 @@ const TableModal = ({
 
   // One create at a time: a double tap would otherwise send two.
   const [creating, setCreating] = useState(false);
-  // Deleting asks first, in the footer (ConfirmFooter), saying what goes. A
-  // question left open doesn't greet the next opening of the dialog.
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
-  // Focus goes back to it when the question closes without deleting.
-  const deleteButtonRef = useRef<HTMLButtonElement>(null);
-  const [deleting, setDeleting] = useState(false);
-  // A question left open when the dialog closed (Esc, the backdrop) is dropped
-  // in the render that reopens it, so it never shows, or takes focus, again.
-  const [wasShown, setWasShown] = useState(show);
-  if (show !== wasShown) {
-    setWasShown(show);
-    if (show) setConfirmingDelete(false);
-  }
+  // Deleting asks first, in the footer (ConfirmFooter), saying what goes.
+  const confirmDelete = useConfirmDelete(show);
   const createTable = async () => {
     if (creating) return;
     setError(null);
@@ -104,19 +94,16 @@ const TableModal = ({
     }
   };
 
-  const deleteTable = async () => {
-    setDeleting(true);
+  const deleteTable = () => {
     setError(null);
-    try {
-      await backend.delete(`/shops/${shopId}/tables/${table._id}`);
-      dispatch(fetchShopList());
-      handleClose();
-    } catch (err) {
-      setError(apiErrorMessage(err));
-      setConfirmingDelete(false);
-    } finally {
-      setDeleting(false);
-    }
+    return confirmDelete.run(
+      async () => {
+        await backend.delete(`/shops/${shopId}/tables/${table._id}`);
+        dispatch(fetchShopList());
+        handleClose();
+      },
+      (err) => setError(apiErrorMessage(err))
+    );
   };
 
   return (
@@ -161,16 +148,16 @@ const TableModal = ({
         {/* Outside the scrolling body, so the actions stay in view however
             long the form is. The submit button reaches the form through its
             form attribute. */}
-        {confirmingDelete ? (
+        {confirmDelete.confirming ? (
           <ConfirmFooter
             // The saved name: that is the table deleted, whatever the form says.
             message={`Delete ${selectedTable ? `table ${selectedTable.name}` : "this table"}? Its QR code will no longer take orders.`}
             confirmLabel="Delete table"
             danger
-            busy={deleting}
+            busy={confirmDelete.busy}
             onConfirm={deleteTable}
-            onCancel={() => setConfirmingDelete(false)}
-            returnFocus={() => deleteButtonRef.current}
+            onCancel={confirmDelete.cancel}
+            returnFocus={() => confirmDelete.buttonRef.current}
           />
         ) : (
           <Modal.Footer
@@ -179,10 +166,10 @@ const TableModal = ({
             {tableId !== "new" ? (
               <>
                 <Button
-                ref={deleteButtonRef}
-                variant="outline-danger"
-                onClick={() => setConfirmingDelete(true)}
-              >
+                  ref={confirmDelete.buttonRef}
+                  variant="outline-danger"
+                  onClick={confirmDelete.ask}
+                >
                   Delete table
                 </Button>
                 <Button variant="primary" type="submit" form={formId}>

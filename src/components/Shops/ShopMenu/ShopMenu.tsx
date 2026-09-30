@@ -68,13 +68,13 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
         <>
           <ListGroup className="px-0" variant="flush">
             {matches.map((menuItem) => (
-              <ListGroup.Item key={menuItem._id} className="px-0 menu-item">
+              <ListGroup.Item key={menuItem._id} className="px-0">
                 <Item itemId={menuItem._id} shopId={shopId} />
               </ListGroup.Item>
             ))}
           </ListGroup>
           <NoMatch
-            show={!!query.trim() && matches.length === 0}
+            count={matches.length}
             what="menu items"
             query={query}
             onClear={() => setQuery("")}
@@ -89,7 +89,7 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
         <Loading label="Loading the menu">
           <ListGroup className="px-0" variant="flush">
             {[0, 1, 2].map((i) => (
-              <ListGroup.Item key={i} className="px-0 menu-item">
+              <ListGroup.Item key={i} className="px-0">
                 <ItemPlaceholder />
               </ListGroup.Item>
             ))}
