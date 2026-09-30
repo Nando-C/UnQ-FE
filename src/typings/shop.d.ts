@@ -34,8 +34,9 @@ export interface IShopStore {
     dataStatus?: LoadStatus
     // The id of a shop whose fetch for `selected` failed, until it is asked again.
     selectedFailed?: string
-    // The latest fetch for `selected`: an older one answering late is dropped.
-    selectedRequestId?: string
+    // The shop last asked for as `selected`: an answer about any other shop
+    // (one opened before, answering late) is dropped.
+    selectedWanted?: string
 }
 
 export type LoadStatus = "loading" | "ready" | "failed"

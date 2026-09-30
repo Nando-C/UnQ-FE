@@ -154,6 +154,31 @@ describe("opening one shop after another", () => {
     expect(store.getState().shops.selectedFailed).toBeUndefined()
   })
 
+  it("keeps a good copy of the shop when a second fetch of it fails", async () => {
+    const slow = gate()
+    let calls = 0
+    server.use(
+      http.get(`${BASE}/shops/s1`, async () => {
+        calls += 1
+        if (calls === 1) {
+          await slow.opened
+          return HttpResponse.json(cafe)
+        }
+        return HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })
+      })
+    )
+    const store = makeStore()
+
+    // The page's own fetch is still out when a refetch (the tab regaining
+    // focus) fails.
+    const first = store.dispatch(fetchSingleShop("s1"))
+    await store.dispatch(fetchSingleShop("s1"))
+    slow.open()
+    await first
+
+    expect(store.getState().shops.selected?._id).toBe("s1")
+  })
+
   it("ignores an earlier shop's answer that lands after the latest one", async () => {
     const late = gate()
     server.use(
