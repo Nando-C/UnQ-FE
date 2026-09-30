@@ -13,6 +13,7 @@ import TableMenu from "./components/Customers/TableMenu/TableMenu";
 import Account from "./components/Customers/Account/Account";
 import ShopNavbar from "./components/Shops/ShopNavbar/ShopNavbar";
 import NotFound from "./components/NotFound/NotFound";
+import { ManagerOnly } from "./components/Common/ManagerOnly";
 
 function App() {
   const dispatch = useAppDispatch();
@@ -42,7 +43,14 @@ function App() {
             {/* A shop's menu opened from the shop list, before picking a table. */}
             <Route path="/customer/shop/:shopId" element={<TableMenu />} />
             {/* The manager's page for one of their shops. */}
-            <Route path="/shop/:shopId" element={<ShopDetails />} />
+            <Route
+              path="/shop/:shopId"
+              element={
+                <ManagerOnly>
+                  <ShopDetails />
+                </ManagerOnly>
+              }
+            />
             {/* A table's menu: where a table's QR code leads. */}
             <Route
               path="/shops/:shopId/tables/:tableId"

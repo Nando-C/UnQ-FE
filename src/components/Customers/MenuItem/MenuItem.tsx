@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge, Card, Image, Button } from "react-bootstrap";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { addToCart, type CartRejection } from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
-import { selectUserData } from "../../../redux/slices/userSlice";
 import { formatPrice } from "../../../lib/price";
-import { rememberReturnTo } from "../../../lib/returnTo";
+import { useSignIn } from "../../../lib/useSignIn";
 import { useFlash } from "../../../lib/useFlash";
 import "./MenuItem.css";
 
@@ -46,19 +45,22 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
     setQty(Math.max(0, qty - 1));
   };
 
-  const user = useAppSelector(selectUserData);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { known, signedIn, signInFirst } = useSignIn();
 
   // Add is off while it's sending, so a second tap can't order it twice, and
   // says "Added" for a moment once it's in (the bottom bar's badge is easy to
   // miss).
   const [adding, setAdding] = useState(false);
   const [added, showAdded] = useFlash<true>(2000);
+  // Tapped before it was known who is signed in (just after signing in, say):
+  // it goes ahead, or to sign in, once that's known.
+  const [waiting, setWaiting] = useState(false);
 
   const addItemToCart = async () => {
     if (adding) return;
-    if (user._id) {
+    if (!known) {
+      setWaiting(true);
+    } else if (signedIn) {
       clearAddError();
       setAdding(true);
       try {
@@ -88,10 +90,16 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
         setAdding(false);
       }
     } else {
-      rememberReturnTo(location.pathname);
-      navigate("/login");
+      signInFirst();
     }
   };
+  const addRef = useRef(addItemToCart);
+  addRef.current = addItemToCart;
+  useEffect(() => {
+    if (!waiting || !known) return;
+    setWaiting(false);
+    addRef.current();
+  }, [waiting, known]);
 
   return (
     <Card
@@ -158,7 +166,7 @@ const MenuItem = ({ shopId, itemId }: MenuItemProps) => {
             <Button
               className="add-button"
               onClick={addItemToCart}
-              disabled={qty < 1 || adding}
+              disabled={qty < 1 || adding || waiting}
             >
               {added ? "Added" : "Add"}
             </Button>

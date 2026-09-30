@@ -152,6 +152,37 @@ describe("refunding a payment", () => {
     expect(alert.closest(".alert")).toHaveClass("alert-danger")
   })
 
+  it("keeps the picks, and focus, when the refund question is cancelled", async () => {
+    const { user, sheet } = await openSheet()
+
+    await user.click(refundButton(sheet)!)
+    await user.click(within(sheet).getByRole("button", { name: "Refund one more Latte" }))
+    await user.click(within(sheet).getByRole("button", { name: "Review refund" }))
+    // Nothing in the picker can change the question being asked.
+    expect(within(sheet).getByRole("button", { name: "Refund one more Latte" })).toBeDisabled()
+    const question = sheet.querySelector(".modal-footer") as HTMLElement
+    await user.click(within(question).getByRole("button", { name: "Cancel" }))
+
+    const review = within(sheet).getByRole("button", { name: "Review refund" })
+    expect(review).toHaveFocus()
+    expect(review).toBeEnabled()
+    const picker = within(sheet).getByRole("group", { name: "Choose what to refund" })
+    expect(within(picker).getByText("£3.00").closest("span")).toHaveTextContent("Refund £3.00")
+    expect(refundBodies).toEqual([])
+  })
+
+  it("closes the picker once the refund is sent", async () => {
+    const { user, sheet } = await openSheet()
+
+    await user.click(refundButton(sheet)!)
+    await user.click(within(sheet).getByRole("button", { name: "Refund one more Latte" }))
+    await user.click(within(sheet).getByRole("button", { name: "Review refund" }))
+    await user.click(within(sheet).getByRole("button", { name: "Refund £3.00 to Ada" }))
+
+    await within(sheet).findByText("Refunded £3.00 to Ada.")
+    expect(within(sheet).queryByRole("group", { name: "Choose what to refund" })).not.toBeInTheDocument()
+  })
+
   it("shows what's been refunded and only offers what's left", async () => {
     carts = cartsWith(
       payment({ lines: [

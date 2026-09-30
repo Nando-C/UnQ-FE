@@ -4,6 +4,7 @@ import backend from "../../backend/backend"
 import axios, { AxiosResponse } from "axios"
 import type { AppThunk, RootState } from "../app/store"
 import { menuIdOf, myOpenSplit } from "../../lib/cart"
+import { logOut } from "./userSlice"
 
 // The cart of the table the diner is at: the BE's cart, plus the selections
 // ("splits") the diner has asked for that the BE hasn't confirmed yet. See the
@@ -252,6 +253,13 @@ export const cartsSlice = createSlice({
         })
         builder.addCase(captureCheckout.fulfilled, (state, action) => {
             state.data = action.payload.cart
+        })
+        // The table and the selections were the person logging out's: whoever
+        // signs in next isn't taken back to that table.
+        builder.addCase(logOut.fulfilled, (state) => {
+            state.pointers = initialState.pointers
+            delete state.pending
+            delete state.splitErrors
         })
     }
 })

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Badge, Card, Button, Image, Form } from "react-bootstrap";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
   deleteFromCart,
@@ -16,7 +16,7 @@ import { selectUserData } from "../../../redux/slices/userSlice";
 import { availableQty, isSoldOut, menuIdOf, myOpenSplit, unpaidQty } from "../../../lib/cart";
 import { RiDeleteBinLine } from "react-icons/ri";
 import { formatPrice } from "../../../lib/price";
-import { rememberReturnTo } from "../../../lib/returnTo";
+import { useSignIn } from "../../../lib/useSignIn";
 import { useFlash } from "../../../lib/useFlash";
 import placeholder from "../../../assets/placeholder.svg";
 import "./CartItem.css";
@@ -60,21 +60,16 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
   const dispatch = useAppDispatch();
 
   // The cart is public, but changing it needs an account: a guest is sent to
-  // sign in (and back here after), as the menu's Add does.
-  const navigate = useNavigate();
-  const location = useLocation();
-  const signedIn = !!myUser._id;
-  const signInFirst = () => {
-    rememberReturnTo(location.pathname);
-    navigate("/login");
-  };
+  // sign in (and back here after), as the menu's Add does. Until it's known
+  // who is signed in, which units are mine isn't either, so nothing changes.
+  const { known, signedIn, signInFirst } = useSignIn();
 
   // Why the bin or − didn't do (all of) what was asked. Cleared after a few
   // seconds, like the menu's Add errors.
   const [rowError, showRowError] = useFlash<string>(5000);
 
   const want = (next: number) => {
-    if (!menuId) return;
+    if (!menuId || !known) return;
     if (!signedIn) return signInFirst();
     dispatch(
       setSplitQty({
@@ -98,6 +93,7 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
   // request at a time, so a double tap can't send it twice.
   const [changing, setChanging] = useState(false);
   const changeOrder = async (change: "bin" | "oneLess") => {
+    if (!known) return;
     if (!signedIn) return signInFirst();
     if (!cartItem?.menuId || changing) return;
     showRowError(null);

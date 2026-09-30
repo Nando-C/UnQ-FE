@@ -4,6 +4,7 @@ import backend from "../../backend/backend"
 import { IMenu } from "../../typings/menu";
 import { IShop, IShopStore } from "../../typings/shop"
 import { RootState } from "../app/store";
+import { logOut } from "./userSlice";
 
 const initialState: IShopStore = {
     all: [],
@@ -93,6 +94,11 @@ export const shopsSlice = createSlice({
         })
         builder.addCase(fetchShopList.rejected, (state) => {
             state.dataStatus = "failed"
+        })
+        // The manager's shops are theirs alone: whoever signs in next loads their own.
+        builder.addCase(logOut.fulfilled, (state) => {
+            state.data = []
+            delete state.dataStatus
         })
         // An answer becomes `selected` when it is about the shop last asked
         // for (a late one about a shop opened before would replace it and

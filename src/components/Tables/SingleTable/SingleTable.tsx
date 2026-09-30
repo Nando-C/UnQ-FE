@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { Card, Button } from "react-bootstrap";
 import { GrEdit } from "react-icons/gr";
 import { useAppSelector } from "../../../redux/app/hooks";
-import placeholder from "../../../assets/placeholder.svg";
 import TableModal from "../TableModal/TableModal";
 import TableStatus from "../TableStatus/TableStatus";
 import TableSheet from "../TableSheet/TableSheet";
 import { ITableStatus } from "../../../typings/tables";
+import { ownCover } from "../../../lib/cover";
 import "./SingleTable.css";
 
 interface TableProps {
@@ -23,8 +23,6 @@ const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
     state.shops.data.find((shop) => shop._id === shopId)
   );
   const table = shop?.tables.find((table) => table._id === tableId);
-
-  const defaultCover = placeholder;
 
   // One QR code for the card's lifetime, drawn again only when what it shows
   // changes (the card re-renders on every status refresh).
@@ -52,7 +50,8 @@ const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
   }, [qrCode]);
 
   const qrData = table?.Qr_Url;
-  const qrImage = shop?.cover !== defaultCover ? shop?.cover : "";
+  // The shop's own cover in the middle, or a plain code when it has none.
+  const qrImage = ownCover(shop?.cover);
   useEffect(() => {
     qrCode.update({ data: qrData, image: qrImage });
   }, [qrCode, qrData, qrImage]);

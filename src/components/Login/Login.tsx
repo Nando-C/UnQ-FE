@@ -9,14 +9,15 @@ import { fetchUserData } from "../../redux/slices/userSlice";
 import { peekReturnTo, rememberReturnTo, takeReturnTo } from "../../lib/returnTo";
 import { tablePath } from "../../lib/paths";
 import { usePageTitle } from "../../lib/usePageTitle";
+import { apiErrorMessage } from "../../lib/errors";
 import { AuthLayout, GoogleButton } from "./AuthLayout";
 
-const getErrorMessage = (err: unknown): string => {
-  if (axios.isAxiosError(err)) {
-    if (err.response?.status === 401) return "Wrong email or password";
-  }
-  return "Something went wrong, try again";
-};
+// A 401 is a wrong email or password; anything else is what the BE said (e.g.
+// what's wrong with the form), as on sign-up.
+const getErrorMessage = (err: unknown): string =>
+  axios.isAxiosError(err) && err.response?.status === 401
+    ? "Wrong email or password"
+    : apiErrorMessage(err);
 
 const Login = () => {
   const [credentials, setCredentials] = useState({

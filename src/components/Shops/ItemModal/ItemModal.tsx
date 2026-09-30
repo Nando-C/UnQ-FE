@@ -71,7 +71,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       name: menuItem ? menuItem.name : "",
       image: menuItem ? menuItem.image : "",
       short_description: menuItem ? menuItem.short_description : "",
-      description: menuItem ? menuItem.description : "",
+      description: menuItem?.description ?? "",
       price: menuItem ? menuItem.price : 0,
       available: menuItem ? menuItem.available : true,
       category: menuItem ? menuItem.category : "food",

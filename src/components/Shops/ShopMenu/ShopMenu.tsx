@@ -32,7 +32,7 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
       (menu) =>
         menu.category.toLowerCase().includes(q) ||
         menu.name.toLowerCase().includes(q) ||
-        menu.description.toLowerCase().includes(q)
+        menu.description?.toLowerCase().includes(q)
     ) ?? [];
 
   const [show, setShow] = useState(false);

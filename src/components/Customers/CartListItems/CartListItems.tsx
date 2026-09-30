@@ -17,6 +17,7 @@ import CheckOut from "../CheckOut/CheckOut";
 import type { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
 import CartNotices from "../CartNotices/CartNotices";
 import { usePublishedHeight } from "../../../lib/usePublishedHeight";
+import { useSignIn } from "../../../lib/useSignIn";
 import "./CartListItems.css";
 
 interface CartListItemsProps {
@@ -90,7 +91,11 @@ const CartListItems = ({ handleShowFbk }: CartListItemsProps) => {
   // Sets every row's wanted count at once; each row's own loop then brings
   // the BE round to it, so a second click before they land just changes the
   // target again instead of claiming everything twice.
+  const { known, signedIn, signInFirst } = useSignIn();
   const handleToggleAll = () => {
+    // As each row's checkbox: a guest signs in first.
+    if (!known) return;
+    if (!signedIn) return signInFirst();
     for (const item of visibleItems) {
       const menuId = menuIdOf(item);
       if (!menuId) continue;

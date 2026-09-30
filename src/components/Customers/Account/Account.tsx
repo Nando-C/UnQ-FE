@@ -1,4 +1,4 @@
-import { Card, Container, Image, Button } from "react-bootstrap";
+import { Alert, Card, Container, Image, Button } from "react-bootstrap";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { logOut, selectUserData, selectUserStatus } from "../../../redux/slices/userSlice";
 import { GrEdit } from "react-icons/gr";
@@ -8,6 +8,7 @@ import AccountOffCanvas from "../AccountOffCanvas/AccountOffCanvas";
 import { useNavigate } from "react-router-dom";
 import Login from "../../Login/Login";
 import { usePageTitle } from "../../../lib/usePageTitle";
+import { takeReturnTo } from "../../../lib/returnTo";
 
 const Account = () => {
   const user = useAppSelector(selectUserData);
@@ -22,9 +23,23 @@ const Account = () => {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  const logMeOut = () => {
-    dispatch(logOut());
-    navigate("/login");
+  // Only once the session has ended: if it hasn't, they're still signed in
+  // and are told so, rather than shown the sign-in form.
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutFailed, setLogoutFailed] = useState(false);
+  const logMeOut = async () => {
+    setLogoutFailed(false);
+    setLoggingOut(true);
+    try {
+      await dispatch(logOut()).unwrap();
+      // Whoever signs in next starts afresh, not at this account's table.
+      takeReturnTo();
+      navigate("/login");
+    } catch {
+      setLogoutFailed(true);
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -57,9 +72,14 @@ const Account = () => {
               <GrEdit />
             </Button>
           </Card>
-          <Button className="my-5" onClick={logMeOut}>
+          <Button className="my-5" onClick={logMeOut} disabled={loggingOut}>
             Log out
           </Button>
+          {logoutFailed && (
+            <Alert variant="danger">
+              Couldn't log out. Check your connection and try again.
+            </Alert>
+          )}
         </Container>
       ) : status === "guest" ? (
         <Login />

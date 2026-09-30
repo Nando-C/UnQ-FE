@@ -35,6 +35,8 @@ interface PendingAction {
   danger: boolean;
   send: () => Promise<{ data: unknown }>;
   done: (data: unknown) => string;
+  // Once it has been sent, whatever came of it (not when it's cancelled).
+  onSent?: () => void;
 }
 type Ask = (action: PendingAction) => void;
 
@@ -126,6 +128,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
     } finally {
       setBusy(false);
       setPending(null);
+      pending.onSent?.();
       load();
       onChanged?.();
     }
@@ -568,15 +571,17 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                 {p.status === "pending" || p.status === "failed" ? null : !p.providerPaymentId ? (
                   <div className="small text-body-secondary">Refund this payment from PayPal.</div>
                 ) : refunding === p._id ? (
+                  // Stays open (locked) while the refund is asked about, so Cancel
+                  // comes back to the picks as they were, and to Review refund.
                   <RefundPicker
                     payment={p}
                     leftOf={leftOf}
+                    disabled={disabled}
                     onCancel={() => setRefunding(null)}
                     onReview={(lines, amount) => {
                       const what = lines
                         .map((l) => units(l.qty, p.lines.find((pl) => pl.menuId === l.menuId)?.name))
                         .join(", ");
-                      setRefunding(null);
                       ask({
                         message:
                           `Refund ${formatPrice(amount)} to ${who} for ${what}? PayPal returns it to their account, ` +
@@ -585,6 +590,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                         danger: true,
                         send: sendRefund(cart._id, { paymentId: p._id, lines }),
                         done: () => `Refunded ${formatPrice(amount)} to ${who}.`,
+                        onSent: () => setRefunding(null),
                       });
                     }}
                   />
@@ -625,11 +631,13 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
 interface RefundPickerProps {
   payment: IPayment;
   leftOf: (line: IPayment["lines"][number]) => number;
+  // While any action in the sheet is being confirmed or sent.
+  disabled: boolean;
   onCancel: () => void;
   onReview: (lines: { menuId: string; qty: number }[], amount: number) => void;
 }
 
-const RefundPicker = ({ payment, leftOf, onCancel, onReview }: RefundPickerProps) => {
+const RefundPicker = ({ payment, leftOf, disabled, onCancel, onReview }: RefundPickerProps) => {
   const [picks, setPicks] = useState<Record<string, number>>({});
   const lines = payment.lines.filter((l) => leftOf(l) > 0);
   const amount =
@@ -650,7 +658,7 @@ const RefundPicker = ({ payment, leftOf, onCancel, onReview }: RefundPickerProps
               <Button
                 variant="link"
                 className="hit-44"
-                disabled={qty <= 0}
+                disabled={disabled || qty <= 0}
                 onClick={() => set(l.menuId, qty - 1)}
                 aria-label={`Refund one fewer ${l.name}`}
               >
@@ -660,7 +668,7 @@ const RefundPicker = ({ payment, leftOf, onCancel, onReview }: RefundPickerProps
               <Button
                 variant="link"
                 className="hit-44"
-                disabled={qty >= left}
+                disabled={disabled || qty >= left}
                 onClick={() => set(l.menuId, qty + 1)}
                 aria-label={`Refund one more ${l.name}`}
               >
@@ -675,12 +683,12 @@ const RefundPicker = ({ payment, leftOf, onCancel, onReview }: RefundPickerProps
           Refund <strong className="text-nowrap">{formatPrice(amount)}</strong>
         </span>
         <div className="d-flex gap-2">
-          <Button variant="outline-secondary" onClick={onCancel}>
+          <Button variant="outline-secondary" disabled={disabled} onClick={onCancel}>
             Cancel
           </Button>
           <Button
             variant="danger"
-            disabled={amount <= 0}
+            disabled={disabled || amount <= 0}
             onClick={() =>
               onReview(
                 lines

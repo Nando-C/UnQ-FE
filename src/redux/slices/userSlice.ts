@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { AxiosResponse } from "axios";
+import axios, { AxiosResponse } from "axios";
 import backend from "../../backend/backend";
 import { IUser, IUserStore } from "../../typings/user";
 import { RootState } from "../app/store";
@@ -22,9 +22,14 @@ export const fetchUserData = createAsyncThunk("user/fetchUserData", async () => 
     const { data }: AxiosResponse<IUser> = await backend.get("users/me")
     return data
 })
+// Ends the session. One that had already ended (still a 401 after the refresh
+// the interceptor tries) counts as logged out too.
 export const logOut = createAsyncThunk("user/logOut", async () => {
-    const { data } = await backend.get("/auth/logout")
-    return data
+    try {
+        await backend.get("/auth/logout")
+    } catch (err) {
+        if (!(axios.isAxiosError(err) && err.response?.status === 401)) throw err
+    }
 })
 
 export const userSlice = createSlice({
