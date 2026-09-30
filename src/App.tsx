@@ -27,7 +27,7 @@ function App() {
   const isManager = userDataStore.role === "shopMg" ? true : false;
 
   return (
-    <div className="App bg-light">
+    <div className={isManager ? "App bg-light is-manager" : "App bg-light"}>
       <Router>
         {/* Hidden until focused: the first Tab stop skips the header. */}
         <a className="visually-hidden-focusable skip-link" href="#main">

@@ -6,7 +6,6 @@ import {
   Row,
   Col,
   Button,
-  Image,
   ListGroup,
   Container,
 } from "react-bootstrap";
@@ -58,88 +57,115 @@ const ShopDetails = () => {
   return (
     <Container id="shopDetails" className="ShopDetails">
       {/* The shop's name heads the page; its details, menu and tables are
-          its sections, each with its own actions on the right. */}
-      <div className="page-head">
-        <h1>
-          {shop ? (
-            shop.name
-          ) : failed ? (
-            "Shop"
-          ) : (
-            <span className="placeholder-glow" aria-hidden="true">
-              <span className="placeholder col-6" />
-            </span>
-          )}
-        </h1>
-      </div>
-      <div className="page-head">
-        <h2 className="h5">Details</h2>
-        {shop && (
-          <div className="actions">
-            <Button onClick={handleShow}>Edit details</Button>
-          </div>
-        )}
-      </div>
+          its sections, each with its own actions on the right. While the
+          shop loads, only the heading and a placeholder card show, and the
+          page is swapped whole once it arrives: nothing below the heading is
+          on screen to be pushed down, however many lines the name wraps to. */}
       {shop ? (
-        <Card>
-          <Row className="align-items-center">
-            <Col xs={12} md={6}>
-              <Container className="p-3">
-                <Image src={shop.cover} fluid />
-              </Container>
-            </Col>
-            <Col xs={12} md={6}>
-              <Card.Body className="ms-2">
-                <ListGroup className="align-items-start" variant="flush">
-                  <ListGroup.Item>
-                    <Card.Text>{shop.bio}</Card.Text>
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <FcClock className="me-2" size={25} />
-                    {shop.open_times}
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <FcCellPhone className="me-2" size={25} />
-                    {shop.phone}
-                  </ListGroup.Item>
-                  <ListGroup.Item>
-                    <FcAddressBook className="me-2" size={25} />
-                    <Card.Link
-                      className="shop-url d-inline-block py-1"
-                      href={shop.web_URL}
-                    >
-                      {shop.web_URL}
-                    </Card.Link>
-                  </ListGroup.Item>
-                </ListGroup>
-              </Card.Body>
-            </Col>
-          </Row>
-        </Card>
-      ) : failed ? (
-        <LoadFailed
-          message="Couldn't load this shop."
-          onRetry={() => dispatch(fetchSingleShop(shopId))}
-        />
-      ) : (
-        <Loading label="Loading the shop">
-          <Card className="p-3">
+        <div key="shop">
+          <div className="page-head">
+            <h1>{shop.name}</h1>
+          </div>
+          <div className="page-head">
+            <h2 className="h5">Details</h2>
+            <div className="actions">
+              <Button onClick={handleShow}>Edit details</Button>
+            </div>
+          </div>
+          <Card>
             <Row className="align-items-center">
               <Col xs={12} md={6}>
-                <span className="placeholder w-100 d-block" style={{ aspectRatio: "16 / 9" }} />
+                {/* A 16:9 box kept from the start (ShopDetails.css), so the
+                    details don't move when the photo loads. */}
+                <div className="shop-cover m-3">
+                  {shop.cover && <img src={shop.cover} alt="" />}
+                </div>
               </Col>
-              <Col xs={12} md={6} className="pt-3 pt-md-0">
-                <span className="placeholder col-11 d-block mb-2" />
-                <span className="placeholder col-6 d-block mb-2" />
-                <span className="placeholder col-7 d-block" />
+              <Col xs={12} md={6}>
+                <Card.Body className="ms-2">
+                  <ListGroup className="align-items-start" variant="flush">
+                    <ListGroup.Item>
+                      <Card.Text>{shop.bio}</Card.Text>
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      <FcClock className="me-2" size={25} />
+                      {shop.open_times}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      <FcCellPhone className="me-2" size={25} />
+                      {shop.phone}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      <FcAddressBook className="me-2" size={25} />
+                      <Card.Link
+                        className="shop-url d-inline-block py-1"
+                        href={shop.web_URL}
+                      >
+                        {shop.web_URL}
+                      </Card.Link>
+                    </ListGroup.Item>
+                  </ListGroup>
+                </Card.Body>
               </Col>
             </Row>
           </Card>
-        </Loading>
+          <ShopMenu shopId={shopId} />
+          <TableList shopId={shopId} />
+        </div>
+      ) : (
+        <div key="loading">
+          <div className="page-head">
+            <h1>
+              {failed ? (
+                "Shop"
+              ) : (
+                <span className="placeholder-glow" aria-hidden="true">
+                  <span className="placeholder col-6" />
+                </span>
+              )}
+            </h1>
+          </div>
+          {failed ? (
+            <>
+              <LoadFailed
+                message="Couldn't load this shop."
+                onRetry={() => dispatch(fetchSingleShop(shopId))}
+              />
+              {/* The manager's own copy of the menu and tables may still
+                  have loaded. */}
+              <ShopMenu shopId={shopId} />
+              <TableList shopId={shopId} />
+            </>
+          ) : (
+            <Loading label="Loading the shop">
+              {/* The real card's layout, with bars for its lines. */}
+              <Card>
+                <Row className="align-items-center">
+                  <Col xs={12} md={6}>
+                    <div className="shop-cover m-3" />
+                  </Col>
+                  <Col xs={12} md={6}>
+                    <Card.Body className="ms-2">
+                      <ListGroup variant="flush">
+                        <ListGroup.Item>
+                          <span className="placeholder col-11 d-block mb-2" />
+                          <span className="placeholder col-8 d-block" />
+                        </ListGroup.Item>
+                        {["col-6", "col-5", "col-7"].map((width) => (
+                          <ListGroup.Item key={width} className="py-2">
+                            <span className={`placeholder ${width} placeholder-lg`} />
+                          </ListGroup.Item>
+                        ))}
+                      </ListGroup>
+                    </Card.Body>
+                  </Col>
+                </Row>
+              </Card>
+            </Loading>
+          )}
+        </div>
       )}
       <ShopModal show={show} handleClose={handleClose} shopId={shopId} />
-      <ShopMenu shopId={shopId} />
-      <TableList shopId={shopId} />
     </Container>
   );
 };

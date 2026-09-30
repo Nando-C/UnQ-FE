@@ -157,10 +157,17 @@ const CartItem = ({ cartId, itemId }: CartItemProps) => {
               </Badge>
             )}
           </Card.Subtitle>
-          <small className="cart-meta d-block">
-            in cart: {remaining}
-            {fullyClaimed && !soldOut && " · claimed by others"}
-          </small>
+          {/* How many units are still free for someone at the table to pick
+              and pay for. A sold-out row's note below says what applies. */}
+          {!soldOut && (
+            <small className="cart-meta d-block">
+              {fullyClaimed
+                ? "All claimed by others"
+                : remaining > 0
+                  ? `${remaining} left to pick`
+                  : "All picked"}
+            </small>
+          )}
           {/* Why a change was undone (the count has already snapped back).
               Always mounted: a live region inserted with its text is often
               not announced. */}

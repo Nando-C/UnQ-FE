@@ -8,6 +8,7 @@ import { AiOutlineHome } from "react-icons/ai";
 import { IoCartOutline } from "react-icons/io5";
 import { FaRegUserCircle } from "react-icons/fa";
 import { unpaidQty } from "../../../lib/cart";
+import { usePublishedHeight } from "../../../lib/usePublishedHeight";
 import "./NavigationBar.css";
 import { tablePath } from "../../../lib/paths";
 import {
@@ -35,19 +36,7 @@ const NavigationBar = () => {
   // --unq-footer-h, which NavigationBar.css turns into the page's bottom
   // scroll padding, so a control reached with Tab is never left under the bar.
   const barRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const bar = barRef.current;
-    if (!bar || typeof ResizeObserver === "undefined") return;
-    const root = document.documentElement;
-    const observer = new ResizeObserver(() =>
-      root.style.setProperty("--unq-footer-h", `${bar.offsetHeight}px`)
-    );
-    observer.observe(bar);
-    return () => {
-      observer.disconnect();
-      root.style.removeProperty("--unq-footer-h");
-    };
-  }, []);
+  usePublishedHeight(barRef, "--unq-footer-h");
 
   const items = useAppSelector(selectCartsData).items.filter((item) => unpaidQty(item) > 0);
   const itemsQty = items.reduce((total, item) => total + unpaidQty(item), 0);

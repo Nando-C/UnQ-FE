@@ -12,3 +12,27 @@
   margin-left: auto;
   text-align: right;
 }
+
+/* The checkout button, under the list, with room below it to scroll clear of
+ * the fixed tab bar. */
+.checkout-bar {
+  padding-top: 3rem;
+  padding-bottom: 4rem;
+}
+
+/* On phones it stays in view: pinned just above the tab bar (whose height is
+ * --unq-footer-h), full width, on white like the bar. Its bottom margin keeps
+ * room below it when scrolled to the end, so it never covers the last row. */
+@media (max-width: 767.98px) {
+  .checkout-bar {
+    position: sticky;
+    bottom: var(--unq-footer-h, 0px);
+    z-index: 2;
+    margin-top: 1.5rem;
+    margin-bottom: var(--unq-footer-h, 0px);
+    margin-inline: calc(var(--bs-gutter-x) * -0.5);
+    padding: 0.75rem calc(var(--bs-gutter-x) * 0.5);
+    background-color: var(--bs-body-bg);
+    border-top: 1px solid var(--bs-border-color);
+  }
+}

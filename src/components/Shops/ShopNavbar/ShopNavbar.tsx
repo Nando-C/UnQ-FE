@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Container, Navbar } from "react-bootstrap";
 import { FaRegUserCircle } from "react-icons/fa";
 import { Link, NavLink, useMatch } from "react-router-dom";
@@ -7,6 +7,7 @@ import { useAppSelector } from "../../../redux/app/hooks";
 import { selectSelectedShop } from "../../../redux/slices/shopSlice";
 import ShopSectionNav from "../ShopSectionNav/ShopSectionNav";
 import ShopName from "./ShopName";
+import { usePublishedHeight } from "../../../lib/usePublishedHeight";
 import "./ShopNavbar.css";
 
 // The manager header. One row: the logo, a breadcrumb ("My Shops" on its own, or
@@ -30,19 +31,7 @@ const ShopNavbar = () => {
   // the page's scroll padding, so jumping to a section never lands it under the header;
   // ShopDetails pads its top by it; ShopSectionNav uses it to follow the scroll.
   const headerRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const header = headerRef.current;
-    if (!header || typeof ResizeObserver === "undefined") return;
-    const root = document.documentElement;
-    const observer = new ResizeObserver(() =>
-      root.style.setProperty("--unq-header-h", `${header.offsetHeight}px`)
-    );
-    observer.observe(header);
-    return () => {
-      observer.disconnect();
-      root.style.removeProperty("--unq-header-h");
-    };
-  }, []);
+  usePublishedHeight(headerRef, "--unq-header-h");
 
   return (
     <header ref={headerRef} className="ShopHeader fixed-top">

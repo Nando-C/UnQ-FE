@@ -1,6 +1,7 @@
 /* Clears the manager's fixed header when there is one (ShopNavbar publishes
- * its height as --unq-header-h); customers have none. */
+ * its height as --unq-header-h, and until then App.css's --header-guess stands
+ * in); customers have none. */
 .NotFound {
-  padding-top: calc(var(--unq-header-h, 0px) + 3rem);
+  padding-top: calc(var(--unq-header-h, var(--header-guess, 0px)) + 3rem);
   padding-bottom: 3rem;
 }

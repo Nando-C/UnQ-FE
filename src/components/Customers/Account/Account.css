@@ -1,8 +1,9 @@
 /* Managers have a fixed header (ShopNavbar publishes its height as
- * --unq-header-h); customers don't, so theirs falls back to 0. Keeps the
- * header off the top of the card. */
+ * --unq-header-h, and until then App.css's --header-guess stands in);
+ * customers don't, so theirs falls back to 0. Keeps the header off the top of
+ * the card. */
 .Account {
-  padding-top: calc(var(--unq-header-h, 0px) + 0.5rem);
+  padding-top: calc(var(--unq-header-h, var(--header-guess, 0px)) + 0.5rem);
 }
 
 .Account > .card {

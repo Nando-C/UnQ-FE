@@ -41,6 +41,11 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
+  // Shown once the manager's shops have loaded (the menu above shows
+  // placeholders meanwhile): with nothing below the menu while it loads,
+  // however many items it turns out to have, nothing on screen is pushed down.
+  if (!shop) return null;
+
   return (
     <section id="tableList" className="shop-section" aria-labelledby="table-list-heading">
       <div className="page-head d-print-none">
@@ -66,10 +71,10 @@ const TableList = ({ shopId }: ShopMenuProps) => {
 
       {/* Paper only. A printed sheet of codes is useless if you cannot tell which shop
           it belongs to, but that heading would be redundant on screen. */}
-      <h2 className="d-none d-print-block mb-4">{shop?.name}</h2>
+      <h2 className="d-none d-print-block mb-4">{shop.name}</h2>
 
       <Row>
-        {shop?.tables.map((table) => (
+        {shop.tables.map((table) => (
           <Col key={table._id} className="mb-4" sm={12} md={6} lg={4} xl={3}>
             <SingleTable
               shopId={shopId}

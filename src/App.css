@@ -23,3 +23,11 @@
 #main:focus {
   outline: 0;
 }
+
+/* A manager's pages sit under the fixed header, whose height (--unq-header-h)
+ * is only known once it has been measured, a moment after it appears. Until
+ * then they allow for its usual height, in rem as it grows with the text size
+ * (55px at 16px), so the page doesn't drop when the measurement lands. */
+.App.is-manager {
+  --header-guess: 3.4375rem;
+}

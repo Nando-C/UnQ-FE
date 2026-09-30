@@ -20,8 +20,9 @@
 // text under 12px, stretched images, sheets or dialogs whose content has to
 // be scrolled, runtime errors on the page.
 // Also errors: an id used twice (it breaks label and ARIA links), a control
-// reached with Tab that ends up under a fixed header or bottom bar, and a page
-// without exactly one main region and one h1.
+// reached with Tab that ends up under a fixed header or bottom bar, a page
+// without exactly one main region and one h1, and layout shift (CLS) over 0.1
+// while the page loads.
 
 import { chromium } from "playwright-core"
 import { createServer } from "vite"
@@ -257,7 +258,8 @@ function covered(where) {
   const fixed = [...document.querySelectorAll("body *")].filter((el) => {
     const cs = getComputedStyle(el)
     const r = el.getBoundingClientRect()
-    return cs.position === "fixed" && r.width > 0 && r.height > 0 && r.height < vh * 0.5 && !el.closest(".offcanvas, .modal")
+    // Fixed bars, and sticky ones (the cart's checkout bar on phones).
+    return (cs.position === "fixed" || cs.position === "sticky") && r.width > 0 && r.height > 0 && r.height < vh * 0.5 && !el.closest(".offcanvas, .modal")
   })
   const inFixed = (el) => fixed.some((f) => f.contains(el))
   const content = [...document.querySelectorAll("body *")].filter((el) => {
@@ -301,7 +303,8 @@ function focusUnderBar() {
   if (getComputedStyle(el).position === "fixed") return null
   let top = 0, bottom = innerHeight
   for (const bar of document.querySelectorAll("body *")) {
-    if (getComputedStyle(bar).position !== "fixed" || bar.contains(el) || bar.closest(".offcanvas, .modal")) continue
+    const pos = getComputedStyle(bar).position
+    if ((pos !== "fixed" && pos !== "sticky") || bar.contains(el) || bar.closest(".offcanvas, .modal")) continue
     const b = bar.getBoundingClientRect()
     if (!b.width || !b.height || b.height > innerHeight * 0.5) continue
     if (b.top <= 1) top = Math.max(top, b.bottom)
@@ -382,6 +385,13 @@ const run = async ([id, role, url, action], vp) => {
   await page.route("https://img.fixtures.test/**", (route) =>
     route.fulfill({ contentType: "image/svg+xml", body: placeholder(route.request().url()) })
   )
+  // Layout shift (CLS): how much visible content jumps as the page loads.
+  await page.addInitScript(() => {
+    window.__cls = 0
+    new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value
+    }).observe({ type: "layout-shift", buffered: true })
+  })
   if (vp.text) {
     await page.addInitScript((scale) => {
       document.addEventListener("DOMContentLoaded", () => {
@@ -405,6 +415,11 @@ const run = async ([id, role, url, action], vp) => {
     }
     await page.goto(BASE + url, { waitUntil: "networkidle", timeout: 30000 })
     await settle(page)
+    // Layout shift is read here, once the page has loaded: before any action
+    // (opening a sheet or dialog is a change the viewer asked for) and before
+    // the checks below scroll the page.
+    const cls = await page.evaluate(() => window.__cls)
+    if (cls > 0.1) r.errors.push({ kind: "layout shift", text: `CLS ${cls.toFixed(3)} while loading (over 0.1)` })
     if (action) {
       // An action is one control to click, or several in turn (a dialog
       // opened from inside another).
@@ -528,7 +543,7 @@ const lines = [
   "",
   `${new Date().toISOString().slice(0, 16).replace("T", " ")} UTC · ${screens.length} screens × ${viewports.length} viewports`,
   "",
-  "✗ errors (overflow, spill out of a card/sheet/dialog, control under 24px, content or a focused control under a fixed bar, duplicate id, not exactly one main and one h1) · ⚠ warnings (control under 44×32: both sides under 44px or one under 32px, inline link under 24px, text under 12px, stretched image, sheet or dialog content scrolled out of view, page error). Counts are distinct findings.",
+  "✗ errors (overflow, spill out of a card/sheet/dialog, control under 24px, content or a focused control under a fixed bar, duplicate id, not exactly one main and one h1, layout shift over 0.1) · ⚠ warnings (control under 44×32: both sides under 44px or one under 32px, inline link under 24px, text under 12px, stretched image, sheet or dialog content scrolled out of view, page error). Counts are distinct findings.",
   "",
   `| Screen | ${viewports.map((v) => v.name).join(" | ")} |`,
   `|---|${viewports.map(() => "---").join("|")}|`,

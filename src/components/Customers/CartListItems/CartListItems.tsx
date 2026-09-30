@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Alert, ListGroup, Row, Button, Form } from "react-bootstrap";
+import { useEffect, useRef, useState } from "react";
+import { Alert, ListGroup, Button, Form } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
@@ -16,6 +16,7 @@ import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
 import type { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
 import CartNotices from "../CartNotices/CartNotices";
+import { usePublishedHeight } from "../../../lib/usePublishedHeight";
 import "./CartListItems.css";
 
 interface CartListItemsProps {
@@ -144,6 +145,9 @@ const CartListItems = ({ handleShowFbk }: CartListItemsProps) => {
 
   const remainingCartTotal = totalUnpaid - totalSplit;
 
+  const checkoutRef = useRef<HTMLDivElement>(null);
+  usePublishedHeight(checkoutRef, "--unq-checkout-h");
+
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -190,20 +194,21 @@ const CartListItems = ({ handleShowFbk }: CartListItemsProps) => {
         ))}
       </ListGroup>
 
-      <Row className="mx-1 py-5">
+      {/* On phones it stays in view above the tab bar while the diner picks
+          (CartListItems.css); its height feeds the page's scroll padding, so
+          a row reached with Tab isn't left under it. */}
+      <div ref={checkoutRef} className="checkout-bar d-grid">
         {holdsSoldOut ? (
-          <Button disabled className="mb-3">
-            Remove sold-out items to check out
-          </Button>
+          <Button disabled>Remove sold-out items to check out</Button>
         ) : (
           // Only my own selection is charged (the BE totals my open splits), so
           // that's the amount shown, and with nothing selected there's nothing
           // to pay.
-          <Button onClick={handleShow} disabled={syncing || mySplit <= 0} className="mb-3">
+          <Button onClick={handleShow} disabled={syncing || mySplit <= 0}>
             Check out <strong>{formatPrice(mySplit)}</strong>
           </Button>
         )}
-      </Row>
+      </div>
       <CheckOut
         show={show}
         handleClose={handleClose}
