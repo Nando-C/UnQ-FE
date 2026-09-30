@@ -201,6 +201,98 @@ describe("opening one shop after another", () => {
   })
 })
 
+describe("a shop's menu", () => {
+  const renderMenu = (selected: IShop | null) =>
+    renderWithProviders(<TableMenu />, {
+      route: "/shops/s1/tables/t1",
+      path: "/shops/:shopId/tables/:tableId",
+      preloadedState: { shops: { all: [], data: [], selected, selectedMenu: null } },
+    })
+
+  it("shows placeholders, never the shop opened before, until this one arrives", async () => {
+    const answer = gate()
+    server.use(
+      http.get(`${BASE}/shops/s1`, async () => {
+        await answer.opened
+        return HttpResponse.json(cafe)
+      })
+    )
+    renderMenu(other)
+
+    expect(screen.getByText("Loading the menu")).toBeInTheDocument()
+    expect(screen.queryByText("Other Place")).not.toBeInTheDocument()
+
+    answer.open()
+    expect(await screen.findByText("Cafe")).toBeInTheDocument()
+    expect(screen.getByText("Latte")).toBeInTheDocument()
+    expect(screen.queryByText("Loading the menu")).not.toBeInTheDocument()
+  })
+
+  it("offers to try again when the menu can't be loaded", async () => {
+    let fail = true
+    server.use(
+      http.get(`${BASE}/shops/s1`, () =>
+        fail ? HttpResponse.json({ message: "Generic Server Error" }, { status: 500 }) : HttpResponse.json(cafe)
+      )
+    )
+    const { user } = renderMenu(null)
+
+    expect(await screen.findByText("Couldn't load this menu.")).toBeInTheDocument()
+    fail = false
+    await user.click(screen.getByRole("button", { name: "Try again" }))
+
+    expect(await screen.findByText("Latte")).toBeInTheDocument()
+  })
+
+  it("says when nothing matches the search, and clears it", async () => {
+    server.use(http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)))
+    const { user } = renderMenu(cafe)
+
+    await user.type(screen.getByLabelText("Search Menu"), "tea")
+    expect(screen.getByText(/No dishes match “tea”/)).toBeInTheDocument()
+    expect(screen.queryByText("Latte")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }))
+    expect(screen.getByText("Latte")).toBeInTheDocument()
+    expect(screen.queryByText(/No dishes match/)).not.toBeInTheDocument()
+  })
+})
+
+describe("the shop list", () => {
+  it("shows placeholders until the shops arrive", () => {
+    renderWithProviders(<AllShopsList />, { preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, allStatus: "loading" } } })
+
+    expect(screen.getByText("Loading shops")).toBeInTheDocument()
+  })
+
+  it("says when no shop matches the search", async () => {
+    const { user } = renderWithProviders(<AllShopsList />, {
+      preloadedState: { shops: { all: [cafe], data: [], selected: null, selectedMenu: null, allStatus: "ready" } },
+    })
+
+    await user.type(screen.getByLabelText("Search Shop"), "pizza")
+
+    expect(screen.getByText(/No shops match “pizza”/)).toBeInTheDocument()
+  })
+
+  it("offers to try again when the shops can't be loaded", async () => {
+    server.use(http.get(`${BASE}/shops/`, () => HttpResponse.json([cafe])))
+    const { user } = renderWithProviders(<AllShopsList />, {
+      preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, allStatus: "failed" } },
+    })
+
+    await user.click(screen.getByRole("button", { name: "Try again" }))
+
+    expect(await screen.findByText("Cafe")).toBeInTheDocument()
+  })
+
+  it("on My Shops, shows placeholders until the manager's shops arrive", () => {
+    renderWithProviders(<ShopList />, { preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, dataStatus: "loading" } } })
+
+    expect(screen.getByText("Loading your shops")).toBeInTheDocument()
+  })
+})
+
 describe("an address no page answers", () => {
   it("says the page wasn't found and links home", async () => {
     window.history.pushState({}, "", "/no-such-page")
