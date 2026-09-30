@@ -87,13 +87,19 @@ export const shopsSlice = createSlice({
         builder.addCase(fetchShopList.rejected, (state) => {
             state.dataStatus = "failed"
         })
+        // Only the latest fetch counts: an answer for the shop opened before
+        // this one, arriving late, would otherwise replace it (and leave its
+        // page waiting for a shop that never comes).
         builder.addCase(fetchSingleShop.pending, (state, action) => {
+            state.selectedRequestId = action.meta.requestId
             if (state.selectedFailed === action.meta.arg) delete state.selectedFailed
         })
         builder.addCase(fetchSingleShop.fulfilled, (state, action) => {
+            if (action.meta.requestId !== state.selectedRequestId) return
             state.selected = action.payload
         })
         builder.addCase(fetchSingleShop.rejected, (state, action) => {
+            if (action.meta.requestId !== state.selectedRequestId) return
             state.selectedFailed = action.meta.arg
         })
         builder.addCase(fetchMenuItem.fulfilled, (state, action) => {

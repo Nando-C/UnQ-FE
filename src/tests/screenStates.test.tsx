@@ -9,6 +9,7 @@ import TableMenu from "../components/Customers/TableMenu/TableMenu"
 import AllShopsList from "../components/Customers/AllShopsList/AllShopsList"
 import ShopList from "../components/Shops/ShopList/ShopList"
 import { getTableCart } from "../redux/slices/cartSlice"
+import { fetchSingleShop } from "../redux/slices/shopSlice"
 import { makeStore, renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
 import type { ICart } from "../typings/cart"
@@ -17,7 +18,7 @@ import type { IShop } from "../typings/shop"
 
 const latte: IMenu = { _id: "m1", name: "Latte", image: "", short_description: "Hot", description: "", price: 3, available: true, category: "drinks" }
 const cafe = { _id: "s1", name: "Cafe", cover: "", bio: "Coffee", menu: [latte], tables: [{ _id: "t1", name: "Window", Qr_Url: "" }] } as unknown as IShop
-const other = { ...cafe, _id: "s2", name: "Other Place" } as IShop
+const other = { ...cafe, _id: "s2", name: "Other Place", tables: [] } as IShop
 const cart: ICart = {
   _id: "c1", userId: "u1", tableId: "t1", status: "open",
   items: [{ _id: "i1", menuId: latte, qty: 1, qtyPayed: 0 }], split: [],
@@ -95,6 +96,81 @@ describe("the cart page", () => {
     await store.dispatch(getTableCart("t1"))
 
     expect(store.getState().carts.loaded).toEqual({ tableId: "t1", failed: false })
+  })
+
+  it("counts no table as answered once moving to another table clears the cart", async () => {
+    const answer = gate()
+    server.use(
+      http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cart)),
+      http.get(`${BASE}/carts/tables/t2`, async () => {
+        await answer.opened
+        return HttpResponse.json({ message: "Cart Not Found!" }, { status: 404 })
+      })
+    )
+    const store = makeStore()
+
+    await store.dispatch(getTableCart("t1"))
+    const toT2 = store.dispatch(getTableCart("t2"))
+
+    // Back to t1 now would otherwise count t1's cleared cart as its answer.
+    expect(store.getState().carts.loaded).toBeUndefined()
+    answer.open()
+    await toT2
+  })
+
+  it("names the table even when the store still holds another shop", async () => {
+    server.use(
+      http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)),
+      http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cart))
+    )
+    renderWithProviders(<Cart />, {
+      route: "/shops/s1/tables/t1/cart",
+      path: "/shops/:shopId/tables/:tableId/cart",
+      preloadedState: { shops: { all: [], data: [], selected: other, selectedMenu: null } },
+    })
+
+    expect(await screen.findByText("Table: Window")).toBeInTheDocument()
+  })
+})
+
+describe("opening one shop after another", () => {
+  it("keeps the latest shop when an earlier one answers late, or fails late", async () => {
+    const late = gate()
+    server.use(
+      http.get(`${BASE}/shops/s2`, async () => {
+        await late.opened
+        return HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })
+      }),
+      http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe))
+    )
+    const store = makeStore()
+
+    const first = store.dispatch(fetchSingleShop("s2"))
+    await store.dispatch(fetchSingleShop("s1"))
+    late.open()
+    await first
+
+    expect(store.getState().shops.selected?._id).toBe("s1")
+    expect(store.getState().shops.selectedFailed).toBeUndefined()
+  })
+
+  it("ignores an earlier shop's answer that lands after the latest one", async () => {
+    const late = gate()
+    server.use(
+      http.get(`${BASE}/shops/s2`, async () => {
+        await late.opened
+        return HttpResponse.json(other)
+      }),
+      http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe))
+    )
+    const store = makeStore()
+
+    const first = store.dispatch(fetchSingleShop("s2"))
+    await store.dispatch(fetchSingleShop("s1"))
+    late.open()
+    await first
+
+    expect(store.getState().shops.selected?._id).toBe("s1")
   })
 })
 

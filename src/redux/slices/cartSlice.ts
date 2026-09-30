@@ -222,6 +222,9 @@ export const cartsSlice = createSlice({
             state.cartRequestId = action.meta.requestId
             if (state.data.tableId && state.data.tableId !== action.meta.arg) {
                 clearCart(state)
+                // The answer it was loaded from no longer shows, so no table
+                // counts as answered until its own fetch lands.
+                delete state.loaded
             }
         })
         builder.addCase(getTableCart.fulfilled, (state, action) => {

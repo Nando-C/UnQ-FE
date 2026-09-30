@@ -11,6 +11,7 @@ import {
 } from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
+  selectSelectedFailed,
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
 import CartListItems from "../CartListItems/CartListItems";
@@ -29,7 +30,11 @@ const Cart = () => {
     tableId: string;
   }>();
 
-  const shop = useAppSelector(selectSelectedShop);
+  // The store may hold another shop (opened before); only this one names the
+  // table. Once it has loaded, a table it doesn't list shows no name.
+  const selected = useAppSelector(selectSelectedShop);
+  const shop = selected?._id === shopId ? selected : null;
+  const shopFailed = useAppSelector(selectSelectedFailed) === shopId;
   const tableName =
     shop?.tables.find((table) => table._id === tableId)?.name ?? "";
 
@@ -46,11 +51,14 @@ const Cart = () => {
     dispatch(storeCartPointers({ shopId, tableId }));
   }, [dispatch, shopId, tableId]);
 
+  // Keyed on whether this shop is in hand, not on the object, so a refetch
+  // of it elsewhere doesn't start another here.
+  const haveShop = !!shop;
   useEffect(() => {
-    if (shopId && !shop) {
+    if (shopId && !haveShop) {
       dispatch(fetchSingleShop(shopId));
     }
-  }, [dispatch, shopId, shop]);
+  }, [dispatch, shopId, haveShop]);
 
   const cart = useAppSelector(selectCartsData);
   // Until the BE has answered for this table, an empty cart only means "not
@@ -96,11 +104,11 @@ const Cart = () => {
               <Card.Subtitle className="cart-table-name">
                 {tableName ? (
                   <span>Table: {tableName}</span>
-                ) : (
+                ) : !shop && !shopFailed ? (
                   <span className="placeholder-glow" aria-hidden="true">
                     <span className="placeholder col-6" />
                   </span>
-                )}
+                ) : null}
               </Card.Subtitle>
             </Col>
           )}
