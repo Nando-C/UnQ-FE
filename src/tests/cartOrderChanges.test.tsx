@@ -48,7 +48,7 @@ const renderCart = (cart: ICart, user = me) => {
     <Provider store={store}>
       <MemoryRouter initialEntries={["/shops/s1/tables/t1/cart"]}>
         <Routes>
-          <Route path="/shops/:shopId/tables/:tableId/cart" element={<CartListItems />} />
+          <Route path="/shops/:shopId/tables/:tableId/cart" element={<CartListItems handleShowFbk={() => {}} />} />
           <Route path="/login" element={<p>login page</p>} />
         </Routes>
       </MemoryRouter>

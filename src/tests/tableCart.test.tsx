@@ -35,7 +35,7 @@ const cartFor = (tableId: string, split: ICart["split"] = []): ICart => ({
 })
 
 const renderCart = (cart: ICart) =>
-  renderWithProviders(<CartListItems />, {
+  renderWithProviders(<CartListItems handleShowFbk={() => {}} />, {
     preloadedState: {
       user: { data: me, status: "authenticated" },
       carts: { data: structuredClone(cart), pointers: { shopId: "s1", tableId: cart.tableId } },

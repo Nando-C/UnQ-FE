@@ -194,7 +194,7 @@ describe("diner's Total paid", () => {
       split: [{ _id: "s1", userId: "u2", menuId: menu("m1", "Latte", 9), qty: 1, splitStatus: "closed", unitPrice: 3 }],
     }
     server.use(http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cart)))
-    renderWithProviders(<CartListItems />, {
+    renderWithProviders(<CartListItems handleShowFbk={() => {}} />, {
       preloadedState: {
         user: { data: { _id: "u1", name: "A", surname: "B", email: "a@b.c", avatar: "", role: "customer" }, status: "authenticated" },
         carts: { data: structuredClone(cart), pointers: { shopId: "s1", tableId: "t1" } },

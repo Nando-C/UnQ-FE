@@ -105,7 +105,7 @@ const installHandlers = () => {
 }
 
 const renderCart = () =>
-  renderWithProviders(<CartListItems />, {
+  renderWithProviders(<CartListItems handleShowFbk={() => {}} />, {
     preloadedState: {
       user: { data: me, status: "authenticated" },
       // A copy: the store freezes what it's given, and the mock BE keeps

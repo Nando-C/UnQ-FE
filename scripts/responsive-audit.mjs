@@ -4,6 +4,8 @@
 //
 //   npm run audit:responsive
 //   npm run audit:responsive -- --screens=c-menu,c-cart --viewports=320,390-text200
+//   npm run audit:responsive -- --delay=1500   (also screenshot each page while
+//                                               its data loads, as *-loading.png)
 //
 // Needs Google Chrome installed (playwright-core drives it, no browser download);
 // point CHROME_PATH at another Chromium to use that instead. Writes
@@ -96,6 +98,8 @@ const pick = (all, names, key, flag) => {
 }
 const screens = pick(SCREENS, arg("screens"), (s) => s[0], "screens")
 const viewports = pick(VIEWPORTS, arg("viewports"), (v) => v.name, "viewports")
+// Milliseconds every mocked API answer is held back, to see loading states.
+const DELAY = Number(arg("delay")?.[0] ?? 0)
 
 // ---------------------------------------------------------------- in-page checks
 // Runs inside the page, so it must be self-contained.
@@ -326,7 +330,8 @@ const placeholder = (url) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="hsl(${hue} 45% 62%)"/><circle cx="50%" cy="50%" r="${Math.min(w, h) / 4}" fill="hsl(${hue} 45% 78%)"/></svg>`
 }
 
-const mockApi = (route, role) => {
+const mockApi = async (route, role) => {
+  if (DELAY) await new Promise((r) => setTimeout(r, DELAY))
   const p = new URL(route.request().url()).pathname.replace(/^\/api/, "")
   const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) })
   const [s1, s2] = fixtures.shops
@@ -378,6 +383,12 @@ const run = async ([id, role, url, action], vp) => {
     r.shots.push(file)
   }
   try {
+    if (DELAY && !action) {
+      // Part-way through the held-back answers: the page's loading state.
+      await page.goto(BASE + url, { waitUntil: "load", timeout: 30000 })
+      await page.waitForTimeout(DELAY / 2)
+      await shot("-loading", false)
+    }
     await page.goto(BASE + url, { waitUntil: "networkidle", timeout: 30000 })
     await settle(page)
     if (action) {

@@ -227,10 +227,15 @@ export const cartsSlice = createSlice({
         builder.addCase(getTableCart.fulfilled, (state, action) => {
             if (action.meta.requestId !== state.cartRequestId) return
             state.data = action.payload
+            state.loaded = { tableId: action.meta.arg, failed: false }
         })
         builder.addCase(getTableCart.rejected, (state, action) => {
             if (action.meta.requestId !== state.cartRequestId) return
             const rejection = action.payload as { status?: number; notices?: ICartNotice[] } | undefined
+            // A failure after a good answer for this table keeps that answer.
+            if (rejection?.status === 404 || state.loaded?.tableId !== action.meta.arg) {
+                state.loaded = { tableId: action.meta.arg, failed: rejection?.status !== 404 }
+            }
             if (rejection?.status === 404) {
                 clearCart(state)
                 // Shown on the empty cart page, so its diners learn why.
@@ -252,6 +257,7 @@ export const { storeCartPointers } = cartsSlice.actions
 const { wantSplit, splitSettled, splitFailed } = cartsSlice.actions
 export const selectCartsData = (state: RootState) => state.carts.data
 export const selectCartPointers = (state: RootState) => state.carts.pointers
+export const selectCartLoaded = (state: RootState) => state.carts.loaded
 
 const NO_PENDING: Record<string, number> = {}
 const NO_ERRORS: Record<string, string> = {}

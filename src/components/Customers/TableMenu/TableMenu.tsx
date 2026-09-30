@@ -15,9 +15,12 @@ import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { selectCartPointers, storeCartPointers } from "../../../redux/slices/cartSlice";
 import {
   fetchSingleShop,
+  selectSelectedFailed,
   selectSelectedShop,
 } from "../../../redux/slices/shopSlice";
 import MenuItem from "../MenuItem/MenuItem";
+import MenuItemPlaceholder from "../MenuItem/MenuItemPlaceholder";
+import { Loading, LoadFailed, NoMatch } from "../../Common/ScreenStates";
 import ShopTablesOffCanvas from "../ShopTablesOffCanvas/ShopTablesOffCanvas";
 import "./TableMenu.css";
 import { tablePath } from "../../../lib/paths";
@@ -64,22 +67,43 @@ const TableMenu = () => {
     return () => window.removeEventListener("focus", onFocus);
   }, [dispatch, shopId]);
 
-  const shop = useAppSelector(selectSelectedShop);
+  // The store may still hold the shop opened before this one: until this
+  // shop's own arrives, the page shows placeholders, never the other's menu.
+  const selected = useAppSelector(selectSelectedShop);
+  const shop = selected?._id === shopId ? selected : null;
+  const failed = useAppSelector(selectSelectedFailed) === shopId;
+
+  const q = query.toLowerCase();
+  const matches =
+    shop?.menu.filter(
+      (menu) =>
+        menu.category.toLowerCase().includes(q) ||
+        menu.name.toLowerCase().includes(q) ||
+        menu.short_description.toLowerCase().includes(q)
+    ) ?? [];
 
   return (
     <div className="Shop-Page bg-light">
-      <Image
-        src={shop?.cover}
-        fluid
-        className="w-100"
-        style={{ objectFit: "cover", maxHeight: "30vh" }}
-      />
+      {shop && (
+        <Image
+          src={shop.cover}
+          fluid
+          className="w-100"
+          style={{ objectFit: "cover", maxHeight: "30vh" }}
+        />
+      )}
       <Container className="phone-column">
         <div className="text-center">
           <Card.Title className={!tableId ? "pt-4 pt-md-5" : "py-4 pt-md-5"}>
-            {shop?.name}
+            {shop ? (
+              shop.name
+            ) : (
+              <span className="placeholder-glow" aria-hidden="true">
+                <span className="placeholder col-6" />
+              </span>
+            )}
           </Card.Title>
-          {!tableId && (
+          {!tableId && shop && (
             <Button onClick={handleShow} className="mt-3 mb-5 px-4">
               Select table to place order
             </Button>
@@ -99,23 +123,40 @@ const TableMenu = () => {
           </Col>
         </Row>
         <Card.Subtitle className="mb-1 mt-4 fw-bold"> MENU </Card.Subtitle>
-        <ListGroup className="px-0 mb-5" variant="flush">
-          {shop?.menu &&
-            shop.menu
-              .filter(
-                (menu) =>
-                  menu.category.toLowerCase().includes(query.toLowerCase()) ||
-                  menu.name.toLowerCase().includes(query.toLowerCase()) ||
-                  menu.short_description
-                    .toLowerCase()
-                    .includes(query.toLowerCase())
-              )
-              .map((menuItem) => (
-                <ListGroup.Item key={menuItem._id} className="px-0 menu-item">
-                  <MenuItem shopId={shopId} itemId={menuItem._id} />
-                </ListGroup.Item>
-              ))}
-        </ListGroup>
+        <div className="mb-5">
+          {shop ? (
+            <>
+              <ListGroup className="px-0" variant="flush">
+                {matches.map((menuItem) => (
+                  <ListGroup.Item key={menuItem._id} className="px-0 menu-item">
+                    <MenuItem shopId={shopId} itemId={menuItem._id} />
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+              <NoMatch
+                show={!!query.trim() && matches.length === 0}
+                what="dishes"
+                query={query}
+                onClear={() => setQuery("")}
+              />
+            </>
+          ) : failed ? (
+            <LoadFailed
+              message="Couldn't load this menu."
+              onRetry={() => dispatch(fetchSingleShop(shopId))}
+            />
+          ) : (
+            <Loading label="Loading the menu">
+              <ListGroup className="px-0" variant="flush">
+                {[0, 1, 2].map((i) => (
+                  <ListGroup.Item key={i} className="px-0 menu-item">
+                    <MenuItemPlaceholder />
+                  </ListGroup.Item>
+                ))}
+              </ListGroup>
+            </Loading>
+          )}
+        </div>
       </Container>
       <ShopTablesOffCanvas show={show} handleClose={handleClose} />
     </div>

@@ -177,3 +177,11 @@ a:focus-visible {
   color: inherit;
   text-decoration: none;
 }
+
+/* Loading placeholders (Bootstrap's .placeholder-glow) pulse; hold them still
+ * for anyone who has asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .placeholder-glow .placeholder {
+    animation: none;
+  }
+}

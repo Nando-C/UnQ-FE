@@ -67,14 +67,34 @@ export const shopsSlice = createSlice({
         },
     },
     extraReducers: (builder) => {
+        builder.addCase(fetchAllShops.pending, (state) => {
+            state.allStatus = "loading"
+        })
         builder.addCase(fetchAllShops.fulfilled, (state, action) => {
             state.all = action.payload
+            state.allStatus = "ready"
+        })
+        builder.addCase(fetchAllShops.rejected, (state) => {
+            state.allStatus = "failed"
+        })
+        builder.addCase(fetchShopList.pending, (state) => {
+            state.dataStatus = "loading"
         })
         builder.addCase(fetchShopList.fulfilled, (state, action) => {
             state.data = action.payload
+            state.dataStatus = "ready"
+        })
+        builder.addCase(fetchShopList.rejected, (state) => {
+            state.dataStatus = "failed"
+        })
+        builder.addCase(fetchSingleShop.pending, (state, action) => {
+            if (state.selectedFailed === action.meta.arg) delete state.selectedFailed
         })
         builder.addCase(fetchSingleShop.fulfilled, (state, action) => {
             state.selected = action.payload
+        })
+        builder.addCase(fetchSingleShop.rejected, (state, action) => {
+            state.selectedFailed = action.meta.arg
         })
         builder.addCase(fetchMenuItem.fulfilled, (state, action) => {
             state.selectedMenu = action.payload
@@ -88,5 +108,8 @@ export const selectAllShops = (state: RootState) => state.shops.all
 export const selectShopsData = (state: RootState) => state.shops.data
 export const selectSelectedShop = (state: RootState) => state.shops.selected
 export const selectSelectedMenu = (state: RootState) => state.shops.selectedMenu
+export const selectAllShopsStatus = (state: RootState) => state.shops.allStatus
+export const selectShopsDataStatus = (state: RootState) => state.shops.dataStatus
+export const selectSelectedFailed = (state: RootState) => state.shops.selectedFailed
 
 export default shopsSlice.reducer

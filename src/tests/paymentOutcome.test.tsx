@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event"
 import { Provider } from "react-redux"
 import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom"
 import { http, HttpResponse } from "msw"
-import CartListItems from "../components/Customers/CartListItems/CartListItems"
 import Cart from "../components/Customers/Cart/Cart"
 import PaymentFeedback from "../components/Customers/PaymentFeedback/PaymentFeedback"
 import Login from "../components/Login/Login"
@@ -52,7 +51,7 @@ const renderCartAt = (entries: string[]) => {
     <Provider store={store}>
       <MemoryRouter initialEntries={entries} initialIndex={entries.length - 1}>
         <Routes>
-          <Route path="/shops/:shopId/tables/:tableId/cart" element={<CartListItems />} />
+          <Route path="/shops/:shopId/tables/:tableId/cart" element={<Cart />} />
           <Route path="/shops/:shopId/tables/:tableId" element={<Marker text="table menu" />} />
           <Route path="/login" element={<Marker text="login page" />} />
         </Routes>
@@ -68,7 +67,12 @@ const pay = async (user: ReturnType<typeof userEvent.setup>) => {
 }
 
 beforeEach(() => {
-  server.use(http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cart)))
+  server.use(
+    http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cart)),
+    http.get(`${BASE}/shops/s1`, () =>
+      HttpResponse.json({ _id: "s1", name: "Cafe", menu: [latte], tables: [{ _id: "t1", name: "Window", Qr_Url: "" }] })
+    )
+  )
 })
 
 describe("after paying", () => {
@@ -127,10 +131,49 @@ describe("after paying", () => {
     const user = renderCartAt(["/shops/s1/tables/t1", "/login", "/shops/s1/tables/t1/cart"])
 
     await pay(user)
-    expect(await screen.findByText("Payment successful")).toBeInTheDocument()
+    const sheet = (await screen.findByText("Payment successful")).closest(".offcanvas") as HTMLElement
+    await user.click(within(sheet).getByRole("button", { name: "Close" }))
 
-    expect(await screen.findByText("table menu", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await screen.findByText("table menu")).toBeInTheDocument()
+  })
+
+  it("keeps a success up until the diner closes it", async () => {
+    server.use(
+      http.post(`${BASE}/carts/tables/t1/cart1/captureCheckout`, () =>
+        HttpResponse.json({ ...cart, status: "closed", split: [] })
+      )
+    )
+    const user = renderCartAt(["/shops/s1/tables/t1/cart"])
+
+    await pay(user)
+    expect(await screen.findByText("Payment successful")).toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 3500))
+
+    expect(screen.getByText("Your payment went through.")).toBeInTheDocument()
+    expect(screen.queryByText("table menu")).not.toBeInTheDocument()
   }, 10_000)
+
+  it("keeps a success up even when the paid-off cart then empties", async () => {
+    let paid = false
+    server.use(
+      http.post(`${BASE}/carts/tables/t1/cart1/captureCheckout`, () => {
+        paid = true
+        return HttpResponse.json({ ...cart, status: "closed", split: [] })
+      }),
+      http.get(`${BASE}/carts/tables/t1`, () =>
+        paid ? HttpResponse.json({ message: "Cart Not Found!" }, { status: 404 }) : HttpResponse.json(cart)
+      )
+    )
+    const user = renderCartAt(["/shops/s1/tables/t1/cart"])
+
+    await pay(user)
+    expect(await screen.findByText("Payment successful")).toBeInTheDocument()
+    // Coming back to the tab refetches the cart, which is gone once paid off.
+    window.dispatchEvent(new Event("focus"))
+
+    expect(await screen.findByText("No open orders")).toBeInTheDocument()
+    expect(screen.getByText("Your payment went through.")).toBeInTheDocument()
+  })
 })
 
 describe("the cart's Back button", () => {

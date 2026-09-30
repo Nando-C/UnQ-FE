@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, ListGroup, Row, Button, Form } from "react-bootstrap";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
   getTableCart,
@@ -14,12 +14,17 @@ import { availableQty, isSoldOut, menuIdOf, myOpenSplit, unpaidQty } from "../..
 import { formatPrice } from "../../../lib/price";
 import CartItem from "../CartItem/CartItem";
 import CheckOut from "../CheckOut/CheckOut";
-import PaymentFeedback, { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
+import type { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
 import CartNotices from "../CartNotices/CartNotices";
 import "./CartListItems.css";
-import { tablePath } from "../../../lib/paths";
 
-const CartListItems = () => {
+interface CartListItemsProps {
+  // Shows how a checkout ended. The cart page owns that sheet, so it stays up
+  // even if this list goes (a fully paid cart can empty on the next refresh).
+  handleShowFbk: (variant: FeedbackVariant, message?: string) => void;
+}
+
+const CartListItems = ({ handleShowFbk }: CartListItemsProps) => {
   const { shopId = "", tableId = "" } = useParams<{
     shopId: string;
     tableId: string;
@@ -143,39 +148,6 @@ const CartListItems = () => {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  const navigate = useNavigate();
-
-  // What the payment sheet says, and whether it's open. Kept apart so a closing
-  // sheet keeps its content while it slides away.
-  const [fbk, setFbk] = useState<{
-    variant: FeedbackVariant;
-    message?: string;
-  } | null>(null);
-  const [fbkOpen, setFbkOpen] = useState(false);
-  const fbkTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // Only a success closes itself (and returns to the table's menu). A failure
-  // or a payment under review stays until the diner closes it: it may say not
-  // to pay again, or carry the order id staff need.
-  const handleShowFbk = (variant: FeedbackVariant, message?: string) => {
-    if (fbkTimeoutRef.current) clearTimeout(fbkTimeoutRef.current);
-    setFbk({ variant, message });
-    setFbkOpen(true);
-    if (variant === "success") {
-      fbkTimeoutRef.current = setTimeout(() => {
-        handleCloseFbk(variant);
-      }, 3000);
-    }
-  };
-  const handleCloseFbk = (variant?: FeedbackVariant) => {
-    if (fbkTimeoutRef.current) clearTimeout(fbkTimeoutRef.current);
-    if ((variant ?? fbk?.variant) === "success") {
-      // To the menu by path, not back a page: a diner who signed in on the way
-      // here may have other pages behind this one.
-      navigate(tablePath(shopId, tableId));
-    }
-    setFbkOpen(false);
-  };
-
   return (
     <>
       {/* Select All on the left, totals on the right; the totals move under
@@ -236,12 +208,6 @@ const CartListItems = () => {
         show={show}
         handleClose={handleClose}
         handleShowFbk={handleShowFbk}
-      />
-      <PaymentFeedback
-        showFbk={fbkOpen}
-        variant={fbk?.variant ?? "success"}
-        message={fbk?.message}
-        handleCloseFbk={() => handleCloseFbk()}
       />
     </>
   );

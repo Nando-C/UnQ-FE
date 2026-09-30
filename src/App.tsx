@@ -12,6 +12,7 @@ import NavigationBar from "./components/Customers/NavigationBar/NavigationBar";
 import TableMenu from "./components/Customers/TableMenu/TableMenu";
 import Account from "./components/Customers/Account/Account";
 import ShopNavbar from "./components/Shops/ShopNavbar/ShopNavbar";
+import NotFound from "./components/NotFound/NotFound";
 
 function App() {
   const dispatch = useAppDispatch();
@@ -47,6 +48,7 @@ function App() {
             element={<Cart />}
           />
           <Route path="/myAccount" element={<Account />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </div>

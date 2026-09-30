@@ -56,7 +56,7 @@ describe("CartListItems totals", () => {
       http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(fixtureCart))
     )
 
-    renderWithProviders(<CartListItems />, {
+    renderWithProviders(<CartListItems handleShowFbk={() => {}} />, {
       preloadedState: {
         user: {
           data: { _id: "u1", name: "A", surname: "B", email: "a@b.c", avatar: "", role: "customer" },

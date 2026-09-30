@@ -28,4 +28,12 @@ export interface IShopStore {
     // The shop whose page is open (a table's menu, or the manager's shop page).
     selected: IShop | null
     selectedMenu: IMenu | null
+    // Where the fetches of `all` and `data` stand, so an empty list can be
+    // told apart from one still loading or one that failed. Absent = not asked.
+    allStatus?: LoadStatus
+    dataStatus?: LoadStatus
+    // The id of a shop whose fetch for `selected` failed, until it is asked again.
+    selectedFailed?: string
 }
+
+export type LoadStatus = "loading" | "ready" | "failed"

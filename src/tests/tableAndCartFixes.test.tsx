@@ -91,7 +91,7 @@ describe("the empty cart page", () => {
     })
 
     expect(await screen.findByText("The staff closed this table.")).toBeInTheDocument()
-    expect(screen.getByText("Looks like you don't have any open orders!!")).toBeInTheDocument()
+    expect(screen.getByText("No open orders")).toBeInTheDocument()
   })
 
   it("shows nothing extra when there's nothing to tell", async () => {
@@ -102,7 +102,7 @@ describe("the empty cart page", () => {
       carts: { data: emptyCart, pointers: { shopId: "s1", tableId: "t1" } },
     })
 
-    expect(await screen.findByText("Looks like you don't have any open orders!!")).toBeInTheDocument()
+    expect(await screen.findByText("No open orders")).toBeInTheDocument()
     expect(screen.queryByRole("alert")).not.toBeInTheDocument()
     expect(document.querySelectorAll(".CartNotices .alert")).toHaveLength(0)
   })
@@ -199,7 +199,7 @@ describe("the cart's bin", () => {
       <Provider store={store}>
         <MemoryRouter initialEntries={["/shops/s1/tables/t1/cart"]}>
           <Routes>
-            <Route path="/shops/:shopId/tables/:tableId/cart" element={<CartListItems />} />
+            <Route path="/shops/:shopId/tables/:tableId/cart" element={<CartListItems handleShowFbk={() => {}} />} />
           </Routes>
         </MemoryRouter>
       </Provider>
@@ -229,7 +229,7 @@ describe("selecting an item that sold out meanwhile", () => {
       <Provider store={store}>
         <MemoryRouter initialEntries={["/shops/s1/tables/t1/cart"]}>
           <Routes>
-            <Route path="/shops/:shopId/tables/:tableId/cart" element={<CartListItems />} />
+            <Route path="/shops/:shopId/tables/:tableId/cart" element={<CartListItems handleShowFbk={() => {}} />} />
           </Routes>
         </MemoryRouter>
       </Provider>

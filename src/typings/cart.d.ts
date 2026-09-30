@@ -55,6 +55,10 @@ export interface ICartStore {
     pending?: Record<string, number>
     // Why the last change to an item's split was undone, per menu item id.
     splitErrors?: Record<string, string>
+    // The table whose cart the BE last answered for, and whether that answer
+    // was a failure (not a 404, which is "no cart"). Until it names the table
+    // on screen, that table's cart is still loading.
+    loaded?: { tableId: string; failed: boolean }
     // The latest getTableCart request; answers to older ones are ignored.
     cartRequestId?: string
 }
