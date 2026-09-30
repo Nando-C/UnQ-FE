@@ -218,6 +218,22 @@ describe("table sheet actions", () => {
   })
 })
 
+describe("deleting a table", () => {
+  it("names the saved table, not an unsaved rename", async () => {
+    const { user } = renderWithProviders(<TableModal shopId="s1" tableId="t4" show handleClose={() => {}} />, {
+      preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
+    })
+    const name = screen.getByPlaceholderText("Name")
+    await waitFor(() => expect(name).toHaveValue("4"))
+    await user.clear(name)
+    await user.type(name, "Terrace")
+
+    await user.click(screen.getByRole("button", { name: "Delete table" }))
+
+    expect(screen.getByText("Delete table 4? Its QR code will no longer take orders.")).toBeInTheDocument()
+  })
+})
+
 describe("deleting a table with an open cart", () => {
   it("shows the BE's reason", async () => {
     server.use(

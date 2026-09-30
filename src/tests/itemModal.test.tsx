@@ -261,4 +261,21 @@ describe("ItemModal", () => {
     await user.click(confirm)
     await waitFor(() => expect(deletes).toBe(1))
   })
+
+  it("names the saved item when asked to delete it, not an unsaved rename", async () => {
+    server.use(http.get(`${BASE}/shops/me`, () => HttpResponse.json([])))
+    const latte = { _id: "m1", name: "Latte", image: "", short_description: "", description: "", price: 3, available: true, category: "drinks" }
+    const { user } = renderWithProviders(
+      <ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />,
+      { preloadedState: { shops: { all: [], data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } } }
+    )
+    const name = screen.getByPlaceholderText("Name")
+    await waitFor(() => expect(name).toHaveValue("Latte"))
+    await user.clear(name)
+    await user.type(name, "Flat White")
+
+    await user.click(screen.getByRole("button", { name: "Delete item" }))
+
+    expect(screen.getByText("Delete Latte from the menu? Diners can no longer order it.")).toBeInTheDocument()
+  })
 })

@@ -347,7 +347,8 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
             form attribute. */}
         {confirmingDelete ? (
           <ConfirmFooter
-            message={`Delete ${item.name} from the menu? Diners can no longer order it.`}
+            // The saved name: that is the item deleted, whatever the form says.
+            message={`Delete ${menuItem?.name ?? "this item"} from the menu? Diners can no longer order it.`}
             confirmLabel="Delete item"
             danger
             busy={deleting}

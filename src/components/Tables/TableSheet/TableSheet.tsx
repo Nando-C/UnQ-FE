@@ -239,10 +239,11 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
         )}
       </Modal.Body>
       {/* The confirmation takes focus, so keyboard and screen-reader users
-          land on it. Keyed on the step, so a new one is focused afresh. */}
+          land on it. Keyed on its question, so a different one is focused
+          afresh (the sheet's other actions are off while one is open). */}
       {pending && (
         <ConfirmFooter
-          key={pending.confirmLabel}
+          key={pending.message}
           message={pending.message}
           confirmLabel={pending.confirmLabel}
           danger={pending.danger}

@@ -157,7 +157,8 @@ const TableModal = ({
             form attribute. */}
         {confirmingDelete ? (
           <ConfirmFooter
-            message={`Delete table ${table.name}? Its QR code will no longer take orders.`}
+            // The saved name: that is the table deleted, whatever the form says.
+            message={`Delete ${selectedTable ? `table ${selectedTable.name}` : "this table"}? Its QR code will no longer take orders.`}
             confirmLabel="Delete table"
             danger
             busy={deleting}
