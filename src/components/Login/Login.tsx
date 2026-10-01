@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import axios from "axios";
 import { Form, Button, FloatingLabel, Alert } from "react-bootstrap";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import backend from "../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
 import { selectCartPointers } from "../../redux/slices/cartSlice";
@@ -33,16 +33,22 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   usePageTitle("Log in");
 
-  // Came here from a table: whichever way they sign in (this form, sign-up,
-  // Google), they go back to it afterwards. A page of that same table saved
-  // on the way (its cart) is kept; one of another table, left by an earlier
-  // sign-in that wasn't finished, is replaced.
+  // Sent here from a page that needs signing in (a manager's shop page): back
+  // to it afterwards. Otherwise, came here from a table: whichever way they
+  // sign in (this form, sign-up, Google), they go back to it afterwards. A
+  // page of that same table saved on the way (its cart) is kept; any other,
+  // left by an earlier sign-in that wasn't finished, is replaced.
+  const sentFrom = (useLocation().state as { returnTo?: string } | null)?.returnTo;
   useEffect(() => {
+    if (sentFrom) {
+      rememberReturnTo(sentFrom);
+      return;
+    }
     if (!tableId) return;
     const table = tablePath(shopId, tableId);
     const saved = peekReturnTo();
     if (saved !== table && !saved?.startsWith(`${table}/`)) rememberReturnTo(table);
-  }, [shopId, tableId]);
+  }, [sentFrom, shopId, tableId]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();

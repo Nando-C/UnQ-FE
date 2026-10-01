@@ -11,7 +11,7 @@ import MenuItem from "../components/Customers/MenuItem/MenuItem"
 import CartListItems from "../components/Customers/CartListItems/CartListItems"
 import Login from "../components/Login/Login"
 import { ManagerOnly } from "../components/Common/ManagerOnly"
-import { fetchUserData } from "../redux/slices/userSlice"
+import { fetchUserData, logOut } from "../redux/slices/userSlice"
 import { ownCover, BE_DEFAULT_COVER } from "../lib/cover"
 import { peekReturnTo, rememberReturnTo } from "../lib/returnTo"
 import placeholder from "../assets/placeholder.svg"
@@ -42,7 +42,12 @@ const cafe = {
 } as unknown as IShop
 
 // The app's routes that matter here, the other pages reduced to a marker.
-const renderAt = (route: string, path: string, element: ReactElement, preloadedState?: Partial<RootState>) => {
+const renderAt = (
+  route: string | { pathname: string; state: unknown },
+  path: string,
+  element: ReactElement,
+  preloadedState?: Partial<RootState>
+) => {
   const store = makeStore(preloadedState)
   render(
     <Provider store={store}>
@@ -124,6 +129,21 @@ describe("logging out", () => {
     expect(store.getState().user.status).toBe("guest")
   })
 
+  it("isn't counted as done when another tab's refresh kept winning", async () => {
+    server.use(
+      http.get(`${BASE}/auth/logout`, () => new HttpResponse(null, { status: 401 })),
+      http.post(`${BASE}/auth/refreshToken`, () =>
+        HttpResponse.json({ message: "Invalid token", reason: "superseded" }, { status: 401 })
+      )
+    )
+    const { store, user } = renderAt("/myAccount", "/myAccount", <Account />, signedIn())
+
+    await user.click(screen.getByRole("button", { name: "Log out" }))
+
+    expect(await screen.findByText(/Couldn't log out/)).toBeInTheDocument()
+    expect(store.getState().user.status).toBe("authenticated")
+  })
+
   it("stays signed in, and says so, when the logout doesn't go through", async () => {
     server.use(http.get(`${BASE}/auth/logout`, () => HttpResponse.json({}, { status: 500 })))
     const { store, user } = renderAt("/myAccount", "/myAccount", <Account />, signedIn())
@@ -160,7 +180,7 @@ describe("a manager's shop page", () => {
     expect(screen.getByText("manager page")).toBeInTheDocument()
 
     act(() => {
-      store.dispatch({ type: fetchUserData.fulfilled.type, payload: manager })
+      store.dispatch(fetchUserData.fulfilled(manager, "check"))
     })
     expect(screen.getByText("manager page")).toBeInTheDocument()
   })
@@ -192,7 +212,7 @@ describe("changing an order before it's known who is signed in", () => {
     expect(adds).toEqual([])
 
     act(() => {
-      store.dispatch({ type: fetchUserData.fulfilled.type, payload: diner })
+      store.dispatch(fetchUserData.fulfilled(diner, "check"))
     })
 
     expect(await screen.findByRole("button", { name: "Added" })).toBeInTheDocument()
@@ -209,7 +229,7 @@ describe("changing an order before it's known who is signed in", () => {
 
     await user.click(screen.getByRole("button", { name: "Add" }))
     act(() => {
-      store.dispatch({ type: fetchUserData.rejected.type, error: {} })
+      store.dispatch(fetchUserData.rejected(null, "check", undefined, { signedOut: true }))
     })
 
     expect(await screen.findByText("login page")).toBeInTheDocument()
@@ -268,5 +288,165 @@ describe("signing in", () => {
     await user.click(screen.getByRole("button", { name: "Log in" }))
 
     expect(await screen.findByText("Invalid email address")).toBeInTheDocument()
+  })
+})
+
+describe("a failed check of who is signed in", () => {
+  it("keeps the user when it's a network error or a server fault", async () => {
+    server.use(http.get(`${BASE}/users/me`, () => HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })))
+    const store = makeStore({ user: { data: manager, status: "authenticated" } })
+
+    await store.dispatch(fetchUserData())
+
+    expect(store.getState().user).toMatchObject({ data: manager, status: "authenticated" })
+  })
+
+  it("keeps the user when the session couldn't be refreshed for a server fault", async () => {
+    server.use(
+      http.get(`${BASE}/users/me`, () => new HttpResponse(null, { status: 401 })),
+      http.post(`${BASE}/auth/refreshToken`, () => HttpResponse.json({ message: "Generic Server Error" }, { status: 500 }))
+    )
+    const store = makeStore({ user: { data: manager, status: "authenticated" } })
+
+    await store.dispatch(fetchUserData())
+
+    expect(store.getState().user).toMatchObject({ data: manager, status: "authenticated" })
+  })
+
+  it("keeps the user when another tab's refresh kept winning (the session is still good)", async () => {
+    server.use(
+      http.get(`${BASE}/users/me`, () => new HttpResponse(null, { status: 401 })),
+      http.post(`${BASE}/auth/refreshToken`, () =>
+        HttpResponse.json({ message: "Invalid token", reason: "superseded" }, { status: 401 })
+      )
+    )
+    const store = makeStore({ user: { data: manager, status: "authenticated" } })
+
+    await store.dispatch(fetchUserData())
+
+    expect(store.getState().user).toMatchObject({ data: manager, status: "authenticated" })
+  })
+
+  it("lets only the latest check decide, when several are sent at once", async () => {
+    let calls = 0
+    server.use(
+      http.get(`${BASE}/users/me`, async () => {
+        calls += 1
+        // The first one sent answers last, saying signed out.
+        if (calls === 1) {
+          await new Promise((r) => setTimeout(r, 50))
+          return HttpResponse.json({ message: "User not found!" }, { status: 404 })
+        }
+        return HttpResponse.json(manager)
+      })
+    )
+    const store = makeStore()
+
+    await Promise.all([store.dispatch(fetchUserData()), store.dispatch(fetchUserData())])
+
+    expect(store.getState().user).toMatchObject({ data: manager, status: "authenticated" })
+  })
+
+  it("keeps a user an earlier check found when the latest one fails on a network blip", async () => {
+    let calls = 0
+    server.use(
+      http.get(`${BASE}/users/me`, async () => {
+        calls += 1
+        // The latest one sent fails, after the earlier one found the manager.
+        if (calls === 2) {
+          await new Promise((r) => setTimeout(r, 50))
+          return HttpResponse.error()
+        }
+        return HttpResponse.json(manager)
+      })
+    )
+    const store = makeStore()
+
+    await Promise.all([store.dispatch(fetchUserData()), store.dispatch(fetchUserData())])
+
+    expect(store.getState().user).toMatchObject({ data: manager, status: "authenticated" })
+  })
+
+  it("applies an earlier check's success that arrives after the latest one failed on a blip", async () => {
+    let calls = 0
+    server.use(
+      http.get(`${BASE}/users/me`, async () => {
+        calls += 1
+        // The earlier one answers last.
+        if (calls === 1) {
+          await new Promise((r) => setTimeout(r, 50))
+          return HttpResponse.json(manager)
+        }
+        return HttpResponse.error()
+      })
+    )
+    const store = makeStore()
+
+    await Promise.all([store.dispatch(fetchUserData()), store.dispatch(fetchUserData())])
+
+    expect(store.getState().user).toMatchObject({ data: manager, status: "authenticated" })
+  })
+
+  it("ignores a check sent before logging out", async () => {
+    let answer: () => void = () => {}
+    server.use(
+      http.get(`${BASE}/users/me`, async () => {
+        await new Promise<void>((r) => (answer = r))
+        return HttpResponse.json(manager)
+      }),
+      http.get(`${BASE}/auth/logout`, () => HttpResponse.json({}))
+    )
+    const store = makeStore({ user: { data: manager, status: "authenticated" } })
+
+    const check = store.dispatch(fetchUserData())
+    await store.dispatch(logOut())
+    answer()
+    await check
+
+    expect(store.getState().user.status).toBe("guest")
+  })
+
+  it("counts as signed out when the account is gone (404)", async () => {
+    server.use(http.get(`${BASE}/users/me`, () => HttpResponse.json({ message: "User not found!" }, { status: 404 })))
+    const store = makeStore({ user: { data: manager, status: "authenticated" } })
+
+    await store.dispatch(fetchUserData())
+
+    expect(store.getState().user.status).toBe("guest")
+  })
+
+  it("counts as signed out when the BE says so (401)", async () => {
+    const store = makeStore({ user: { data: manager, status: "authenticated" } })
+
+    await store.dispatch(fetchUserData())
+
+    expect(store.getState().user.status).toBe("guest")
+    expect(store.getState().user.data._id).toBe("")
+  })
+})
+
+describe("the page to go back to after signing in", () => {
+  it("stays the manager's page they were sent from, not a table they once opened", () => {
+    rememberReturnTo("/shop/s1")
+    renderAt({ pathname: "/signin", state: { returnTo: "/shop/s1" } }, "/signin", <Login />, {
+      carts: {
+        data: { _id: "", userId: "", tableId: "", status: "", items: [], split: [] },
+        pointers: { shopId: "s1", tableId: "t1" },
+      },
+    })
+
+    expect(peekReturnTo()).toBe("/shop/s1")
+  })
+
+  it("is the table they're at, over a page left by an earlier sign-in they didn't finish", () => {
+    rememberReturnTo("/shop/s1")
+    renderAt("/signin", "/signin", <Login />, {
+      carts: {
+        data: { _id: "", userId: "", tableId: "", status: "", items: [], split: [] },
+        pointers: { shopId: "s1", tableId: "t1" },
+      },
+    })
+
+    expect(peekReturnTo()).toBe("/shops/s1/tables/t1")
   })
 })

@@ -16,10 +16,6 @@ interface ShopMenuProps {
   shopId: string;
 }
 
-// How long a deleted table is listed: its sheet shows its carts closed in the
-// last 24 hours. One with something left to do stays listed until it's done.
-const DELETED_SHOWN_MS = 24 * 60 * 60 * 1000;
-
 const TableList = ({ shopId }: ShopMenuProps) => {
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
@@ -52,11 +48,13 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   // the page is left, so an open sheet isn't pulled away when what it shows is
   // done, and closing it returns focus to the button that opened it.
   const [opened, setOpened] = useState<string[]>([]);
+  // A deleted table is listed while its sheet has something on it: a cart
+  // closed there in the last 24 hours, or something left to do.
   const recentlyDeleted = (shop?.deletedTables ?? []).filter(
     (table) =>
+      (!!table.recentCartsUntil && Date.parse(table.recentCartsUntil) > Date.now()) ||
       table.needsAttention ||
-      opened.includes(table._id) ||
-      Date.now() - Date.parse(table.deletedAt) < DELETED_SHOWN_MS
+      opened.includes(table._id)
   );
 
   // Shown once the manager's shops have loaded (the menu above shows

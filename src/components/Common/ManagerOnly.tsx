@@ -20,8 +20,10 @@ const SignInFirst = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   useEffect(() => {
+    // Saved for a Google sign-in (which comes back to the site root), and
+    // handed to the sign-in page, which keeps it over a table.
     rememberReturnTo(pathname);
-    navigate("/login", { replace: true });
+    navigate("/login", { replace: true, state: { returnTo: pathname } });
   }, [navigate, pathname]);
   return null;
 };

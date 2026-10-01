@@ -137,7 +137,7 @@ describe("deleting a shop", () => {
 
     await user.click(screen.getByRole("button", { name: "Delete shop" }))
     expect(
-      screen.getByText("Delete Cafe? This also deletes its 2 menu items and 1 table, and their QR codes stop working.")
+      screen.getByText("Delete Cafe? This also deletes its 2 menu items and 1 table, and their QR codes stop working. Its payment history goes too: refunds can then only be made from PayPal.")
     ).toHaveFocus()
     await user.click(screen.getByRole("button", { name: "Cancel" }))
     expect(deletes).toBe(0)

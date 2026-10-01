@@ -39,8 +39,8 @@ describe("deleted tables on the manager's page", () => {
     )
     const { user } = renderList(
       shopWith([
-        { _id: "t9", name: "Patio", deletedAt: hoursAgo(1) },
-        { _id: "t8", name: "Old", deletedAt: hoursAgo(30) },
+        { _id: "t9", name: "Patio", deletedAt: hoursAgo(1), recentCartsUntil: hoursAgo(-20) },
+        { _id: "t8", name: "Old", deletedAt: hoursAgo(30), recentCartsUntil: hoursAgo(1) },
       ])
     )
 
@@ -109,6 +109,13 @@ describe("deleted tables on the manager's page", () => {
 
     const section = screen.getByRole("region", { name: "Deleted tables" })
     expect(within(section).getByRole("button", { name: "View deleted table Old" })).toBeInTheDocument()
+  })
+
+  it("doesn't list one deleted lately whose sheet would be empty", () => {
+    server.use(http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])))
+    renderList(shopWith([{ _id: "t7", name: "Bare", deletedAt: hoursAgo(1) }]))
+
+    expect(screen.queryByRole("region", { name: "Deleted tables" })).not.toBeInTheDocument()
   })
 
   it("shows nothing when no table was deleted lately", () => {

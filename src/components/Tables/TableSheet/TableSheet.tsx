@@ -276,9 +276,11 @@ const closeAction = (
   send: PendingAction["send"]
 ): PendingAction => {
   const dropped = cart.items.filter((i) => unpaidOf(i) > 0);
+  // As the BE decides: a payment record (even one refunded) keeps the cart.
   const neverPaid =
     !cart.items.some((i) => (i.qtyPayed ?? 0) > 0) &&
-    !cart.split.some((s) => s.splitStatus === "closed");
+    !cart.split.some((s) => s.splitStatus === "closed") &&
+    !cart.payments?.length;
   const count = dropped.reduce((sum, i) => sum + unpaidOf(i), 0);
   const what = dropped.map((i) => units(unpaidOf(i), i.menuId?.name)).join(", ");
   return {

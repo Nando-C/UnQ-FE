@@ -124,6 +124,24 @@ describe("table sheet actions", () => {
     )
   })
 
+  it("doesn't say a refunded cart will be deleted: its payment record stays", async () => {
+    carts.open[0].items = [{ _id: "i2", menuId: muffin, qty: 2, qtyPayed: 0 }]
+    carts.open[0].split = []
+    carts.open[0].payments = [
+      {
+        _id: "p1", provider: "paypal", providerCheckoutId: "O1", providerPaymentId: "CAP-1", currency: "GBP",
+        userId: { _id: "u1", name: "Ada" }, paidAt: new Date().toISOString(), amount: 3,
+        lines: [{ menuId: "m1", name: "Latte", qty: 1, unitPrice: 3, refundedQty: 1 }],
+      },
+    ]
+    const { user, sheet } = await openSheet()
+
+    await user.click(within(sheet).getByRole("button", { name: "Close table" }))
+    expect(within(sheet).getByText(/^Close Table 4\?/)).toHaveTextContent(
+      "2 unpaid items will be dropped: 2× Muffin. Paid items stay on record."
+    )
+  })
+
   it("releases one diner's selection", async () => {
     const { user, sheet } = await openSheet()
 

@@ -23,6 +23,9 @@ export interface IDeletedTable {
     // Something is left to do there: an open cart, or a payment or refund
     // PayPal hasn't confirmed.
     needsAttention?: boolean
+    // Until when its sheet shows a closed cart (a day after the latest one
+    // last changed); absent when it shows none.
+    recentCartsUntil?: string
 }
 
 export interface ITable {

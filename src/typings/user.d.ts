@@ -18,4 +18,11 @@ export type UserStatus = "idle" | "loading" | "authenticated" | "guest"
 export interface IUserStore {
     data: IUser
     status: UserStatus
+    // "Who am I" checks are numbered as they're sent (several go out at once on
+    // a page load). The latest one sent: only its failure counts.
+    latestCheck?: number
+    // The one whose answer was applied last: an older success doesn't undo it.
+    // Logging out sets it to the latest sent, so a check sent before can't sign
+    // the user back in.
+    decidedCheck?: number
 }
