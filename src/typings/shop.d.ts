@@ -20,6 +20,9 @@ export interface IDeletedTable {
     _id: string
     name: string
     deletedAt: string
+    // Something is left to do there: an open cart, or a payment or refund
+    // PayPal hasn't confirmed.
+    needsAttention?: boolean
 }
 
 export interface ITable {

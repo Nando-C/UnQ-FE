@@ -54,6 +54,14 @@ describe("deleted tables on the manager's page", () => {
     expect(opened).toEqual(["t9"])
   })
 
+  it("keeps listing an older one that still needs attention", () => {
+    server.use(http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])))
+    renderList(shopWith([{ _id: "t8", name: "Old", deletedAt: hoursAgo(72), needsAttention: true }]))
+
+    const section = screen.getByRole("region", { name: "Deleted tables" })
+    expect(within(section).getByRole("button", { name: "View deleted table Old" })).toBeInTheDocument()
+  })
+
   it("shows nothing when no table was deleted lately", () => {
     server.use(http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])))
     renderList(shopWith([{ _id: "t8", name: "Old", deletedAt: hoursAgo(30) }]))
