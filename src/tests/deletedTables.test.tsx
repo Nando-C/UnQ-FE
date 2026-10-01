@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest"
-import { screen, within } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import TableList from "../components/Tables/TableList/TableList"
 import { renderWithProviders } from "./helpers"
@@ -52,6 +52,51 @@ describe("deleted tables on the manager's page", () => {
     expect(within(sheet).getByText("Table Patio")).toBeInTheDocument()
     await within(sheet).findByText("This table was deleted: it takes no more orders.")
     expect(opened).toEqual(["t9"])
+  })
+
+  it("reloads the manager's shops after an action in a deleted table's sheet", async () => {
+    let shopFetches = 0
+    const cart = { _id: "c9", tableId: "t9", status: "open", items: [], split: [], payments: [], refunds: [] }
+    server.use(
+      http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])),
+      http.get(`${BASE}/shops/s1/tables/t9/carts`, () => HttpResponse.json({ open: [cart], recentlyClosed: [] })),
+      http.post(`${BASE}/shops/s1/tables/t9/carts/c9/close`, () => HttpResponse.json({ deleted: true, dropped: [] })),
+      http.get(`${BASE}/shops/me`, () => {
+        shopFetches++
+        return HttpResponse.json([shopWith([{ _id: "t9", name: "Patio", deletedAt: hoursAgo(1) }])])
+      })
+    )
+    const { user } = renderList(shopWith([{ _id: "t9", name: "Patio", deletedAt: hoursAgo(1), needsAttention: true }]))
+
+    await user.click(screen.getByRole("button", { name: "View deleted table Patio" }))
+    const sheet = await screen.findByRole("dialog")
+    await user.click(await within(sheet).findByRole("button", { name: "Close table" }))
+    const question = sheet.querySelector(".modal-footer") as HTMLElement
+    await user.click(within(question).getByRole("button", { name: "Close table" }))
+
+    await waitFor(() => expect(shopFetches).toBe(1))
+  })
+
+  it("keeps a deleted table's sheet open when it stops needing attention", async () => {
+    const cart = { _id: "c8", tableId: "t8", status: "open", items: [], split: [], payments: [], refunds: [] }
+    server.use(
+      http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])),
+      http.get(`${BASE}/shops/s1/tables/t8/carts`, () => HttpResponse.json({ open: [cart], recentlyClosed: [] })),
+      http.post(`${BASE}/shops/s1/tables/t8/carts/c8/close`, () => HttpResponse.json({ deleted: true, dropped: [] })),
+      // Closed, the table no longer needs attention, and it was deleted days ago.
+      http.get(`${BASE}/shops/me`, () => HttpResponse.json([shopWith([{ _id: "t8", name: "Old", deletedAt: hoursAgo(72) }])]))
+    )
+    const { user, store } = renderList(shopWith([{ _id: "t8", name: "Old", deletedAt: hoursAgo(72), needsAttention: true }]))
+
+    await user.click(screen.getByRole("button", { name: "View deleted table Old" }))
+    const sheet = await screen.findByRole("dialog")
+    await user.click(await within(sheet).findByRole("button", { name: "Close table" }))
+    await user.click(within(sheet.querySelector(".modal-footer") as HTMLElement).getByRole("button", { name: "Close table" }))
+    await waitFor(() => expect(store.getState().shops.data[0].deletedTables?.[0].needsAttention).toBeUndefined())
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }))
+    await waitFor(() => expect(screen.queryByRole("region", { name: "Deleted tables" })).not.toBeInTheDocument())
   })
 
   it("keeps listing an older one that still needs attention", () => {

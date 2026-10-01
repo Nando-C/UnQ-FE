@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
 import { Button, Row, Col } from "react-bootstrap";
 import { FaPrint } from "react-icons/fa";
-import { useAppSelector } from "../../../redux/app/hooks";
+import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
+import { fetchShopList } from "../../../redux/slices/shopSlice";
 import backend from "../../../backend/backend";
 import { useVisiblePolling } from "../../../lib/useVisiblePolling";
 import { ITableStatus } from "../../../typings/tables";
@@ -47,8 +48,13 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
+  // The deleted table whose sheet is open: it stays listed until that closes.
+  const [openDeleted, setOpenDeleted] = useState<string | null>(null);
   const recentlyDeleted = (shop?.deletedTables ?? []).filter(
-    (table) => table.needsAttention || Date.now() - Date.parse(table.deletedAt) < DELETED_SHOWN_MS
+    (table) =>
+      table.needsAttention ||
+      table._id === openDeleted ||
+      Date.now() - Date.parse(table.deletedAt) < DELETED_SHOWN_MS
   );
 
   // Shown once the manager's shops have loaded (the menu above shows
@@ -101,11 +107,17 @@ const TableList = ({ shopId }: ShopMenuProps) => {
             Deleted tables
           </h3>
           <p className="small text-body-secondary">
-            Their carts from the last 24 hours, to refund if needed.
+            Their recent carts, to refund or check if needed.
           </p>
           <div className="d-flex flex-wrap gap-2">
             {recentlyDeleted.map((table) => (
-              <DeletedTable key={table._id} shopId={shopId} table={table} />
+              <DeletedTable
+                key={table._id}
+                shopId={shopId}
+                table={table}
+                open={openDeleted === table._id}
+                setOpen={(open) => setOpenDeleted(open ? table._id : null)}
+              />
             ))}
           </div>
         </section>
@@ -120,14 +132,22 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   );
 };
 
-// A deleted table: its name, opening its sheet.
-const DeletedTable = ({ shopId, table }: { shopId: string; table: IDeletedTable }) => {
-  const [show, setShow] = useState(false);
+// A deleted table: its name, opening its sheet. An action there can change
+// whether it still needs attention, so the manager's shops are reloaded after.
+interface DeletedTableProps {
+  shopId: string;
+  table: IDeletedTable;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}
+
+const DeletedTable = ({ shopId, table, open, setOpen }: DeletedTableProps) => {
+  const dispatch = useAppDispatch();
   return (
     <>
       <Button
         variant="outline-secondary"
-        onClick={() => setShow(true)}
+        onClick={() => setOpen(true)}
         aria-label={`View deleted table ${table.name}`}
       >
         {table.name}
@@ -136,8 +156,9 @@ const DeletedTable = ({ shopId, table }: { shopId: string; table: IDeletedTable 
         shopId={shopId}
         tableId={table._id}
         tableName={table.name}
-        show={show}
-        handleClose={() => setShow(false)}
+        show={open}
+        handleClose={() => setOpen(false)}
+        onChanged={() => dispatch(fetchShopList())}
         deleted
       />
     </>
