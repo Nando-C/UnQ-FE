@@ -48,12 +48,14 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
-  // The deleted table whose sheet is open: it stays listed until that closes.
-  const [openDeleted, setOpenDeleted] = useState<string | null>(null);
+  // The deleted tables whose sheet was opened on this visit stay listed until
+  // the page is left, so an open sheet isn't pulled away when what it shows is
+  // done, and closing it returns focus to the button that opened it.
+  const [opened, setOpened] = useState<string[]>([]);
   const recentlyDeleted = (shop?.deletedTables ?? []).filter(
     (table) =>
       table.needsAttention ||
-      table._id === openDeleted ||
+      opened.includes(table._id) ||
       Date.now() - Date.parse(table.deletedAt) < DELETED_SHOWN_MS
   );
 
@@ -115,8 +117,7 @@ const TableList = ({ shopId }: ShopMenuProps) => {
                 key={table._id}
                 shopId={shopId}
                 table={table}
-                open={openDeleted === table._id}
-                setOpen={(open) => setOpenDeleted(open ? table._id : null)}
+                onOpen={() => setOpened((ids) => (ids.includes(table._id) ? ids : [...ids, table._id]))}
               />
             ))}
           </div>
@@ -137,17 +138,20 @@ const TableList = ({ shopId }: ShopMenuProps) => {
 interface DeletedTableProps {
   shopId: string;
   table: IDeletedTable;
-  open: boolean;
-  setOpen: (open: boolean) => void;
+  onOpen: () => void;
 }
 
-const DeletedTable = ({ shopId, table, open, setOpen }: DeletedTableProps) => {
+const DeletedTable = ({ shopId, table, onOpen }: DeletedTableProps) => {
   const dispatch = useAppDispatch();
+  const [show, setShow] = useState(false);
   return (
     <>
       <Button
         variant="outline-secondary"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          onOpen();
+          setShow(true);
+        }}
         aria-label={`View deleted table ${table.name}`}
       >
         {table.name}
@@ -156,8 +160,8 @@ const DeletedTable = ({ shopId, table, open, setOpen }: DeletedTableProps) => {
         shopId={shopId}
         tableId={table._id}
         tableName={table.name}
-        show={open}
-        handleClose={() => setOpen(false)}
+        show={show}
+        handleClose={() => setShow(false)}
         onChanged={() => dispatch(fetchShopList())}
         deleted
       />

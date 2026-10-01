@@ -96,7 +96,11 @@ describe("deleted tables on the manager's page", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument()
     await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }))
-    await waitFor(() => expect(screen.queryByRole("region", { name: "Deleted tables" })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+
+    // Still listed for this visit, so focus has its button to go back to.
+    const button = screen.getByRole("button", { name: "View deleted table Old" })
+    await waitFor(() => expect(button).toHaveFocus())
   })
 
   it("keeps listing an older one that still needs attention", () => {
