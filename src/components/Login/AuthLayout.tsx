@@ -7,7 +7,7 @@ import "../Register/Register.css";
 // The log-in and sign-up pages' shared frame: the wordmark beside the form
 // (above it on phones), and the page's heading for screen readers.
 export const AuthLayout = ({ title, children }: { title: string; children: ReactNode }) => (
-  <Container className="Register mb-5 text-center">
+  <Container className="Register text-center">
     <h1 className="visually-hidden">{title}</h1>
     <Row className="align-items-center">
       <Col xs={12} sm={6}>

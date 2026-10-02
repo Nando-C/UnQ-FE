@@ -31,3 +31,9 @@
 .App.is-manager {
   --header-guess: 3.4375rem;
 }
+
+/* Everyone else has the fixed bottom bar instead (--unq-footer-h, measured by
+ * NavigationBar), 3.5rem at 16px until then. */
+.App:not(.is-manager) {
+  --footer-guess: 3.5rem;
+}
