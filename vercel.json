@@ -4,5 +4,11 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://unq-be.onrender.com/:path*" }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)\\.(js|css)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
   ]
 }
