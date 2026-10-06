@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { Badge, Container, Nav, Navbar } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { fetchAllShops } from "../../../redux/slices/shopSlice";
 import { fetchUserData } from "../../../redux/slices/userSlice";
 import { AiOutlineHome } from "react-icons/ai";
 import { IoCartOutline } from "react-icons/io5";
@@ -23,7 +22,6 @@ const NavigationBar = () => {
 
   useEffect(() => {
     dispatch(fetchUserData());
-    dispatch(fetchAllShops());
   }, [dispatch]);
 
   useEffect(() => {

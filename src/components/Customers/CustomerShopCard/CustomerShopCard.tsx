@@ -4,7 +4,7 @@ import "./CustomerShopCard.css";
 interface ShopCardProps {
   name: string;
   cover: string;
-  bio: string;
+  bio?: string;
 }
 
 // Photo on top, name and bio under it: the same card in a one-column list on a

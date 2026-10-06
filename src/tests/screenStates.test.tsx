@@ -270,21 +270,23 @@ describe("the shop list", () => {
 
   it("says when no shop matches the search", async () => {
     const { user } = renderWithProviders(<AllShopsList />, {
-      preloadedState: { shops: { all: [cafe], data: [], selected: null, selectedMenu: null, allStatus: "ready" } },
+      preloadedState: { shops: { all: [cafe], data: [], selected: null, selectedMenu: null, allStatus: "ready", allQuery: "", allWanted: "" } },
     })
 
+    // The default handler finds nothing.
     await user.type(screen.getByLabelText("Search Shop"), "pizza")
 
-    expect(screen.getByText(/No shops match “pizza”/)).toBeInTheDocument()
+    expect(await screen.findByText(/No shops match “pizza”/)).toBeInTheDocument()
   })
 
   it("offers to try again when the shops can't be loaded", async () => {
-    server.use(http.get(`${BASE}/shops/`, () => HttpResponse.json([cafe])))
-    const { user } = renderWithProviders(<AllShopsList />, {
-      preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, allStatus: "failed" } },
-    })
+    server.use(
+      http.get(`${BASE}/shops/browse`, () => HttpResponse.json({ message: "down" }, { status: 500 }), { once: true }),
+      http.get(`${BASE}/shops/browse`, () => HttpResponse.json({ shops: [cafe], next: null }))
+    )
+    const { user } = renderWithProviders(<AllShopsList />)
 
-    await user.click(screen.getByRole("button", { name: "Try again" }))
+    await user.click(await screen.findByRole("button", { name: "Try again" }))
 
     expect(await screen.findByText("Cafe")).toBeInTheDocument()
   })

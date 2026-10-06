@@ -121,7 +121,7 @@ describe("a diner who has to sign in at a table goes back to it", () => {
     sessionStorage.setItem("unq.returnTo", JSON.stringify({ path: "//evil.example", at: Date.now() }))
     server.use(
       http.get(`${BASE}/users/me`, () => HttpResponse.json(diner)),
-      http.get(`${BASE}/shops/`, () => HttpResponse.json([]))
+      http.get(`${BASE}/shops/browse`, () => HttpResponse.json({ shops: [], next: null }))
     )
 
     const { store } = renderAt("/", <Dashboard />, "/")

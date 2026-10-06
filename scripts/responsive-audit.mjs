@@ -365,6 +365,11 @@ const mockApi = async (route, role) => {
     const deletedAt = new Date(Date.now() - 3600_000).toISOString()
     return json([{ ...s1, deletedTables: [{ _id: "t-gone", name: "Garden terrace by the fountain", deletedAt, recentCartsUntil: new Date(Date.now() + 20 * 3600_000).toISOString() }] }, s2])
   }
+  // The home page's first page, with a next one (empty), so "Show more" is checked too.
+  if (p === "/shops/browse") {
+    if (new URL(route.request().url()).searchParams.get("cursor")) return json({ shops: [], next: null })
+    return json({ shops: fixtures.shops.map(({ _id, name, bio, cover }) => ({ _id, name, bio, cover })), next: s2._id })
+  }
   if (p.startsWith("/shops")) return json(fixtures.shops)
   if (p === "/carts/tables/t1") return json(fixtures.cart)
   return json({ message: "Not mocked" }, 404)

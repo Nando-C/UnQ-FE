@@ -16,6 +16,21 @@ export interface IShop {
     menu: IMenu[]
 }
 
+// A shop as the home page lists it (GET /shops/browse): no menu or tables.
+export interface IShopSummary {
+    _id: string
+    name: string
+    cover: string
+    bio?: string
+}
+
+// A page of GET /shops/browse; `next` is the cursor for the page after it,
+// null on the last.
+export interface IShopPage {
+    shops: IShopSummary[]
+    next: string | null
+}
+
 export interface IDeletedTable {
     _id: string
     name: string
@@ -35,18 +50,32 @@ export interface ITable {
 }
 
 export interface IShopStore {
-    // Every shop, for customers to browse (GET /shops/).
-    all: IShop[]
-    // The signed-in manager's own shops (GET /shops/me). Kept apart from `all`:
-    // both are fetched on a manager's first page load, in either order.
+    // The home page's shops (GET /shops/browse): the pages loaded so far of
+    // the search `allQuery` ("" for every shop).
+    all: IShopSummary[]
+    // The signed-in manager's own shops (GET /shops/me).
     data: IShop[]
     // The shop whose page is open (a table's menu, or the manager's shop page).
     selected: IShop | null
     selectedMenu: IMenu | null
-    // Where the fetches of `all` and `data` stand, so an empty list can be
-    // told apart from one still loading or one that failed. Absent = not asked.
+    // Where the fetches of `all` (its first page) and `data` stand, so an
+    // empty list can be told apart from one still loading or one that failed.
+    // Absent = not asked.
     allStatus?: LoadStatus
     dataStatus?: LoadStatus
+    // The home page's list (see the reducers): the search `all` answers, the
+    // cursor of its next page (null on the last), how loading that page stands
+    // and the number of the request last sent for one; the search last asked
+    // for, that request's number and when it was sent, and when the shops held
+    // were asked for.
+    allQuery?: string
+    allNext?: string | null
+    allMoreStatus?: LoadStatus
+    allMoreLatest?: number
+    allWanted?: string
+    allLatest?: number
+    allLatestAt?: number
+    allLoadedAt?: number
     // The id of a shop whose fetch for `selected` failed, until it is asked again.
     selectedFailed?: string
     // The shop last asked for as `selected` and that request's number, and the
