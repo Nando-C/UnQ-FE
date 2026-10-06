@@ -25,6 +25,10 @@ export default defineConfig(({ mode }) => {
     },
     test: {
       environment: "jsdom",
+      // Pinned (it's jsdom's default here): the page's origin. The BE below is
+      // on it, as /api is in production, so requests are same-origin; msw
+      // applies CORS to cross-origin ones.
+      environmentOptions: { jsdom: { url: "http://localhost:3000/" } },
       globals: true,
       setupFiles: "./src/tests/setup.ts",
       // Component .css imports are no-ops in tests; skip processing them.
@@ -32,7 +36,7 @@ export default defineConfig(({ mode }) => {
       // Deterministic env for the axios base URL and PayPal client id so
       // tests never depend on a developer's local .env.
       env: {
-        VITE_BE_URL: "http://localhost:4000",
+        VITE_BE_URL: "/api",
         VITE_PAYPAL_CLIENT_ID: "sb",
       },
     },

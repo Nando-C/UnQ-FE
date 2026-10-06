@@ -72,7 +72,9 @@ describe("the menu's photo", () => {
       http.get(`${BASE}/shops/s1`, async () => {
         await answer.opened
         return HttpResponse.json(shop)
-      })
+      }),
+      // The table has no cart yet.
+      http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json({ message: "Cart Not Found!", notices: [] }, { status: 404 }))
     )
     const { container } = renderWithProviders(<TableMenu />, {
       route: "/shops/s1/tables/t1",

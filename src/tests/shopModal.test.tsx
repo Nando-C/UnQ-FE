@@ -20,7 +20,9 @@ beforeEach(() => {
       sent.push((await request.json()) as Record<string, unknown>)
       return HttpResponse.json({})
     }),
-    http.get(`${BASE}/shops/me`, () => HttpResponse.json([]))
+    http.get(`${BASE}/shops/me`, () => HttpResponse.json([])),
+    // Saving reloads the shop.
+    http.get(`${BASE}/shops/s1`, () => HttpResponse.json(shopWith()))
   )
 })
 

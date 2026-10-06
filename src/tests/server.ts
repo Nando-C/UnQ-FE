@@ -1,9 +1,10 @@
 import { setupServer } from "msw/node"
 import { http, HttpResponse } from "msw"
 
-// Matches the VITE_BE_URL injected by vite.config.ts's test.env block, so the
-// axios instance in src/backend/backend.ts resolves every request here.
-export const BASE = "http://localhost:4000"
+// The VITE_BE_URL injected by vite.config.ts's test.env block ("/api", as in
+// production), which the axios instance in src/backend/backend.ts uses too.
+// Relative: msw resolves it against the page's origin, as the browser does.
+export const BASE = import.meta.env.VITE_BE_URL
 
 // Default handlers keep an unauthenticated render quiet: "who am I" is a guest
 // (401), the public shop list is empty, and the guest refresh probe 400s the
