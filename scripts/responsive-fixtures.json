@@ -537,7 +537,7 @@
                 "name": "Pancake 🥞",
                 "qty": 3,
                 "unitPrice": 9.5,
-                "refundedQty": 0
+                "refundedQty": 1
               }
             ]
           },
@@ -565,6 +565,23 @@
           }
         ],
         "refunds": [
+          {
+            "_id": "r0",
+            "paymentId": "p1",
+            "lines": [
+              {
+                "menuId": "m0",
+                "name": "Pancake 🥞",
+                "qty": 1
+              }
+            ],
+            "amount": 9.5,
+            "currency": "GBP",
+            "status": "completed",
+            "at": "2026-09-28T16:22:00.000Z",
+            "reason": "other",
+            "reasonNote": "Served to the wrong table by a new waiter on a busy Saturday, and the diner had already left for the evening"
+          },
           {
             "_id": "r1",
             "paymentId": "p2",

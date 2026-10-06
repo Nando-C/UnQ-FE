@@ -57,6 +57,7 @@ const SCREENS = [
   ["m-table-add", "shopMg", "/shop/s1", "addTable"],
   ["m-table-sheet", "shopMg", "/shop/s1", "viewTable"],
   ["m-refund", "shopMg", "/shop/s1", "refundPicker"],
+  ["m-refund-other", "shopMg", "/shop/s1", "refundOther"],
   ["m-account", "shopMg", "/myAccount", null],
 ]
 
@@ -82,6 +83,11 @@ const ACTIONS = {
   refundPicker: (p) => [
     p.getByRole("button", { name: /view table/i }).first(),
     p.getByRole("button", { name: /^refund items from/i }).first(),
+  ],
+  // The picker with Other chosen, which adds the note.
+  refundOther: (p) => [
+    ...ACTIONS.refundPicker(p),
+    () => p.getByRole("combobox", { name: "Reason" }).first().selectOption("other", { timeout: 5000 }),
   ],
 }
 
@@ -434,10 +440,10 @@ const run = async ([id, role, url, action], vp) => {
     if (cls > 0.1) r.errors.push({ kind: "layout shift", text: `CLS ${cls.toFixed(3)} while loading (over 0.1)` })
     if (action) {
       // An action is one control to click, or several in turn (a dialog
-      // opened from inside another).
+      // opened from inside another); a function step does something else.
       const open = async () => {
         for (const step of [ACTIONS[action](page)].flat()) {
-          await step.click({ timeout: 5000 })
+          await (typeof step === "function" ? step() : step.click({ timeout: 5000 }))
           await page.waitForTimeout(900)
         }
       }

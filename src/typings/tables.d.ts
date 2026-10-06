@@ -62,7 +62,14 @@ export interface IRefund {
     providerRefundId?: string
     failureReason?: string
     at: string
+    // Why the manager refunded (none on older refunds); `reasonNote` only
+    // with "other".
+    reason?: RefundReason
+    reasonNote?: string
 }
+
+// UnQ-BE's REFUND_REASONS; their labels are in lib/refundReasons.ts.
+export type RefundReason = "unavailable" | "wrong_item" | "quality" | "long_wait" | "paid_by_mistake" | "changed_mind" | "other"
 
 export interface IManagerCart {
     _id: string
