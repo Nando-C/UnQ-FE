@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // The BE's error answer: its message, and for a 400 which fields it refused.
-export interface ApiErrorBody {
+interface ApiErrorBody {
   message?: string;
   details?: { path?: string; message: string }[];
 }

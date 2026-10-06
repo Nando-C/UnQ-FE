@@ -40,6 +40,19 @@ const payment = (over: Partial<IPayment> = {}): IPayment => ({
   ...over,
 })
 
+// A refund of the payment: one Latte, in progress, unless `over` says otherwise.
+const refundOf = (over: Partial<IRefund> = {}): IRefund => ({
+  _id: "r1", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 1 }], amount: 3, currency: "GBP",
+  status: "pending", at: new Date().toISOString(), ...over,
+})
+
+// The BE refusing Other's note.
+const noteRefused = () =>
+  HttpResponse.json(
+    { message: "Validation failed", details: [{ path: "reasonNote", message: "Say what happened" }] },
+    { status: 400 }
+  )
+
 const cartsWith = (p: IPayment, refunds: IRefund[] = []): ITableCarts => ({
   open: [
     {
@@ -90,6 +103,11 @@ const refundButton = (sheet: HTMLElement) =>
   within(sheet).queryByRole("button", { name: "Refund items from Ada's payment of £8.00" })
 
 type User = Awaited<ReturnType<typeof openSheet>>["user"]
+// Answers the £3.00 refund question and waits for it to be done.
+const confirmRefund = async (user: User, sheet: HTMLElement) => {
+  await user.click(within(sheet).getByRole("button", { name: "Refund £3.00 to Ada" }))
+  await within(sheet).findByText("Refunded £3.00 to Ada.")
+}
 const chooseReason = (user: User, sheet: HTMLElement, label = "Wrong item served") =>
   user.selectOptions(within(sheet).getByRole("combobox", { name: "Reason" }), label)
 
@@ -192,9 +210,7 @@ describe("refunding a payment", () => {
     await user.click(within(sheet).getByRole("button", { name: "Refund one more Latte" }))
     await chooseReason(user, sheet)
     await user.click(within(sheet).getByRole("button", { name: "Review refund" }))
-    await user.click(within(sheet).getByRole("button", { name: "Refund £3.00 to Ada" }))
-
-    await within(sheet).findByText("Refunded £3.00 to Ada.")
+    await confirmRefund(user, sheet)
     expect(within(sheet).queryByRole("group", { name: "Choose what to refund" })).not.toBeInTheDocument()
   })
 
@@ -204,7 +220,7 @@ describe("refunding a payment", () => {
         { menuId: "m1", name: "Latte", qty: 2, unitPrice: 3, refundedQty: 1 },
         { menuId: "m2", name: "Muffin", qty: 1, unitPrice: 2, refundedQty: 1 },
       ] }),
-      [{ _id: "r1", paymentId: "p1", lines: [], amount: 5, currency: "GBP", status: "completed", at: new Date().toISOString() }]
+      [refundOf({ lines: [], amount: 5, status: "completed" })]
     )
     const { user, sheet } = await openSheet()
 
@@ -217,7 +233,7 @@ describe("refunding a payment", () => {
 
   it("warns about a refund in progress and offers no second one", async () => {
     carts = cartsWith(payment(), [
-      { _id: "r1", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 1 }], amount: 3, currency: "GBP", status: "pending", at: new Date().toISOString() },
+      refundOf(),
     ])
     const { sheet } = await openSheet()
 
@@ -229,7 +245,7 @@ describe("refunding a payment", () => {
 
   it("retries a refund in progress after saying it can't refund twice", async () => {
     carts = cartsWith(payment(), [
-      { _id: "r1", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 1 }], amount: 3, currency: "GBP", status: "pending", at: new Date().toISOString() },
+      refundOf(),
     ])
     let retries = 0
     server.use(
@@ -253,7 +269,7 @@ describe("refunding a payment", () => {
 
   it("shows why a retry couldn't settle it", async () => {
     carts = cartsWith(payment(), [
-      { _id: "r1", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 1 }], amount: 3, currency: "GBP", status: "pending", at: new Date().toISOString() },
+      refundOf(),
     ])
     const msg = "Couldn't check with PayPal (PayPal order lookup failed (503)). The refund is still in progress: try again shortly."
     server.use(
@@ -309,8 +325,7 @@ describe("a refund's reason", () => {
 
     await user.click(review)
     expect(within(sheet).getByText(/^Refund £3.00 to Ada for/)).toHaveTextContent(`Reason: ${REFUND_REASON_LABEL[reason]}.`)
-    await user.click(within(sheet).getByRole("button", { name: "Refund £3.00 to Ada" }))
-    await within(sheet).findByText("Refunded £3.00 to Ada.")
+    await confirmRefund(user, sheet)
     expect(refundBodies).toEqual([{ paymentId: "p1", lines: [{ menuId: "m1", qty: 1 }], reason }])
   })
 
@@ -331,8 +346,7 @@ describe("a refund's reason", () => {
 
     await user.click(review)
     expect(within(sheet).getByText(/^Refund £3.00 to Ada for/)).toHaveTextContent("Reason: Other (“Cold coffee”).")
-    await user.click(within(sheet).getByRole("button", { name: "Refund £3.00 to Ada" }))
-    await within(sheet).findByText("Refunded £3.00 to Ada.")
+    await confirmRefund(user, sheet)
     expect(refundBodies).toEqual([
       { paymentId: "p1", lines: [{ menuId: "m1", qty: 1 }], reason: "other", reasonNote: "Cold coffee" },
     ])
@@ -356,8 +370,7 @@ describe("a refund's reason", () => {
     expect(within(picker).queryByRole("textbox", { name: "What happened?" })).not.toBeInTheDocument()
 
     await user.click(review)
-    await user.click(within(sheet).getByRole("button", { name: "Refund £3.00 to Ada" }))
-    await within(sheet).findByText("Refunded £3.00 to Ada.")
+    await confirmRefund(user, sheet)
     expect(refundBodies).toEqual([{ paymentId: "p1", lines: [{ menuId: "m1", qty: 1 }], reason: "quality" }])
   })
 
@@ -370,10 +383,7 @@ describe("a refund's reason", () => {
 
   it("shows the BE's message under the field it refused, and keeps the picker", async () => {
     answer = () =>
-      HttpResponse.json(
-        { message: "Validation failed", details: [{ path: "reasonNote", message: "Say what happened" }] },
-        { status: 400 }
-      )
+      noteRefused()
     const { user, sheet, picker, review } = await pickLatte()
     await chooseReason(user, sheet, "Other")
     const note = within(picker).getByRole("textbox", { name: "What happened?" })
@@ -400,12 +410,9 @@ describe("a refund's reason", () => {
           { menuId: "m1", name: "Latte", qty: 2, unitPrice: 3, refundedQty: 1 },
           { menuId: "m2", name: "Muffin", qty: 1, unitPrice: 2, refundedQty: 0 },
         ] }),
-        [{ _id: "r9", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 1 }], amount: 3, currency: "GBP", status: "completed", at: new Date().toISOString() }]
+        [refundOf({ _id: "r9", status: "completed" })]
       )
-      return HttpResponse.json(
-        { message: "Validation failed", details: [{ path: "reasonNote", message: "Say what happened" }] },
-        { status: 400 }
-      )
+      return noteRefused()
     }
     const { user, sheet, picker, review } = await pickLatte()
     await user.click(within(picker).getByRole("button", { name: "Refund one more Latte" }))
@@ -420,8 +427,7 @@ describe("a refund's reason", () => {
     answer = () => HttpResponse.json({ refund: { status: "completed" }, cart: carts.open[0] })
     await user.type(note, "!")
     await user.click(review)
-    await user.click(within(sheet).getByRole("button", { name: "Refund £3.00 to Ada" }))
-    await within(sheet).findByText("Refunded £3.00 to Ada.")
+    await confirmRefund(user, sheet)
     expect(refundBodies[1]).toEqual({ paymentId: "p1", lines: [{ menuId: "m1", qty: 1 }], reason: "other", reasonNote: "Cold!" })
   })
 
@@ -435,12 +441,9 @@ describe("a refund's reason", () => {
           { menuId: "m1", name: "Latte", qty: 2, unitPrice: 3, ...latte },
           { menuId: "m2", name: "Muffin", qty: 1, unitPrice: 2, refundedQty: 1 },
         ] }),
-        [{ _id: "r9", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 2 }], amount: 6, currency: "GBP", status, at: new Date().toISOString() }]
+        [refundOf({ _id: "r9", lines: [{ menuId: "m1", name: "Latte", qty: 2 }], amount: 6, status })]
       )
-      return HttpResponse.json(
-        { message: "Validation failed", details: [{ path: "reasonNote", message: "Say what happened" }] },
-        { status: 400 }
-      )
+      return noteRefused()
     }
     const { user, sheet, review } = await pickLatte()
     await chooseReason(user, sheet, "Other")
@@ -461,7 +464,7 @@ describe("a refund's reason", () => {
     await user.click(review)
     // Another refund of both Lattes gets under way, and the sheet reloads.
     carts = cartsWith(payment(), [
-      { _id: "r9", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 2 }], amount: 6, currency: "GBP", status: "pending", at: new Date().toISOString() },
+      refundOf({ _id: "r9", lines: [{ menuId: "m1", name: "Latte", qty: 2 }], amount: 6 }),
     ])
     document.dispatchEvent(new Event("visibilitychange"))
     await within(sheet).findByText(/^Refund of £6.00 in progress/)
@@ -491,7 +494,7 @@ describe("a refund's reason", () => {
 
   it("shows a refund in progress with its reason", async () => {
     carts = cartsWith(payment(), [
-      { _id: "r1", paymentId: "p1", lines: [{ menuId: "m1", name: "Latte", qty: 1 }], amount: 3, currency: "GBP", status: "pending", at: new Date().toISOString(), reason: "long_wait" },
+      refundOf({ reason: "long_wait" }),
     ])
     const { sheet } = await openSheet()
     expect(within(sheet).getByText(/^Refund of £3.00 in progress/)).toHaveTextContent(
@@ -500,18 +503,15 @@ describe("a refund's reason", () => {
   })
 
   it("shows each refund with its reason on the sheet, and none on older refunds", async () => {
-    const done = (id: string, amount: number, over: Partial<IRefund> = {}): IRefund => ({
-      _id: id, paymentId: "p1", lines: [], amount, currency: "GBP", status: "completed", at: new Date().toISOString(), ...over,
-    })
     carts = cartsWith(
       payment({ lines: [
         { menuId: "m1", name: "Latte", qty: 2, unitPrice: 3, refundedQty: 2 },
         { menuId: "m2", name: "Muffin", qty: 1, unitPrice: 2, refundedQty: 1 },
       ] }),
       [
-        done("r1", 3, { reason: "wrong_item" }),
-        done("r2", 2, { reason: "other", reasonNote: "Burnt" }),
-        done("r3", 3),
+        refundOf({ status: "completed", reason: "wrong_item" }),
+        refundOf({ _id: "r2", amount: 2, status: "completed", reason: "other", reasonNote: "Burnt" }),
+        refundOf({ _id: "r3", status: "completed" }),
       ]
     )
     const { sheet } = await openSheet()

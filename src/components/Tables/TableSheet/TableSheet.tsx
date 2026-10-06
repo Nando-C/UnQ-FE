@@ -507,18 +507,11 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
   const refunds = cart.refunds ?? [];
   const legacy = cart.split.filter((s) => s.splitStatus === "closed" && s.unitPrice === undefined);
   const [refunding, setRefunding] = useState<string | null>(null);
-  const [reasonErrors, setReasonErrors] = useState<ReasonErrors | null>(null);
-  const refundFor = (paymentId: string | null) => {
-    setRefunding(paymentId);
-    setReasonErrors(null);
-  };
-  // An open picker closes once its payment can't be refunded from here any
-  // more (a reload shows another refund under way, or nothing left), rather
-  // than offering it or coming back by itself later. Not while the sheet is
-  // locked: a question it asked keeps its picks to come back to, and if it
-  // goes ahead the BE still refuses more than is left.
+  // The picker closes once its payment can't be refunded (another refund under
+  // way, nothing left), not while locked: its question keeps its picks, and
+  // the BE still refuses more than is left.
   const picking = payments.find((p) => p._id === refunding);
-  if (refunding !== null && !disabled && !(picking && refundStateOf(picking, refunds).canRefund)) refundFor(null);
+  if (refunding !== null && !disabled && !(picking && refundStateOf(picking, refunds).canRefund)) setRefunding(null);
 
   return (
     <>
@@ -622,17 +615,15 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                 })}
                 {p.status === "pending" || p.status === "failed" ? null : !p.providerPaymentId ? (
                   <div className="small text-body-secondary">Refund this payment from PayPal.</div>
-                ) : refunding === p._id && (canRefund || disabled) ? (
+                ) : refunding === p._id ? (
                   // Stays open (locked) while the refund is asked about, so Cancel
                   // comes back to the picks as they were, and to Review refund.
                   <RefundPicker
                     payment={p}
                     leftOf={leftOf}
                     disabled={disabled}
-                    errors={reasonErrors}
-                    onEdit={() => setReasonErrors(null)}
-                    onCancel={() => refundFor(null)}
-                    onReview={(refund, amount) => {
+                    onCancel={() => setRefunding(null)}
+                    onReview={(refund, amount, showErrors) => {
                       const what = refund.lines
                         .map((l) => units(l.qty, p.lines.find((pl) => pl.menuId === l.menuId)?.name))
                         .join(", ");
@@ -649,8 +640,8 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                         // its message under the field; anything else closes it.
                         onSent: (failure) => {
                           const errors = reasonErrorsOf(failure);
-                          if (errors) setReasonErrors(errors);
-                          else refundFor(null);
+                          if (errors) showErrors(errors);
+                          else setRefunding(null);
                         },
                       });
                     }}
@@ -661,7 +652,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                       variant="outline-danger"
                       className="mt-2"
                       disabled={disabled}
-                      onClick={() => refundFor(p._id)}
+                      onClick={() => setRefunding(p._id)}
                       aria-label={`Refund items from ${p.userId?.name ?? "a diner"}'s payment of ${formatPrice(p.amount)}`}
                     >
                       Refund…
@@ -694,19 +685,17 @@ interface RefundPickerProps {
   leftOf: (line: IPayment["lines"][number]) => number;
   // While any action in the sheet is being confirmed or sent.
   disabled: boolean;
-  // The BE's messages for the reason fields, until either is changed (onEdit).
-  errors: ReasonErrors | null;
-  onEdit: () => void;
   onCancel: () => void;
-  onReview: (refund: RefundRequest, amount: number) => void;
+  // `showErrors` puts the BE's messages for the reason fields under them.
+  onReview: (refund: RefundRequest, amount: number, showErrors: (errors: ReasonErrors) => void) => void;
 }
 
-const RefundPicker = ({ payment, leftOf, disabled, errors, onEdit, onCancel, onReview }: RefundPickerProps) => {
+const RefundPicker = ({ payment, leftOf, disabled, onCancel, onReview }: RefundPickerProps) => {
   const [picks, setPicks] = useState<Record<string, number>>({});
-  // Each pick, never more than is left: the payment can change under an open
-  // picker (it stays open after a refused reason, across the reload). While
-  // the sheet is locked, the picks as they were asked about, so the picker
-  // matches the question.
+  // The BE's messages for the reason fields, until either is changed.
+  const [errors, setErrors] = useState<ReasonErrors | null>(null);
+  // Picks capped at what's left (the payment can change under an open
+  // picker), except while locked: then as the question asks about them.
   const qtyOf = (l: IPayment["lines"][number]) =>
     disabled ? (picks[l.menuId] ?? 0) : Math.min(picks[l.menuId] ?? 0, leftOf(l));
   const [reason, setReason] = useState<RefundReason | "">("");
@@ -780,7 +769,7 @@ const RefundPicker = ({ payment, leftOf, disabled, errors, onEdit, onCancel, onR
           aria-describedby={describedBy("reason")}
           onChange={(e) => {
             setReason(e.currentTarget.value as RefundReason);
-            onEdit();
+            setErrors(null);
           }}
         >
           <option value="" disabled>
@@ -811,7 +800,7 @@ const RefundPicker = ({ payment, leftOf, disabled, errors, onEdit, onCancel, onR
             aria-describedby={describedBy("reasonNote", `${id}-count`)}
             onChange={(e) => {
               setNote(e.currentTarget.value);
-              onEdit();
+              setErrors(null);
             }}
           />
           <Form.Control.Feedback type="invalid" id={`${id}-reasonNote-error`}>
@@ -833,7 +822,7 @@ const RefundPicker = ({ payment, leftOf, disabled, errors, onEdit, onCancel, onR
           <Button
             variant="danger"
             disabled={disabled || !request}
-            onClick={() => request && onReview(request, amount)}
+            onClick={() => request && onReview(request, amount, setErrors)}
           >
             Review refund
           </Button>
