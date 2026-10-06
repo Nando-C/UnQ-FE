@@ -10,7 +10,7 @@ import AllShopsList from "../components/Customers/AllShopsList/AllShopsList"
 import ShopList from "../components/Shops/ShopList/ShopList"
 import { getTableCart } from "../redux/slices/cartSlice"
 import { fetchSingleShop } from "../redux/slices/shopSlice"
-import { makeStore, renderWithProviders } from "./helpers"
+import { gate, makeStore, renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
 import type { ICart } from "../typings/cart"
 import type { IMenu } from "../typings/menu"
@@ -24,13 +24,6 @@ const cart: ICart = {
   items: [{ _id: "i1", menuId: latte, qty: 1, qtyPayed: 0 }], split: [],
 }
 const emptyCart: ICart = { _id: "", userId: "", tableId: "", status: "", items: [], split: [] }
-
-// Holds a request until the test lets it through.
-const gate = () => {
-  let open!: () => void
-  const opened = new Promise<void>((r) => (open = r))
-  return { open, opened }
-}
 
 const renderCart = () =>
   renderWithProviders(
@@ -126,7 +119,7 @@ describe("the cart page", () => {
     renderWithProviders(<Cart />, {
       route: "/shops/s1/tables/t1/cart",
       path: "/shops/:shopId/tables/:tableId/cart",
-      preloadedState: { shops: { all: [], data: [], selected: other, selectedMenu: null } },
+      preloadedState: { shops: { data: [], selected: other, selectedMenu: null } },
     })
 
     expect(await screen.findByText("Table: Window")).toBeInTheDocument()
@@ -161,7 +154,7 @@ describe("opening one shop after another", () => {
         })
       )
     }
-    const store = makeStore({ shops: { all: [], data: [], selected: held, selectedMenu: null } })
+    const store = makeStore({ shops: { data: [], selected: held, selectedMenu: null } })
     const sent = shops.map((id) => store.dispatch(fetchSingleShop(id)))
     for (const i of order) {
       gates[i].open()
@@ -206,7 +199,7 @@ describe("a shop's menu", () => {
     renderWithProviders(<TableMenu />, {
       route: "/shops/s1/tables/t1",
       path: "/shops/:shopId/tables/:tableId",
-      preloadedState: { shops: { all: [], data: [], selected, selectedMenu: null } },
+      preloadedState: { shops: { data: [], selected, selectedMenu: null } },
     })
 
   it("shows placeholders, never the shop opened before, until this one arrives", async () => {
@@ -263,14 +256,14 @@ describe("a shop's menu", () => {
 
 describe("the shop list", () => {
   it("shows placeholders until the shops arrive", () => {
-    renderWithProviders(<AllShopsList />, { preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, allStatus: "loading" } } })
+    renderWithProviders(<AllShopsList />)
 
     expect(screen.getByText("Loading shops")).toBeInTheDocument()
   })
 
   it("says when no shop matches the search", async () => {
     const { user } = renderWithProviders(<AllShopsList />, {
-      preloadedState: { shops: { all: [cafe], data: [], selected: null, selectedMenu: null, allStatus: "ready", allQuery: "", allWanted: "" } },
+      preloadedState: { browse: { shops: [cafe], query: "", wanted: "", next: null, status: "ready" } },
     })
 
     // The default handler finds nothing.
@@ -292,7 +285,7 @@ describe("the shop list", () => {
   })
 
   it("on My Shops, shows placeholders until the manager's shops arrive", () => {
-    renderWithProviders(<ShopList />, { preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, dataStatus: "loading" } } })
+    renderWithProviders(<ShopList />, { preloadedState: { shops: { data: [], selected: null, selectedMenu: null, dataStatus: "loading" } } })
 
     expect(screen.getByText("Loading your shops")).toBeInTheDocument()
   })

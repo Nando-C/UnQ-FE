@@ -2,52 +2,15 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit"
 import { AxiosResponse } from "axios"
 import backend from "../../backend/backend"
 import { IMenu } from "../../typings/menu";
-import { IShop, IShopPage, IShopStore } from "../../typings/shop"
+import { IShop, IShopStore } from "../../typings/shop"
 import { RootState } from "../app/store";
 import { logOut } from "./userSlice";
 
 const initialState: IShopStore = {
-    all: [],
     data: [],
     selected: null,
     selectedMenu: null,
 }
-
-export const SHOPS_PER_PAGE = 20
-// How long the home page's shops are kept before arriving there loads them again.
-export const SHOPS_FRESH_MS = 60_000
-
-// The home page's shops, a page at a time: the first page of the search `q`
-// ("" for every shop), or with `cursor` the page after it. Numbered as
-// fetchSingleShop's requests are, and timed. A first page on its way, or held
-// and loaded less than SHOPS_FRESH_MS ago, is not asked again (Try again,
-// after a failure, is); a next page is asked one at a time, and only of the
-// search last asked for.
-let browseRequests = 0
-export const browseShops = createAsyncThunk<
-    IShopPage,
-    { q: string; cursor?: string },
-    { state: RootState; pendingMeta: { at: number } }
->(
-    "shop/browseShops",
-    async ({ q, cursor }) => {
-        const { data }: AxiosResponse<IShopPage> = await backend.get("/shops/browse", {
-            params: { q: q || undefined, cursor, limit: SHOPS_PER_PAGE },
-        })
-        return data
-    },
-    {
-        idGenerator: () => String(++browseRequests),
-        getPendingMeta: () => ({ at: Date.now() }),
-        condition: ({ q, cursor }, { getState }) => {
-            const { shops } = getState()
-            if (cursor) return shops.allMoreStatus !== "loading" && q === shops.allWanted
-            if (shops.allWanted !== q) return true
-            const fresh = Date.now() - (shops.allLoadedAt ?? 0) < SHOPS_FRESH_MS
-            return !(shops.allStatus === "loading" || (shops.allStatus === "ready" && fresh))
-        },
-    }
-)
 
 export const fetchShopList = createAsyncThunk("shop/fetchShopList", async () => {
     const { data }: AxiosResponse<IShop[]> = await backend.get("/shops/me")
@@ -104,54 +67,6 @@ export const shopsSlice = createSlice({
         },
     },
     extraReducers: (builder) => {
-        // A first page counts only if it answers the search last asked for (an
-        // older one, answered late, is ignored); it replaces the list. A next
-        // page counts only if it continues the list held (same search, from its
-        // last shop), and is added to it; one that doesn't still ends the wait
-        // for a next page if it's the latest asked (so "Show more" isn't left
-        // disabled), and a first page of the same search doesn't end that wait.
-        builder.addCase(browseShops.pending, (state, action) => {
-            if (action.meta.arg.cursor) {
-                state.allMoreStatus = "loading"
-                state.allMoreLatest = Number(action.meta.requestId)
-                return
-            }
-            state.allWanted = action.meta.arg.q
-            state.allLatest = Number(action.meta.requestId)
-            state.allLatestAt = action.meta.at
-            state.allStatus = "loading"
-        })
-        builder.addCase(browseShops.fulfilled, (state, action) => {
-            const { q, cursor } = action.meta.arg
-            if (cursor) {
-                if (q !== state.allQuery || cursor !== state.allNext) {
-                    if (Number(action.meta.requestId) === state.allMoreLatest) delete state.allMoreStatus
-                    return
-                }
-                state.all.push(...action.payload.shops)
-                state.allNext = action.payload.next
-                state.allMoreStatus = "ready"
-                return
-            }
-            if (Number(action.meta.requestId) !== state.allLatest) return
-            // A next page still on its way is of another search's list, or of
-            // this one (then it's added if it continues the new first page).
-            if (q !== state.allQuery || state.allMoreStatus !== "loading") delete state.allMoreStatus
-            state.all = action.payload.shops
-            state.allQuery = q
-            state.allNext = action.payload.next
-            state.allLoadedAt = state.allLatestAt
-            state.allStatus = "ready"
-        })
-        builder.addCase(browseShops.rejected, (state, action) => {
-            const { q, cursor } = action.meta.arg
-            if (cursor) {
-                if (q === state.allQuery && cursor === state.allNext) state.allMoreStatus = "failed"
-                else if (Number(action.meta.requestId) === state.allMoreLatest) delete state.allMoreStatus
-                return
-            }
-            if (Number(action.meta.requestId) === state.allLatest) state.allStatus = "failed"
-        })
         builder.addCase(fetchShopList.pending, (state) => {
             state.dataStatus = "loading"
         })
@@ -197,15 +112,9 @@ export const shopsSlice = createSlice({
 
 export const { setMenuItemAvailability } = shopsSlice.actions
 
-export const selectAllShops = (state: RootState) => state.shops.all
 export const selectShopsData = (state: RootState) => state.shops.data
 export const selectSelectedShop = (state: RootState) => state.shops.selected
 export const selectSelectedMenu = (state: RootState) => state.shops.selectedMenu
-export const selectAllShopsStatus = (state: RootState) => state.shops.allStatus
-export const selectAllShopsQuery = (state: RootState) => state.shops.allQuery
-export const selectAllShopsWanted = (state: RootState) => state.shops.allWanted
-export const selectAllShopsNext = (state: RootState) => state.shops.allNext
-export const selectAllShopsMoreStatus = (state: RootState) => state.shops.allMoreStatus
 export const selectShopsDataStatus = (state: RootState) => state.shops.dataStatus
 // A page's own shop: the one selected, but only once it is the one the page
 // asked for (the store may still hold another shop), else null.

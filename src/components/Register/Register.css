@@ -1,6 +1,7 @@
+/* Its bottom margin, 3rem on phones and none from sm up, is AuthLayout's
+ * mb-5 mb-sm-0: keep that breakpoint in step with the one below. */
 .Register {
     padding: 2rem 1rem;
-    margin-bottom: 3rem;
 }
 
 /* Two columns from sm up: the wordmark and the form sit in the middle of the
@@ -18,7 +19,6 @@
         min-height: 100vh;
         min-height: 100dvh;
         padding-bottom: calc(2rem + var(--unq-footer-h, var(--footer-guess, 0px)));
-        margin-bottom: 0;
     }
 }
 

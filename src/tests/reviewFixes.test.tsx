@@ -95,7 +95,7 @@ describe("the QR code's centre image", () => {
 describe("logging out", () => {
   const signedIn = (): Partial<RootState> => ({
     user: { data: manager, status: "authenticated" },
-    shops: { all: [], data: [cafe], selected: null, selectedMenu: null },
+    shops: { data: [cafe], selected: null, selectedMenu: null },
     carts: {
       data: { _id: "", userId: "", tableId: "", status: "", items: [], split: [] },
       pointers: { shopId: "s1", tableId: "t1" },
@@ -189,7 +189,7 @@ describe("a manager's shop page", () => {
 describe("changing an order before it's known who is signed in", () => {
   const menuState = (status: "loading" | "guest"): Partial<RootState> => ({
     user: { data: { ...diner, _id: "", role: "" }, status },
-    shops: { all: [], data: [], selected: cafe, selectedMenu: null },
+    shops: { data: [], selected: cafe, selectedMenu: null },
   })
 
   it("Add waits for the account, then adds", async () => {

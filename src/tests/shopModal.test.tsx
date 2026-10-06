@@ -28,7 +28,7 @@ beforeEach(() => {
 
 const openEditor = (shop: IShop) =>
   renderWithProviders(<ShopModal show shopId="s1" handleClose={() => {}} />, {
-    preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
+    preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
   })
 
 describe("editing a shop's phone number", () => {

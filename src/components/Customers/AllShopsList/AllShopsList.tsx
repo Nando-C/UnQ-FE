@@ -2,36 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Col, FloatingLabel, Form, Row } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import {
-  browseShops,
-  selectAllShops,
-  selectAllShopsMoreStatus,
-  selectAllShopsNext,
-  selectAllShopsQuery,
-  selectAllShopsStatus,
-  selectAllShopsWanted,
-} from "../../../redux/slices/shopSlice";
+import { browseShops, selectBrowse } from "../../../redux/slices/browseSlice";
 import CustomerShopCard from "../CustomerShopCard/CustomerShopCard";
 import ShopCardPlaceholder from "../CustomerShopCard/ShopCardPlaceholder";
 import { Loading, LoadFailed, NoMatch } from "../../Common/ScreenStates";
 
 // How long typing pauses before the search is sent.
-export const SEARCH_PAUSE_MS = 300;
+const SEARCH_PAUSE_MS = 300;
 
 const AllShopsList = () => {
   const dispatch = useAppDispatch();
-  const shopList = useAppSelector(selectAllShops);
-  const status = useAppSelector(selectAllShopsStatus);
-  // The search the shops shown answer, and the one last asked for.
-  const shownQuery = useAppSelector(selectAllShopsQuery) ?? "";
-  const wanted = useAppSelector(selectAllShopsWanted);
-  const next = useAppSelector(selectAllShopsNext);
-  const moreStatus = useAppSelector(selectAllShopsMoreStatus);
+  // `query` is the search the shops shown answer, `wanted` the one last asked for.
+  const { shops: shopList, status, query: shownQuery, wanted, next, moreStatus } = useAppSelector(selectBrowse);
+  const settled = shownQuery === wanted;
 
   // Back on the page, the search is still the one last made (its shops are
   // held); loaded again only if they aren't, or are a minute old
   // (browseShops decides). Typing sends it after a pause.
-  const [query, setQuery] = useState(() => wanted ?? "");
+  const [query, setQuery] = useState(wanted);
   const q = query.trim();
   const typed = useRef(false);
   useEffect(() => {
@@ -41,8 +29,7 @@ const AllShopsList = () => {
 
   // Shops already in hand are shown while a refresh or another search runs,
   // and when a refresh of their own search fails, not another search's.
-  const showList =
-    (shopList.length > 0 || status === "ready") && !(status === "failed" && shownQuery !== wanted);
+  const showList = (shopList.length > 0 || status === "ready") && !(status === "failed" && !settled);
 
   return (
     <div className="AllShopsList bg-light pt-5 pb-5">
@@ -68,7 +55,7 @@ const AllShopsList = () => {
       {status === "failed" && (
         <LoadFailed
           message="Couldn't load the shops."
-          onRetry={() => dispatch(browseShops({ q: wanted ?? q }))}
+          onRetry={() => dispatch(browseShops({ q: wanted }))}
         />
       )}
       {/* With nothing to show yet, placeholders stand in. */}
@@ -95,7 +82,7 @@ const AllShopsList = () => {
             onClear={() => setQuery("")}
           />
           {/* Not while another search loads: it would page the old one. */}
-          {next && wanted === shownQuery && (
+          {next && settled && (
             <div className="text-center mt-4">
               {/* Always mounted, so the failure is announced. */}
               <div role="status">

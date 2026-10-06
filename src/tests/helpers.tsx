@@ -6,6 +6,7 @@ import { render } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import userReducer from "../redux/slices/userSlice"
 import shopReducer from "../redux/slices/shopSlice"
+import browseReducer from "../redux/slices/browseSlice"
 import cartReducer from "../redux/slices/cartSlice"
 import type { RootState } from "../redux/app/store"
 
@@ -14,6 +15,7 @@ import type { RootState } from "../redux/app/store"
 const rootReducer = combineReducers({
   user: userReducer,
   shops: shopReducer,
+  browse: browseReducer,
   carts: cartReducer,
 })
 
@@ -68,4 +70,11 @@ export function renderWithProviders(
     user: userEvent.setup(),
     ...render(ui, { wrapper: Wrapper }),
   }
+}
+
+// Holds a request until the test lets it through.
+export const gate = () => {
+  let open!: () => void
+  const opened = new Promise<void>((r) => (open = r))
+  return { open, opened }
 }

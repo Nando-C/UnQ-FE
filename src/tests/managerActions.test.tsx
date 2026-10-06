@@ -81,7 +81,7 @@ beforeEach(() => {
 
 const openSheet = async () => {
   const utils = renderWithProviders(<TableList shopId="s1" />, {
-    preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
+    preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
   })
   await utils.user.click(screen.getByRole("button", { name: "View table 4" }))
   const sheet = await screen.findByRole("dialog")
@@ -249,7 +249,7 @@ describe("table sheet actions", () => {
 describe("deleting a table", () => {
   it("names the saved table, not an unsaved rename", async () => {
     const { user } = renderWithProviders(<TableModal shopId="s1" tableId="t4" show handleClose={() => {}} />, {
-      preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
+      preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
     })
     const name = screen.getByPlaceholderText("Name")
     await waitFor(() => expect(name).toHaveValue("4"))
@@ -270,7 +270,7 @@ describe("deleting a table with an open cart", () => {
       )
     )
     const { user } = renderWithProviders(<TableModal shopId="s1" tableId="t4" show handleClose={() => {}} />, {
-      preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
+      preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
     })
 
     await user.click(screen.getByRole("button", { name: "Delete table" }))

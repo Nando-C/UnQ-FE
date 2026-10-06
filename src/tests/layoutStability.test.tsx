@@ -8,7 +8,7 @@ import CartListItems from "../components/Customers/CartListItems/CartListItems"
 import TableMenu from "../components/Customers/TableMenu/TableMenu"
 import TableList from "../components/Tables/TableList/TableList"
 import { usePublishedHeight } from "../lib/usePublishedHeight"
-import { makeStore, renderWithProviders } from "./helpers"
+import { gate, makeStore, renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
 import type { ICart } from "../typings/cart"
 import type { IMenu } from "../typings/menu"
@@ -18,13 +18,6 @@ const menu = (id: string, available = true): IMenu => ({
   _id: id, name: `item-${id}`, image: "", short_description: "", description: "", price: 3, available, category: "food",
 })
 const me = { _id: "u1", name: "A", surname: "B", email: "a@b.c", avatar: "", role: "customer" }
-
-// Holds a request until the test lets it through.
-const gate = () => {
-  let open!: () => void
-  const opened = new Promise<void>((r) => (open = r))
-  return { open, opened }
-}
 
 describe("a cart row's counter", () => {
   // m1: 3 units, none picked. m2: 2 units, I hold both. m3: 2 units, another
@@ -96,7 +89,7 @@ describe("the menu's photo", () => {
 describe("the Tables section", () => {
   it("waits for the manager's shops, so nothing below the menu is pushed down", () => {
     const { container } = renderWithProviders(<TableList shopId="s1" />, {
-      preloadedState: { shops: { all: [], data: [], selected: null, selectedMenu: null, dataStatus: "loading" } },
+      preloadedState: { shops: { data: [], selected: null, selectedMenu: null, dataStatus: "loading" } },
     })
 
     expect(container).toBeEmptyDOMElement()
@@ -106,7 +99,7 @@ describe("the Tables section", () => {
     server.use(http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])))
     const shop = { _id: "s1", name: "Cafe", menu: [], tables: [] } as unknown as IShop
     renderWithProviders(<TableList shopId="s1" />, {
-      preloadedState: { shops: { all: [], data: [shop], selected: null, selectedMenu: null, dataStatus: "ready" } },
+      preloadedState: { shops: { data: [shop], selected: null, selectedMenu: null, dataStatus: "ready" } },
     })
 
     expect(screen.getByRole("heading", { name: "Tables" })).toBeInTheDocument()

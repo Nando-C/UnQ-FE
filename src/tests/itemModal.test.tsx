@@ -115,7 +115,7 @@ describe("ItemModal", () => {
       <ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />,
       {
         preloadedState: {
-          shops: { all: [], data: [shop], selected: null, selectedMenu: null },
+          shops: { data: [shop], selected: null, selectedMenu: null },
         },
       } as unknown as Parameters<typeof renderWithProviders>[1]
     )
@@ -245,7 +245,7 @@ describe("ItemModal", () => {
     const latte = { _id: "m1", name: "Latte", image: "", short_description: "", description: "", price: 3, available: true, category: "drinks" }
     const { user } = renderWithProviders(
       <ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />,
-      { preloadedState: { shops: { all: [], data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } } }
+      { preloadedState: { shops: { data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } } }
     )
 
     // Asked in the dialog, saying what happens; Cancel sends nothing.
@@ -269,7 +269,7 @@ describe("ItemModal", () => {
     const latte = { _id: "m1", name: "Latte", image: "", short_description: "", description: "", price: 3, available: true, category: "drinks" }
     const { user } = renderWithProviders(
       <ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />,
-      { preloadedState: { shops: { all: [], data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } } }
+      { preloadedState: { shops: { data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } } }
     )
     const name = screen.getByPlaceholderText("Name")
     await waitFor(() => expect(name).toHaveValue("Latte"))
@@ -284,7 +284,7 @@ describe("ItemModal", () => {
   it("drops a question left open when the dialog closed, so reopening starts afresh", async () => {
     server.use(http.get(`${BASE}/shops/me`, () => HttpResponse.json([])))
     const latte = { _id: "m1", name: "Latte", image: "", short_description: "", description: "", price: 3, available: true, category: "drinks" }
-    const state = { shops: { all: [], data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } }
+    const state = { shops: { data: [{ _id: "s1", name: "Cafe", menu: [latte], tables: [], shopMg: [] } as never], selected: null, selectedMenu: null } }
     const { user, rerender } = renderWithProviders(<ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />, { preloadedState: state })
 
     await user.click(screen.getByRole("button", { name: "Delete item" }))

@@ -48,7 +48,7 @@ afterEach(() => sessionStorage.clear())
 describe("a diner who has to sign in at a table goes back to it", () => {
   it("after signing up (the page reloads on the way, losing the table in Redux)", async () => {
     const menuCard = renderAt("/shops/s1/tables/t1", <MenuItem shopId="s1" itemId="m1" />, "/shops/:shopId/tables/:tableId", {
-      shops: { all: [], data: [], selected: shop, selectedMenu: null },
+      shops: { data: [], selected: shop, selectedMenu: null },
     })
     await menuCard.user.click(screen.getByRole("button", { name: "Add" }))
     expect(screen.getByText("login page")).toBeInTheDocument()

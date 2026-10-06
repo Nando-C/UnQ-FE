@@ -50,32 +50,14 @@ export interface ITable {
 }
 
 export interface IShopStore {
-    // The home page's shops (GET /shops/browse): the pages loaded so far of
-    // the search `allQuery` ("" for every shop).
-    all: IShopSummary[]
     // The signed-in manager's own shops (GET /shops/me).
     data: IShop[]
     // The shop whose page is open (a table's menu, or the manager's shop page).
     selected: IShop | null
     selectedMenu: IMenu | null
-    // Where the fetches of `all` (its first page) and `data` stand, so an
-    // empty list can be told apart from one still loading or one that failed.
-    // Absent = not asked.
-    allStatus?: LoadStatus
+    // Where the fetch of `data` stands, so an empty list can be told apart
+    // from one still loading or one that failed. Absent = not asked.
     dataStatus?: LoadStatus
-    // The home page's list (see the reducers): the search `all` answers, the
-    // cursor of its next page (null on the last), how loading that page stands
-    // and the number of the request last sent for one; the search last asked
-    // for, that request's number and when it was sent, and when the shops held
-    // were asked for.
-    allQuery?: string
-    allNext?: string | null
-    allMoreStatus?: LoadStatus
-    allMoreLatest?: number
-    allWanted?: string
-    allLatest?: number
-    allLatestAt?: number
-    allLoadedAt?: number
     // The id of a shop whose fetch for `selected` failed, until it is asked again.
     selectedFailed?: string
     // The shop last asked for as `selected` and that request's number, and the
@@ -83,6 +65,24 @@ export interface IShopStore {
     selectedWanted?: string
     selectedLatest?: number
     selectedFrom?: number
+}
+
+// The home page's shops (GET /shops/browse; see browseSlice's reducers).
+export interface IBrowseStore {
+    // The pages loaded so far of the search `query` ("" for every shop), and
+    // the cursor of the page after them (null on the last).
+    shops: IShopSummary[]
+    query: string
+    next: string | null
+    // The search last asked for, that request's id and when it was sent,
+    // and where it stands. Absent status = not asked.
+    wanted: string
+    latest?: string
+    askedAt?: number
+    status?: LoadStatus
+    // Where loading a next page stands, and the id of the latest request for one.
+    moreStatus?: LoadStatus
+    moreLatest?: string
 }
 
 export type LoadStatus = "loading" | "ready" | "failed"

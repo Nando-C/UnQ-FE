@@ -34,7 +34,7 @@ const makeShop = (overrides: Partial<Record<string, unknown>> = {}): IShop =>
 
 const renderItem = (shop: IShop = makeShop()) =>
   renderWithProviders(<Item itemId="m1" shopId="s1" />, {
-    preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
+    preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
   })
 
 describe("Item availability switch", () => {

@@ -24,7 +24,7 @@ const shopWith = (deletedTables: IShop["deletedTables"]) =>
 
 const renderList = (shop: IShop) =>
   renderWithProviders(<TableList shopId="s1" />, {
-    preloadedState: { shops: { all: [], data: [shop], selected: shop, selectedMenu: null } },
+    preloadedState: { shops: { data: [shop], selected: shop, selectedMenu: null } },
   })
 
 describe("deleted tables on the manager's page", () => {

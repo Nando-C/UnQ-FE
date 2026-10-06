@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest"
 import { screen, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
-import AllShopsList, { SEARCH_PAUSE_MS } from "../components/Customers/AllShopsList/AllShopsList"
+import AllShopsList from "../components/Customers/AllShopsList/AllShopsList"
 import NavigationBar from "../components/Customers/NavigationBar/NavigationBar"
-import { SHOPS_FRESH_MS } from "../redux/slices/shopSlice"
-import { makeStore, renderWithProviders } from "./helpers"
+import { SHOPS_FRESH_MS } from "../redux/slices/browseSlice"
+import { gate, makeStore, renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
 import type { IShopPage, IShopSummary } from "../typings/shop"
 
@@ -25,13 +25,8 @@ const browse = (answer: (query: URLSearchParams) => Answer | Promise<Answer>) =>
   return asked
 }
 const asText = (asked: URLSearchParams[]) => asked.map((query) => query.toString())
-
-// Holds a request until the test lets it through.
-const gate = () => {
-  let open!: () => void
-  const opened = new Promise<void>((r) => (open = r))
-  return { open, opened }
-}
+const serverDown = () => HttpResponse.json({ message: "down" }, { status: 500 })
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 const shopNames = () => screen.queryAllByRole("heading", { level: 2 }).map((h) => h.textContent)
 
@@ -75,7 +70,7 @@ describe("the home page's shops", () => {
 
   it("ignores a search's answer that arrives after a later search's", async () => {
     const slow = gate()
-    browse(async (query) => {
+    const asked = browse(async (query) => {
       if (query.get("q") === "lemon") {
         await slow.opened
         return { shops: [shop("Lemon Tree")], next: null }
@@ -83,20 +78,24 @@ describe("the home page's shops", () => {
       if (query.get("q") === "tea") return { shops: [shop("Tea Room")], next: null }
       return { shops: [shop("A")], next: null }
     })
-    const { user } = renderWithProviders(<AllShopsList />)
+    const { user, store } = renderWithProviders(<AllShopsList />)
     await screen.findByText("A")
     const search = screen.getByLabelText("Search Shop")
 
     await user.type(search, "lemon")
     // Shown while the search runs: the shops already in hand.
-    await new Promise((r) => setTimeout(r, SEARCH_PAUSE_MS + 100))
+    await waitFor(() => expect(asText(asked)).toContain("q=lemon&limit=20"))
     expect(shopNames()).toEqual(["A"])
     await user.clear(search)
     await user.type(search, "tea")
     expect(await screen.findByText("Tea Room")).toBeInTheDocument()
 
+    // Until the late answer has reached the store (each answer is dispatched).
+    let dispatched = 0
+    const stop = store.subscribe(() => dispatched++)
     slow.open()
-    await new Promise((r) => setTimeout(r, 100))
+    await waitFor(() => expect(dispatched).toBeGreaterThan(0))
+    stop()
     expect(shopNames()).toEqual(["Tea Room"])
   })
 
@@ -104,7 +103,7 @@ describe("the home page's shops", () => {
     let down = true
     browse((query) => {
       if (query.get("q") !== "tea") return { shops: [shop("A")], next: null }
-      return down ? HttpResponse.json({ message: "down" }, { status: 500 }) : { shops: [shop("Tea Room")], next: null }
+      return down ? serverDown() : { shops: [shop("Tea Room")], next: null }
     })
     const { user } = renderWithProviders(<AllShopsList />)
     await screen.findByText("A")
@@ -121,7 +120,7 @@ describe("the home page's shops", () => {
   it("keeps a search's shops shown when refreshing them fails, with a way to try again", async () => {
     let down = false
     browse((query) =>
-      down ? HttpResponse.json({ message: "down" }, { status: 500 }) : { shops: [shop(query.get("q") ? "Tea Room" : "A")], next: null }
+      down ? serverDown() : { shops: [shop(query.get("q") ? "Tea Room" : "A")], next: null }
     )
     const { user } = renderWithProviders(<AllShopsList />)
     await screen.findByText("A")
@@ -145,7 +144,7 @@ describe("the home page's shops", () => {
     let down = true
     browse((query) => {
       if (!query.get("cursor")) return { shops: [shop("A")], next: "id-A" }
-      return down ? HttpResponse.json({ message: "down" }, { status: 500 }) : { shops: [shop("B")], next: null }
+      return down ? serverDown() : { shops: [shop("B")], next: null }
     })
     const { user } = renderWithProviders(<AllShopsList />)
     await user.click(await screen.findByRole("button", { name: "Show more" }))
@@ -174,7 +173,7 @@ describe("the home page's shops", () => {
     first.unmount()
 
     renderWithProviders(<AllShopsList />, { store })
-    await new Promise((r) => setTimeout(r, 50))
+    await pause(50)
     expect(screen.getByLabelText("Search Shop")).toHaveValue("tea")
     expect(shopNames()).toEqual(["Tea Room", "Tea House"])
     expect(asked).toHaveLength(3)
@@ -229,7 +228,7 @@ describe("the home page's shops", () => {
   it("tries again the search that failed", async () => {
     let down = true
     const asked = browse((query) => {
-      if (query.get("q") === "tea" && down) return HttpResponse.json({ message: "down" }, { status: 500 })
+      if (query.get("q") === "tea" && down) return serverDown()
       return { shops: [shop(query.get("q") ? "Tea Room" : "A")], next: null }
     })
     const { user } = renderWithProviders(<AllShopsList />)
@@ -249,8 +248,8 @@ describe("the home page's shops", () => {
     const asked = browse(() => ({ shops: [], next: null }))
     const { store } = renderWithProviders(<NavigationBar />)
 
-    await new Promise((r) => setTimeout(r, 50))
+    await pause(50)
     expect(asked).toHaveLength(0)
-    expect(store.getState().shops.allStatus).toBeUndefined()
+    expect(store.getState().browse.status).toBeUndefined()
   })
 })

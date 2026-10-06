@@ -53,7 +53,7 @@ describe("saving an edit whose photo then fails to upload", () => {
     )
     failUploadsTo("/img")
     const { user, store } = renderWithProviders(<ItemModal shopId="s1" show handleClose={() => {}} itemId="m1" />, {
-      preloadedState: { shops: { all: [], data: [shopWith()], selected: null, selectedMenu: null } },
+      preloadedState: { shops: { data: [shopWith()], selected: null, selectedMenu: null } },
     })
 
     await user.clear(screen.getByPlaceholderText("Price"))
@@ -82,7 +82,7 @@ describe("saving an edit whose photo then fails to upload", () => {
     )
     failUploadsTo("/cover")
     const { user, store } = renderWithProviders(<ShopModal show shopId="s1" handleClose={() => {}} />, {
-      preloadedState: { shops: { all: [], data: [shopWith()], selected: shopWith(), selectedMenu: null } },
+      preloadedState: { shops: { data: [shopWith()], selected: shopWith(), selectedMenu: null } },
     })
 
     await user.clear(screen.getByPlaceholderText("Name"))
