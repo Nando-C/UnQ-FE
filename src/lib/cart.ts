@@ -45,3 +45,9 @@ export const isSoldOut = (x: IItem | ISplitItem | undefined) =>
 // before capture, so nothing was charged. Matched by substring because the
 // BE's message is the only thing that tells them apart.
 export const REFUNDED_MARKER = "your payment was refunded";
+
+// A card payment's 404 from captureStripeCheckout when it went through (or is
+// being confirmed) but the table's cart was deleted since (with its table or
+// shop): never "nothing was charged". Every other 404 there is raised before
+// anything was taken.
+export const CART_GONE_MARKER = "this table's cart is no longer here";

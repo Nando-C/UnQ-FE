@@ -16,7 +16,7 @@ const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
 // What deleting a shop takes with it: its menu and its tables, whose printed
 // QR codes then lead nowhere, and its payment records. (The BE refuses while a
-// paid cart closed less than a day ago, or PayPal still owes an answer.)
+// paid cart closed less than a day ago, or a payment provider still owes an answer.)
 const deleteShopMessage = (shop: IShop | undefined) => {
   if (!shop) return "Delete this shop?";
   const tables = shop.tables.length;
@@ -24,7 +24,7 @@ const deleteShopMessage = (shop: IShop | undefined) => {
     `Delete ${shop.name}? This also deletes its ${count(shop.menu.length, "menu item")} ` +
     `and ${count(tables, "table")}` +
     (tables ? ", and their QR codes stop working." : ".") +
-    " Its payment history goes too: refunds can then only be made from PayPal."
+    " Its payment history goes too: refunds can then only be made from the payment provider."
   );
 };
 

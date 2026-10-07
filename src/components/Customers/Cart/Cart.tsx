@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, Col, Container, Image, Row, Button } from "react-bootstrap";
 import { IoArrowBack } from "react-icons/io5";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
   getTableCart,
@@ -23,6 +23,14 @@ import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import "./Cart.css";
 import { tablePath } from "../../../lib/paths";
 import { usePageTitle } from "../../../lib/usePageTitle";
+import { captureCardPayment } from "../../../lib/paymentOutcome";
+import { selectUserData } from "../../../redux/slices/userSlice";
+
+// When a card payment not settled yet is looked at again (one the BE couldn't
+// tell about, or Stripe is still processing; see PaymentOutcome.recheck): by
+// then Stripe's webhook or the sweep has usually finished it, and the table's
+// cart shows it paid, or a note says how it ended.
+const RECHECK_MS = [30_000, 3 * 60_000];
 
 const Cart = () => {
   const dispatch = useAppDispatch();
@@ -81,10 +89,72 @@ const Cart = () => {
   // success goes on to the table's menu.
   const [fbk, setFbk] = useState<{ variant: FeedbackVariant; message?: string } | null>(null);
   const [fbkOpen, setFbkOpen] = useState(false);
-  const handleShowFbk = (variant: FeedbackVariant, message?: string) => {
-    setFbk({ variant, message });
-    setFbkOpen(true);
-  };
+  const userId = useAppSelector(selectUserData)._id;
+  // The table whose cart is looked at again after a card payment still being
+  // confirmed, and who paid (unknown while their session loads). Moving to
+  // another table or signing out stops it, so a late answer never puts one
+  // table's cart on another's page.
+  // `at`: when it was asked for, so the schedule keeps its times however often
+  // it's updated.
+  const [recheck, setRecheck] = useState<{ tableId: string; userId: string; at: number } | null>(null);
+  if (recheck && (recheck.tableId !== tableId || (recheck.userId && recheck.userId !== userId))) {
+    setRecheck(null);
+  } else if (recheck && !recheck.userId && userId) {
+    // Set on a reloaded page before the session had loaded: whose it is now.
+    setRecheck({ ...recheck, userId });
+  }
+  useEffect(() => {
+    if (!recheck) return;
+    const timers = RECHECK_MS.map((ms) => ms - (Date.now() - recheck.at))
+      .filter((wait) => wait > 0)
+      .map((wait) => setTimeout(() => dispatch(getTableCart(recheck.tableId)), wait));
+    return () => timers.forEach(clearTimeout);
+  }, [recheck, dispatch]);
+
+  const handleShowFbk = useCallback(
+    (variant: FeedbackVariant, message?: string, lookAgain?: boolean) => {
+      setFbk({ variant, message });
+      setFbkOpen(true);
+      if (lookAgain) setRecheck({ tableId, userId, at: Date.now() });
+    },
+    [tableId, userId]
+  );
+
+  // Back from a bank check that took the diner away from the page (rare:
+  // Stripe.js runs it over the page). The reloaded page has lost the cart, so
+  // the return URL names it, and Stripe adds the payment. Asked once, with that
+  // cart (the webhook may have finished the payment and closed it already: the
+  // BE then answers with it), and the URL is cleaned at once, so a refresh
+  // doesn't ask again.
+  const [searchParams] = useSearchParams();
+  const { pathname } = useLocation();
+  const returnedCart = searchParams.get("cart");
+  const returnedPayment = searchParams.get("payment_intent");
+  const returnHandled = useRef(false);
+  // While it's asked, the cart isn't offered for another checkout.
+  const [returning, setReturning] = useState(() => !!returnedCart && !!returnedPayment);
+  // The table on screen now: an answer about another one isn't shown here.
+  const tableRef = useRef(tableId);
+  useEffect(() => {
+    tableRef.current = tableId;
+  });
+  useEffect(() => {
+    if (!returnedCart || returnHandled.current) return;
+    returnHandled.current = true;
+    navigate(pathname, { replace: true });
+    if (!returnedPayment || !tableId) return;
+    captureCardPayment(dispatch, { tableId, cartId: returnedCart, paymentIntentId: returnedPayment }).then(
+      ({ variant, message, recheck }) => {
+        setReturning(false);
+        // Left for another table meanwhile: its cart there is told by a
+        // note when the diner comes back.
+        if (tableRef.current !== tableId) return;
+        handleShowFbk(variant, message, recheck);
+        // The page reloaded on the way back: the table's cart as it is now.
+        dispatch(getTableCart(tableId));
+      }
+    );
+  }, [returnedCart, returnedPayment, tableId, pathname, navigate, dispatch, handleShowFbk]);
   const handleCloseFbk = () => {
     // By path, not back a page: see goBack.
     if (fbk?.variant === "success") goBack();
@@ -112,7 +182,11 @@ const Cart = () => {
             </Col>
           )}
         </Row>
-        {cart.items.length > 0 ? (
+        {returning ? (
+          <Loading label="Checking your card payment">
+            <p className="text-center text-body-secondary pt-5">Checking your card payment…</p>
+          </Loading>
+        ) : cart.items.length > 0 ? (
           <CartListItems handleShowFbk={handleShowFbk} />
         ) : !answered ? (
           <Loading label="Loading the table's cart">

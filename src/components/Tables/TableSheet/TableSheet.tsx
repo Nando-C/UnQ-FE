@@ -10,7 +10,8 @@ import { apiErrorBody, apiErrorMessage } from "../../../lib/errors";
 import { menuIdOf } from "../../../lib/cart";
 import { clockTime, heldFor, STATE_CLASS, STATE_LABEL } from "../../../lib/tables";
 import { REFUND_NOTE_MAX, REFUND_REASON_LABEL, REFUND_REASONS, refundReasonText } from "../../../lib/refundReasons";
-import { IManagerCart, IManagerSplit, IPayment, IRefund, ITableCarts, ITableStatus, RefundReason } from "../../../typings/tables";
+import { providerName, refundDestination } from "../../../lib/providers";
+import { IManagerCart, IManagerLogEntry, IManagerSplit, IPayment, IRefund, ITableCarts, ITableStatus, RefundReason } from "../../../typings/tables";
 import "./TableSheet.css";
 
 // How often an open sheet refreshes (the table cards refresh every 30 s).
@@ -58,7 +59,7 @@ const unpaidOf = (item: IManagerCart["items"][number]) => item.qty - (item.qtyPa
 // selected per item), who has selected what and for how long, the payments
 // made, and the carts closed in the last 24 hours. From here a manager can
 // release selections, remove unpaid items, close the table and merge duplicate
-// carts, refund payments and check payments PayPal hadn't confirmed, each after
+// carts, refund payments and check payments their provider hadn't confirmed, each after
 // a confirmation that says what will happen.
 const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onChanged, deleted }: TableSheetProps) => {
   const [carts, setCarts] = useState<ITableCarts | null>(null);
@@ -204,6 +205,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
               </h3>
             )}
             <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={locked} />
+            <CartLog cart={cart} />
             <div className="d-flex flex-wrap gap-2 mt-3">
               {i > 0 && (
                 <Button
@@ -235,13 +237,22 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
         ))}
         {closed.length > 0 && (
           <details className="mt-3">
-            <summary>Closed in the last 24 hours ({closed.length})</summary>
+            <summary>
+              Closed in the last 24 hours ({closed.length})
+              {closed.some(needsStaff) && (
+                <span className="text-danger-emphasis ms-2">
+                  <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
+                  Needs staff
+                </span>
+              )}
+            </summary>
             {closed.map((cart) => (
               <section key={cart._id} className="mt-3">
                 <h3 className="h6">
                   Closed {cart.updatedAt ? clockTime(cart.updatedAt) : ""}
                 </h3>
                 <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={locked} />
+                <CartLog cart={cart} />
               </section>
             ))}
           </details>
@@ -263,6 +274,56 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
         />
       )}
     </Modal>
+  );
+};
+
+// ---------------------------------------------------------------------------
+
+// The cart's log, newest first: what managers did, and what the server did
+// about card payments. A line staff must act on (a card refund Stripe won't
+// make: pay the diner back another way, or, for a dispute, accept it) is
+// marked, and flags the closed carts it's under.
+const ACTION_LABEL: Record<string, string> = {
+  releaseSelection: "Released selections",
+  removeItem: "Removed items",
+  close: "Closed the table",
+  mergeInto: "Merged carts",
+  refund: "Refunded",
+  checkPayment: "Checked a payment",
+  stripeRefundFailed: "Action needed",
+  stripeRefundedRecorded: "Refunded by Stripe",
+  stripeFinished: "Card payment finished",
+};
+const STAFF_ACTIONS = ["stripeRefundFailed"];
+const needsStaff = (cart: IManagerCart) => (cart.managerLog ?? []).some((l) => STAFF_ACTIONS.includes(l.action));
+
+// Who wrote a line: a manager, or UnQ itself (no one).
+const authorOf = (line: IManagerLogEntry) =>
+  line.byUserId === undefined ? "UnQ" : (line.byUserId?.name ?? "A manager");
+
+const CartLog = ({ cart }: { cart: IManagerCart }) => {
+  const lines = [...(cart.managerLog ?? [])].reverse();
+  if (lines.length === 0) return null;
+  return (
+    <>
+      <h4 className="h6 mt-3">Log</h4>
+      <ul className="list-unstyled sheet-list small">
+        {lines.map((line, i) => {
+          const staff = STAFF_ACTIONS.includes(line.action);
+          return (
+            <li key={`${line.at}-${line.action}-${i}`} className={staff ? "text-danger-emphasis" : undefined}>
+              <div className="text-body-secondary">
+                {clockTime(line.at)} · {authorOf(line)}
+              </div>
+              <div>
+                {staff && <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />}
+                {ACTION_LABEL[line.action] ?? line.action}: {line.details}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 };
 
@@ -467,8 +528,9 @@ const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, d
 
 // Payments on a cart: the recorded ones in full, each with what's been refunded
 // and a way to refund more, and any paid units from before payments were
-// recorded as one "details unavailable" line (refunded from PayPal). One PayPal
-// hasn't confirmed can only be checked; one that failed, only seen.
+// recorded as one "details unavailable" line (refunded from PayPal, the only
+// provider then). One its provider hasn't confirmed can only be checked; one
+// that failed, only seen.
 interface PaymentsProps {
   cart: IManagerCart;
   ask: Ask;
@@ -523,6 +585,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
           {payments.map((p) => {
             const { refunded, underWay, leftOf, canRefund } = refundStateOf(p, refunds);
             const who = p.userId?.name ?? "the diner";
+            const provider = providerName(p.provider);
             return (
               <li key={p._id}>
                 <div className="d-flex flex-wrap justify-content-between gap-1">
@@ -537,25 +600,25 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                 {p.status === "pending" && (
                   <div className="small text-danger-emphasis">
                     <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
-                    Awaiting PayPal: it took this payment but hasn't confirmed it. The items are held as paid until then.
+                    Awaiting {provider}: it took this payment but hasn't confirmed it. The items are held as paid until then.
                     <Button
                       variant="outline-primary"
                       className="d-block mt-2"
                       disabled={disabled}
-                      aria-label={`Check ${who}'s payment of ${formatPrice(p.amount)} with PayPal`}
+                      aria-label={`Check ${who}'s payment of ${formatPrice(p.amount)} with ${provider}`}
                       onClick={() =>
                         ask({
                           message:
-                            `Check ${who}'s payment of ${formatPrice(p.amount)} with PayPal? If PayPal confirmed it, it's ` +
-                            `recorded as paid. If PayPal declined it, nothing was taken and its items become unpaid again. ` +
+                            `Check ${who}'s payment of ${formatPrice(p.amount)} with ${provider}? If ${provider} confirmed it, it's ` +
+                            `recorded as paid. If ${provider} declined it, nothing was taken and its items become unpaid again. ` +
                             `${who} will see a note either way.`,
                           confirmLabel: "Check payment",
                           danger: false,
                           send: checkPayment(cart._id, p._id),
                           done: (data) =>
                             (data as { payment?: { status?: string } }).payment?.status === "failed"
-                              ? `PayPal didn't complete ${who}'s payment of ${formatPrice(p.amount)}: nothing was taken, and those items are unpaid again.`
-                              : `PayPal confirmed ${who}'s payment of ${formatPrice(p.amount)}.`,
+                              ? `${provider} didn't complete ${who}'s payment of ${formatPrice(p.amount)}: nothing was taken, and those items are unpaid again.`
+                              : `${provider} confirmed ${who}'s payment of ${formatPrice(p.amount)}.`,
                         })
                       }
                     >
@@ -564,7 +627,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                   </div>
                 )}
                 {p.status === "failed" && (
-                  <div className="small text-body-secondary">Didn't go through at PayPal: nothing was taken.</div>
+                  <div className="small text-body-secondary">Didn't go through at {provider}: nothing was taken.</div>
                 )}
                 {refunded.map((r) => {
                   const why = refundReasonText(r.reason, r.reasonNote);
@@ -589,7 +652,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                   return (
                     <div key={r._id} className="small text-danger-emphasis">
                       <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
-                      Refund of {formatPrice(r.amount)} in progress: PayPal hasn't confirmed it.
+                      Refund of {formatPrice(r.amount)} in progress: {provider} hasn't confirmed it.
                       {why && ` Reason: ${why}.`}
                       <Button
                         variant="outline-primary"
@@ -599,7 +662,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                         onClick={() =>
                           ask({
                             message:
-                              `Retry the ${formatPrice(r.amount)} refund to ${who} for ${what}? PayPal is asked first ` +
+                              `Retry the ${formatPrice(r.amount)} refund to ${who} for ${what}? ${provider} is asked first ` +
                               `whether it already went through; it's only sent again if it didn't, so it can't be refunded twice.`,
                             confirmLabel: "Retry refund",
                             danger: false,
@@ -614,7 +677,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                   );
                 })}
                 {p.status === "pending" || p.status === "failed" ? null : !p.providerPaymentId ? (
-                  <div className="small text-body-secondary">Refund this payment from PayPal.</div>
+                  <div className="small text-body-secondary">Refund this payment from {provider}.</div>
                 ) : refunding === p._id ? (
                   // Stays open (locked) while the refund is asked about, so Cancel
                   // comes back to the picks as they were, and to Review refund.
@@ -630,7 +693,8 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                       ask({
                         message:
                           `Refund ${formatPrice(amount)} to ${who} for ${what}? ` +
-                          `Reason: ${refundReasonText(refund.reason, refund.reasonNote)}. PayPal returns it to their account, ` +
+                          `Reason: ${refundReasonText(refund.reason, refund.reasonNote)}. ${provider} returns it to their ` +
+                          `${refundDestination(p.provider)}, ` +
                           `the items are removed from the table's cart, and ${who} will see a note. This can't be undone.`,
                         confirmLabel: `Refund ${formatPrice(amount)} to ${who}`,
                         danger: true,

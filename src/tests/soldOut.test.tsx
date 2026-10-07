@@ -317,7 +317,7 @@ describe("checkout onApprove 409s", () => {
     )
     const handleShowFbk = vi.fn()
     const { user } = renderWithProviders(
-      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} />,
+      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} amount={0} />,
       { preloadedState: { carts: { data: cart, pointers: { shopId: "s1", tableId: "t1" } } } }
     )
 
@@ -351,7 +351,7 @@ describe("checkout onApprove 409s", () => {
     )
     const handleShowFbk = vi.fn()
     const { user } = renderWithProviders(
-      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} />,
+      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} amount={0} />,
       { preloadedState: { carts: { data: cart, pointers: { shopId: "s1", tableId: "t1" } } } }
     )
 
@@ -373,7 +373,7 @@ describe("checkout onApprove 409s", () => {
     )
     const handleShowFbk = vi.fn()
     const { user } = renderWithProviders(
-      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} />,
+      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} amount={0} />,
       { preloadedState: { carts: { data: cart, pointers: { shopId: "s1", tableId: "t1" } } } }
     )
 
@@ -389,7 +389,7 @@ describe("checkout onApprove 409s", () => {
     )
     const handleShowFbk = vi.fn()
     const { user } = renderWithProviders(
-      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} />,
+      <CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} amount={0} />,
       { preloadedState: { carts: { data: cart, pointers: { shopId: "s1", tableId: "t1" } } } }
     )
 

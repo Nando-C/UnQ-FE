@@ -107,7 +107,8 @@ This started as a solo capstone project for Strive School's Full Stack Master Ca
 - **QR-driven table menus** — each table gets its own QR code; scanning it opens that shop's menu scoped to that table.
 - **Shared table cart with per-item bill splitting** — anyone at the table can add items to the same cart and choose exactly which items (and quantities) they're paying for.
 - **Sold-out items** — an item the manager marks unavailable is shown greyed out with a "Sold out" badge and can't be ordered; if it sells out after it was added, it stays in the cart flagged, is never charged, and has to be removed before the rest can be paid for.
-- **Checkout** — PayPal (sandbox) via `@paypal/react-paypal-js`, with server-created and server-captured payments: the back end mints the order for the buyer's DB-priced split total and captures it itself after approval, so the client never handles money — a post-capture conflict is refunded automatically.
+- **Checkout** — by card (Stripe's Payment Element in the checkout sheet, with Apple Pay and Google Pay where the device has them) or PayPal (`@paypal/react-paypal-js`), with server-created and server-captured payments: the back end creates the payment for the buyer's DB-priced split total and captures it itself after the buyer confirms (a card is only authorised until then), so the client never handles money — a post-capture conflict is refunded automatically. A card payment the back end can't confirm at once is finished by Stripe's webhook, and the cart page shows how it ended.
+- **Table sheet for staff** — each table's carts, selections and payments (with refunds, and checks of payments a provider hasn't confirmed), and each cart's log of what managers and UnQ did, marking what staff must act on (a card refund Stripe won't make).
 - **Auth** — email/password and Google OAuth, JWT access + refresh tokens in httpOnly cookies, with silent refresh-on-401 so a 15-minute access token never logs the user out mid-session.
 - **Manager dashboard** — CRUD for shops, menu items (with per-item availability toggle), and tables; QR-code generation per table via `qr-code-styling`; images are uploaded through the back end to Cloudinary.
 - **Role-aware UI** — the app renders the customer or manager interface based on the signed-in user's role. Promoting a user to manager (`shopMg`) is a back-end/admin operation today — there's no self-service "become a manager" flow in the UI.
@@ -136,6 +137,8 @@ flowchart LR
     Axios <-->|"REST · httpOnly JWT cookies<br/>(access 15 min / refresh 4 wk)"| BE["UnQ-BE<br/>Express + zod"]
     BE <-->|"createCheckoutOrder → mint order<br/>captureCheckout → capture + settle"| PayPal["PayPal<br/>(sandbox)"]
     UI <-->|"buyer approves in popup<br/>@paypal/react-paypal-js"| PayPal
+    BE <-->|"createStripeCheckout → PaymentIntent<br/>captureStripeCheckout → capture + settle"| Stripe["Stripe<br/>(test mode)"]
+    UI <-->|"card confirmed in the Payment Element<br/>@stripe/react-stripe-js"| Stripe
 
     BE --> Mongo[("MongoDB")]
     BE --> Cloudinary["Cloudinary<br/>images"]
@@ -146,7 +149,7 @@ flowchart LR
 - **State**: Redux Toolkit, one slice per domain — `user` (auth/profile + `status: "idle" | "loading" | "authenticated" | "guest"`), `shops` (venues, menu items, tables), `carts` (table cart + per-item split state). Components read/dispatch through the typed hooks in `redux/app/hooks.ts` (`useAppDispatch`/`useAppSelector`) rather than the bare react-redux hooks.
 - **API access**: exclusively through the axios instance in `src/backend/backend.ts` (`withCredentials: true` — auth lives in httpOnly cookies, never in JS-readable storage). A response interceptor there transparently refreshes an expired access token on a 401 (single-flighted, so concurrent 401s share one refresh call) and replays the original request once.
 - **Shared types**: `src/typings/`.
-- **Env vars**: `VITE_BE_URL` (back-end base URL) and `VITE_PAYPAL_CLIENT_ID` (PayPal sandbox/app client ID) — see [Environment Variables](#environment-variables).
+- **Env vars**: `VITE_BE_URL` (back-end base URL), `VITE_PAYPAL_CLIENT_ID` (PayPal sandbox/app client ID) and `VITE_STRIPE_PUBLISHABLE_KEY` (Stripe's publishable key) — see [Environment Variables](#environment-variables).
 
 ```
 src/
@@ -187,6 +190,7 @@ Copy `.env.example` to `.env` and fill in:
 | `VITE_BE_URL` | Path the app calls the back-end on. Keep it as `/api` so the API is served from this app's own origin and the back-end's auth cookies stay first-party (see [Deployment](#deployment)) |
 | `DEV_PROXY_TARGET` | Where the dev server forwards `/api`. Defaults to `http://localhost:3001`. Deliberately un-prefixed so it never reaches the client bundle |
 | `VITE_PAYPAL_CLIENT_ID` | PayPal client ID for the checkout button (falls back to PayPal's shared `"sb"` sandbox ID if unset) |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_test_…` or `pk_live_…`) of the account the back-end's secret key belongs to. Unset, the checkout offers PayPal only. For Apple Pay, the site's domain is registered in Stripe's dashboard (Payment method domains) |
 
 ### Scripts
 

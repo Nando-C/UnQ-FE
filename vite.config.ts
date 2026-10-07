@@ -70,11 +70,13 @@ export default defineConfig(({ mode }) => {
       setupFiles: "./src/tests/setup.ts",
       // Component .css imports are no-ops in tests; skip processing them.
       css: false,
-      // Deterministic env for the axios base URL and PayPal client id so
-      // tests never depend on a developer's local .env.
+      // Deterministic env for the axios base URL, the PayPal client id and
+      // the Stripe key (none: the card option is off unless a test sets one)
+      // so tests never depend on a developer's local .env.
       env: {
         VITE_BE_URL: "/api",
         VITE_PAYPAL_CLIENT_ID: "sb",
+        VITE_STRIPE_PUBLISHABLE_KEY: "",
       },
     },
   }

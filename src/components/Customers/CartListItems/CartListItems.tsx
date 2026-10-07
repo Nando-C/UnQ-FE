@@ -23,7 +23,9 @@ import "./CartListItems.css";
 interface CartListItemsProps {
   // Shows how a checkout ended. The cart page owns that sheet, so it stays up
   // even if this list goes (a fully paid cart can empty on the next refresh).
-  handleShowFbk: (variant: FeedbackVariant, message?: string) => void;
+  // `recheck`: look at the cart again a little later (a card payment not
+  // settled yet).
+  handleShowFbk: (variant: FeedbackVariant, message?: string, recheck?: boolean) => void;
 }
 
 const CartListItems = ({ handleShowFbk }: CartListItemsProps) => {
@@ -76,7 +78,7 @@ const CartListItems = ({ handleShowFbk }: CartListItemsProps) => {
 
   const soldOutCount = visibleItems.filter(isSoldOut).length;
   // Holding a split on a sold-out item blocks the whole checkout (the BE
-  // refuses it), so say so on the button instead of letting PayPal open.
+  // refuses it), so say so on the button instead of opening the checkout.
   const holdsSoldOut = visibleItems.some(
     (i) => isSoldOut(i) && mySplitFor(i)
   );
@@ -218,6 +220,7 @@ const CartListItems = ({ handleShowFbk }: CartListItemsProps) => {
         show={show}
         handleClose={handleClose}
         handleShowFbk={handleShowFbk}
+        amount={mySplit}
       />
     </>
   );

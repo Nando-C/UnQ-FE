@@ -1,6 +1,7 @@
 import type { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Offcanvas } from "react-bootstrap";
+import { useParams } from "react-router-dom";
 import {
   PayPalButtons,
   PayPalScriptProvider,
@@ -13,26 +14,78 @@ import {
   selectCartsData,
   type CartRejection,
 } from "../../../redux/slices/cartSlice";
-import { REFUNDED_MARKER } from "../../../lib/cart";
+import { notStartedOutcome, paidOutcome, refusedOutcome, type PaymentOutcome } from "../../../lib/paymentOutcome";
+import { stripeKey } from "../../../lib/stripe";
+import { tablePath } from "../../../lib/paths";
+import CardPayment from "./CardPayment";
 
 interface CheckOutProps {
   show: boolean;
   handleClose: () => void;
-  handleShowFbk: (variant: FeedbackVariant, message?: string) => void;
+  // `recheck`: look at the cart again a little later (a card payment not
+  // settled yet).
+  handleShowFbk: (variant: FeedbackVariant, message?: string, recheck?: boolean) => void;
+  // The diner's selection as they see it, on the card's Pay button.
+  amount: number;
 }
 
-const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
+// The checkout sheet: by card (Stripe; Apple Pay and Google Pay where the
+// device has them) when a publishable key is set, then PayPal's buttons. Each
+// script loads only once the sheet opens.
+const CheckOut = ({ show, handleClose, handleShowFbk, amount }: CheckOutProps) => {
   const cart = useAppSelector(selectCartsData);
   const dispatch = useAppDispatch();
+  const { shopId = "", tableId = "" } = useParams<{ shopId: string; tableId: string }>();
   const createOrderRejectionRef = useRef<CartRejection | undefined>(undefined);
+  const cardsOn = !!stripeKey();
+  // A card being confirmed (its bank check may be open over the page): the
+  // sheet can't be closed until its outcome is known.
+  const [cardBusy, setCardBusy] = useState(false);
+  // PayPal's popup open (from its order until approved, cancelled or failed):
+  // no card payment meanwhile, as no PayPal one while a card is busy.
+  const [paypalBusy, setPaypalBusy] = useState(false);
+
+  // How a payment ended: the sheet closes and says so. The cart shown is on
+  // the payment's table (moving to another unmounts the sheet).
+  const showOutcome = ({ variant, message, refetch, recheck }: PaymentOutcome) => {
+    setCardBusy(false);
+    setPaypalBusy(false);
+    handleClose();
+    if (recheck) handleShowFbk(variant, message, true);
+    else handleShowFbk(variant, message);
+    if (refetch) dispatch(getTableCart(cart.tableId));
+  };
 
   return (
     <div className="CheckOut">
-      <Offcanvas className="bottom-sheet" placement="bottom" show={show} onHide={handleClose}>
-        <Offcanvas.Header closeButton>
+      <Offcanvas
+        className="bottom-sheet"
+        placement="bottom"
+        show={show}
+        onHide={() => {
+          if (cardBusy) return;
+          setPaypalBusy(false);
+          handleClose();
+        }}
+      >
+        <Offcanvas.Header closeButton={!cardBusy}>
           <Offcanvas.Title>Select Payment Type</Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body>
+          {show && cardsOn && (
+            <>
+              <CardPayment
+                tableId={cart.tableId}
+                cartId={cart._id}
+                amount={amount}
+                cartPath={`${tablePath(shopId, tableId)}/cart`}
+                onOutcome={showOutcome}
+                onBusy={setCardBusy}
+                disabled={paypalBusy}
+              />
+              <p className="text-center text-body-secondary small my-3">or pay with PayPal</p>
+            </>
+          )}
           {show && (
             <PayPalScriptProvider
               options={{
@@ -41,8 +94,11 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
               }}
             >
               <PayPalButtons
+                // Not a second payment while a card's is being confirmed.
+                disabled={cardBusy}
                 createOrder={async () => {
                   createOrderRejectionRef.current = undefined;
+                  setPaypalBusy(true);
                   try {
                     return await dispatch(
                       createCheckoutOrder({
@@ -58,98 +114,23 @@ const CheckOut = ({ show, handleClose, handleShowFbk }: CheckOutProps) => {
                   }
                 }}
                 onApprove={async (data) => {
-                  let pending: boolean;
                   try {
-                    ({ pending } = await dispatch(
+                    const { pending } = await dispatch(
                       captureCheckout({
                         tableId: cart.tableId,
                         cartId: cart._id,
                         paypalOrderId: data.orderID,
                       })
-                    ).unwrap());
+                    ).unwrap();
+                    showOutcome(paidOutcome("paypal", pending));
                   } catch (err) {
-                    handleClose();
-                    const rejection = err as CartRejection | undefined;
-                    if (
-                      rejection?.status === 409 &&
-                      (!rejection.message || rejection.message.includes(REFUNDED_MARKER))
-                    ) {
-                      // The cart changed after capture — the BE has already
-                      // refunded automatically, and its message says so.
-                      handleShowFbk(
-                        "failure",
-                        rejection.message
-                          ? `${rejection.message}.`
-                          : "Someone else claimed those units first — you've been refunded automatically."
-                      );
-                      dispatch(getTableCart(cart.tableId));
-                    } else if (rejection?.status === 402) {
-                      handleShowFbk(
-                        "failure",
-                        "Payment could not be completed — nothing was charged. Please try again."
-                      );
-                    } else if (
-                      rejection?.status !== undefined &&
-                      rejection.status >= 400 &&
-                      rejection.status < 500
-                    ) {
-                      // Refused before capture: an item sold out, the
-                      // selection changed or is gone, the units were taken,
-                      // the table was closed, or the login expired. Nothing
-                      // was charged; the refreshed cart shows why.
-                      handleShowFbk(
-                        "failure",
-                        rejection.message
-                          ? `${rejection.message} — nothing was charged.`
-                          : "Payment could not be completed — nothing was charged."
-                      );
-                      dispatch(getTableCart(cart.tableId));
-                    } else {
-                      // A 5xx or no answer: the money may have moved. The BE's
-                      // own message already asks the diner to contact staff
-                      // and gives the order id they need; show it as it is.
-                      handleShowFbk(
-                        "failure",
-                        rejection?.message?.includes("contact staff")
-                          ? rejection.message
-                          : "We couldn't confirm your payment — please contact staff before paying again."
-                      );
-                    }
-                    return;
+                    showOutcome(refusedOutcome(err as CartRejection | undefined, "paypal"));
                   }
-                  handleClose();
-                  if (pending) {
-                    // PayPal took it but is still reviewing it: not paid yet,
-                    // and not to be paid again.
-                    handleShowFbk(
-                      "pending",
-                      "PayPal is still reviewing your payment. Your items are held for you until staff confirm it — please don't pay for them again."
-                    );
-                    return;
-                  }
-                  handleShowFbk("success");
                 }}
-                onCancel={() => {
-                  handleClose();
-                  handleShowFbk(
-                    "failure",
-                    "Payment cancelled — nothing was charged."
-                  );
-                }}
-                onError={() => {
-                  handleClose();
-                  const rejection = createOrderRejectionRef.current;
-                  handleShowFbk(
-                    "failure",
-                    rejection?.message
-                      ? `${rejection.message} — nothing was charged.`
-                      : "Payment failed — nothing was charged. Please try again."
-                  );
-                  // Whatever stopped it (a sold-out item, a selection staff
-                  // released, a closed table), the cart as it is now shows why
-                  // and stops offering the same checkout again.
-                  dispatch(getTableCart(cart.tableId));
-                }}
+                onCancel={() =>
+                  showOutcome({ variant: "failure", message: "Payment cancelled — nothing was charged.", refetch: false })
+                }
+                onError={() => showOutcome(notStartedOutcome(createOrderRejectionRef.current))}
               />
             </PayPalScriptProvider>
           )}

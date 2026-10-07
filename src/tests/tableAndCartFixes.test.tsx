@@ -172,7 +172,7 @@ describe("a checkout that can't start", () => {
       })
     )
     const handleShowFbk = vi.fn()
-    const { user } = renderWithProviders(<CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} />, {
+    const { user } = renderWithProviders(<CheckOut show handleClose={() => {}} handleShowFbk={handleShowFbk} amount={0} />, {
       preloadedState: {
         carts: { data: cartWith([{ _id: "sp", userId: "u1", menuId: latte, qty: 1, splitStatus: "open" }]), pointers: { shopId: "s1", tableId: "t1" } },
       },

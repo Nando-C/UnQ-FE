@@ -37,7 +37,7 @@ export interface IPaymentLine {
 export interface IPayment {
     _id: string
     provider: string
-    // pending: PayPal took it but hasn't confirmed it (check it); failed: it
+    // pending: its provider took it but hasn't confirmed it (check it); failed: it
     // didn't go through, nothing was taken. Absent on older answers: completed.
     status?: "completed" | "pending" | "failed"
     providerCheckoutId: string
@@ -71,6 +71,16 @@ export interface IRefund {
 // UnQ-BE's REFUND_REASONS; their labels are in lib/refundReasons.ts.
 export type RefundReason = "unavailable" | "wrong_item" | "quality" | "long_wait" | "paid_by_mistake" | "changed_mind" | "other"
 
+// A line in a cart's log: what a manager did (`byUserId`; null when their
+// account is gone), or what the server did (none), e.g. a card refund Stripe
+// won't make, for staff to pay back another way.
+export interface IManagerLogEntry {
+    at: string
+    byUserId?: IDiner | null
+    action: string
+    details: string
+}
+
 export interface IManagerCart {
     _id: string
     tableId: string
@@ -79,6 +89,8 @@ export interface IManagerCart {
     split: IManagerSplit[]
     payments?: IPayment[]
     refunds?: IRefund[]
+    // Oldest first, as the BE keeps it.
+    managerLog?: IManagerLogEntry[]
     createdAt?: string
     updatedAt?: string
 }

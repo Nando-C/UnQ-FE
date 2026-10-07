@@ -39,12 +39,21 @@ interface AddToSplitProps {
 }
 const toCartPayload = (item: IItem) => ({ menuId: menuIdOf(item), qty: item.qty })
 
-// A refused cart request: the BE's status and reason (e.g. 409 "Someone at the
-// table is paying for those"), for the UI to tell refusals apart.
-export type CartRejection = { status?: number; message?: string }
+// A refused cart request: the BE's status and message (e.g. 409 "Someone at
+// the table is paying for those"), for the UI to tell refusals apart, and its
+// machine-readable `reason` when it gives one (a card payment's 502
+// "STILL_CONFIRMING").
+export type CartRejection = { status?: number; message?: string; reason?: string }
 
 const reasonOf = (err: unknown): CartRejection => {
-    if (axios.isAxiosError(err)) return { status: err.response?.status, message: err.response?.data?.message }
+    if (axios.isAxiosError(err)) {
+        const reason: unknown = err.response?.data?.reason
+        return {
+            status: err.response?.status,
+            message: err.response?.data?.message,
+            ...(typeof reason === "string" && { reason }),
+        }
+    }
     throw err
 }
 
@@ -161,6 +170,41 @@ export const captureCheckout = createAsyncThunk(
     }
 )
 
+// Card checkout (Stripe), step 1: a payment for the caller's selection, which
+// the diner confirms in Stripe's Payment Element. That only authorises it.
+export const createStripeCheckout = createAsyncThunk(
+    "cart/createStripeCheckout",
+    async ({tableId, cartId}: CheckOutProps, { rejectWithValue }) => {
+        try {
+            const { data }: AxiosResponse<{ clientSecret: string; paymentIntentId: string }> =
+                await backend.post(`carts/tables/${tableId}/${cartId}/createStripeCheckout`)
+            return data
+        } catch (err) {
+            return rejectWithValue(reasonOf(err))
+        }
+    }
+)
+
+interface CaptureStripeCheckoutProps extends CheckOutProps {
+    paymentIntentId: string
+}
+// Step 2: the BE re-checks the cart, then takes the money, or cancels the
+// authorisation. Its answer comes from the payment as Stripe has it, so it's
+// asked whatever confirming it in the sheet said. `pending` as captureCheckout's
+// (a 202: Stripe is still processing it, the items are held).
+export const captureStripeCheckout = createAsyncThunk(
+    "cart/captureStripeCheckout",
+    async ({tableId, cartId, paymentIntentId}: CaptureStripeCheckoutProps, { rejectWithValue }) => {
+        try {
+            const { data, status }: AxiosResponse<ICart> =
+                await backend.post(`carts/tables/${tableId}/${cartId}/captureStripeCheckout`, { paymentIntentId })
+            return { cart: data, pending: status === 202 }
+        } catch (err) {
+            return rejectWithValue(reasonOf(err))
+        }
+    }
+)
+
 // Back to no cart: also drops selections still on their way (their sync loops
 // see nothing wanted and stop) and the notes about failed ones.
 const clearCart = (state: ICartStore) => {
@@ -251,8 +295,20 @@ export const cartsSlice = createSlice({
                 }
             }
         })
+        // A capture's answer is newer than any table fetch sent before it (the
+        // popup or the card form sends focus back, which refetches): those are
+        // dropped, so the paid cart isn't replaced by the one from before.
         builder.addCase(captureCheckout.fulfilled, (state, action) => {
             state.data = action.payload.cart
+            delete state.cartRequestId
+        })
+        // A card capture can take a few seconds (the BE may wait on Stripe's
+        // webhook), and the diner may have moved to another table meanwhile:
+        // its cart only shows on its own table.
+        builder.addCase(captureStripeCheckout.fulfilled, (state, action) => {
+            if (state.pointers.tableId !== action.meta.arg.tableId) return
+            state.data = action.payload.cart
+            delete state.cartRequestId
         })
         // The table and the selections were the person logging out's: whoever
         // signs in next isn't taken back to that table.

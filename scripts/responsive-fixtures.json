@@ -1,5 +1,5 @@
 {
-  "//": "Mock API data for scripts/responsive-audit.mjs. Deliberately awkward: a 45-character shop name, a 47-character dish name with a long description, one sold-out item (m1), and a cart with a paid unit, another diner's open split and one of mine. Image URLs are placeholders the script answers with generated SVGs, so the audit never touches the network for them.",
+  "//": "Mock API data for scripts/responsive-audit.mjs. Deliberately awkward: a 45-character shop name, a 47-character dish name with a long description, one sold-out item (m1), and a cart with a paid unit, another diner's open split and one of mine. Image URLs are placeholders the script answers with generated SVGs, so the audit never touches the network for them. The table's carts carry a log with a line for staff to act on, open and closed.",
   "users": {
     "customer": {
       "_id": "u1",
@@ -597,6 +597,22 @@
             "status": "pending",
             "at": "2026-09-28T16:30:00.000Z"
           }
+        ],
+        "managerLog": [
+          {
+            "at": "2026-09-28T16:25:00.000Z",
+            "byUserId": {
+              "_id": "mg1",
+              "name": "Bartholomew-Fitzgerald"
+            },
+            "action": "releaseSelection",
+            "details": "Maximiliana-Alexandrina: 2× Pancake 🥞"
+          },
+          {
+            "at": "2026-09-28T16:40:00.000Z",
+            "action": "stripeRefundFailed",
+            "details": "£28.50 card payment by Maximiliana-Alexandrina: Stripe won't refund it, so they were charged (payment pi_3Fixture0000000000000000). Pay them back another way, unless a cart shows this payment as paid and they didn't pay again, or Stripe's dashboard shows they've disputed it since (their bank returns it then)."
+          }
         ]
       }
     ],
@@ -608,7 +624,14 @@
         "items": [],
         "split": [],
         "payments": [],
-        "updatedAt": "2026-09-28T11:59:54.000Z"
+        "updatedAt": "2026-09-28T11:59:54.000Z",
+        "managerLog": [
+          {
+            "at": "2026-09-28T15:10:00.000Z",
+            "action": "stripeRefundFailed",
+            "details": "£28.50 card payment by Maximiliana-Alexandrina: Stripe won't refund it, so they were charged (payment pi_3Fixture0000000000000000). Pay them back another way, unless a cart shows this payment as paid and they didn't pay again, or Stripe's dashboard shows they've disputed it since (their bank returns it then)."
+          }
+        ]
       }
     ]
   }
