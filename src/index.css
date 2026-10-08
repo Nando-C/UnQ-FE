@@ -105,6 +105,12 @@ a:focus-visible {
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
 }
+/* More room under the last control (Pay, PayPal's buttons) than Bootstrap's
+ * 1rem, so it doesn't sit on the screen's edge; plus the home indicator's
+ * inset where the browser reports one. */
+.bottom-sheet .offcanvas-body {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+}
 
 /* "or" between two ways to pay: a line either side of the word. */
 .or-divider {
