@@ -39,15 +39,3 @@ export const availableQty = (
 export const isSoldOut = (x: IItem | ISplitItem | undefined) =>
   typeof x?.menuId === "object" && x.menuId?.available === false;
 
-// The one 409 from captureCheckout that comes AFTER the money moved: a
-// concurrent payer took the units and the BE refunded the capture. Every other
-// 409 there (sold out, selection changed, not enough units left) is raised
-// before capture, so nothing was charged. Matched by substring because the
-// BE's message is the only thing that tells them apart.
-export const REFUNDED_MARKER = "your payment was refunded";
-
-// A card payment's 404 from captureStripeCheckout when it went through (or is
-// being confirmed) but the table's cart was deleted since (with its table or
-// shop): never "nothing was charged". Every other 404 there is raised before
-// anything was taken.
-export const CART_GONE_MARKER = "this table's cart is no longer here";

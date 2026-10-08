@@ -34,9 +34,13 @@ export interface IPaymentLine {
     refundedQty: number
 }
 
+// UnQ-BE's PAYMENT_PROVIDERS; their names and refund destinations are in
+// lib/providers.ts, how each one's checkout ends in lib/paymentOutcome.ts.
+export type PaymentProvider = "paypal" | "stripe"
+
 export interface IPayment {
     _id: string
-    provider: string
+    provider: PaymentProvider | (string & {})
     // pending: its provider took it but hasn't confirmed it (check it); failed: it
     // didn't go through, nothing was taken. Absent on older answers: completed.
     status?: "completed" | "pending" | "failed"
@@ -71,13 +75,20 @@ export interface IRefund {
 // UnQ-BE's REFUND_REASONS; their labels are in lib/refundReasons.ts.
 export type RefundReason = "unavailable" | "wrong_item" | "quality" | "long_wait" | "paid_by_mistake" | "changed_mind" | "other"
 
+// What a line in a cart's log says was done (UnQ-BE's managerLog actions);
+// their labels are in lib/tables.ts. The BE sends a string: one it adds later
+// shows as it is.
+export type ManagerLogAction =
+    | "releaseSelection" | "removeItem" | "close" | "mergeInto" | "refund" | "checkPayment" | "paybackDone"
+    | "stripeRefundFailed" | "stripeRefundedRecorded" | "stripeFinished"
+
 // A line in a cart's log: what a manager did (`byUserId`; null when their
 // account is gone), or what the server did (none), e.g. a card refund Stripe
 // won't make, for staff to pay back another way.
 export interface IManagerLogEntry {
     at: string
     byUserId?: IDiner | null
-    action: string
+    action: ManagerLogAction | (string & {})
     details: string
 }
 

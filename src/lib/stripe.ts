@@ -29,5 +29,12 @@ export const isRetryableCardError = (error: { type?: string; code?: string }) =>
 // Where Stripe sends the diner back if a bank check takes them away from the
 // page (rare: Stripe.js runs it over the page). Absolute, as Stripe requires,
 // and it names the cart, as the reloaded page no longer has it.
+const CART_PARAM = "cart";
 export const stripeReturnUrl = (cartPath: string, cartId: string) =>
-  `${window.location.origin}${cartPath}?cart=${encodeURIComponent(cartId)}`;
+  `${window.location.origin}${cartPath}?${CART_PARAM}=${encodeURIComponent(cartId)}`;
+// The return as the cart page finds it: the cart named above, and the payment
+// Stripe adds (`payment_intent`). Null when the page wasn't returned to.
+export const stripeReturn = (params: URLSearchParams) => {
+  const cartId = params.get(CART_PARAM);
+  return cartId ? { cartId, paymentIntentId: params.get("payment_intent") } : null;
+};

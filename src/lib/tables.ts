@@ -1,4 +1,4 @@
-import { TableAttention, TableState } from "../typings/tables";
+import { IManagerLogEntry, ManagerLogAction, TableAttention, TableState } from "../typings/tables";
 
 // Words and colours for a table's state on the manager's table cards and sheet.
 // The colours are Bootstrap's subtle/emphasis pairs (AA contrast); the words
@@ -23,6 +23,24 @@ export const ATTENTION_LABEL: Record<TableAttention, string> = {
   duplicateCarts: "More than one open cart",
   paymentPending: "Payment awaiting confirmation",
 };
+
+// What a line in a cart's log says was done (the manager's sheet).
+export const LOG_ACTION_LABEL: Record<ManagerLogAction, string> = {
+  releaseSelection: "Released selections",
+  removeItem: "Removed items",
+  close: "Closed the table",
+  mergeInto: "Merged carts",
+  refund: "Refunded",
+  checkPayment: "Checked a payment",
+  paybackDone: "Pay-back done",
+  stripeRefundFailed: "Action needed",
+  stripeRefundedRecorded: "Refunded by Stripe",
+  stripeFinished: "Card payment finished",
+};
+export const logActionLabel = (action: IManagerLogEntry["action"]) => LOG_ACTION_LABEL[action as ManagerLogAction] ?? action;
+// A line staff must act on: a card refund Stripe won't make (pay the diner
+// back another way, or, for a dispute, accept it).
+export const needsStaffLine = (line: IManagerLogEntry) => line.action === "stripeRefundFailed";
 
 // "just now", "12 min", "2 h 5 min": how long ago `iso` was.
 export const heldFor = (iso: string, now = Date.now()) => {

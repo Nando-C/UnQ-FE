@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Alert, Button } from "react-bootstrap";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import type { Stripe } from "@stripe/stripe-js";
 import { useAppDispatch } from "../../../redux/app/hooks";
 import { createStripeCheckout, type CartRejection } from "../../../redux/slices/cartSlice";
 import { getStripe, isRetryableCardError, stripeReturnUrl } from "../../../lib/stripe";
-import { captureCardPayment, notStartedOutcome, type PaymentOutcome } from "../../../lib/paymentOutcome";
+import { captureCardPayment, isRefusal, notStartedOutcome, type PaymentOutcome } from "../../../lib/paymentOutcome";
 import { formatPrice } from "../../../lib/price";
 
 interface CardPaymentProps {
@@ -105,10 +105,9 @@ const CardPayment = ({ tableId, cartId, amount, cartPath, onOutcome, onBusy, dis
       .catch((err: unknown) => {
         if (!openRef.current) return;
         const rejection = err as CartRejection | undefined;
-        const status = rejection?.status;
         // Not while PayPal's popup is open: closing the sheet would end that
         // payment, which the BE may still take.
-        if (status !== undefined && status >= 400 && status < 500 && status !== 429 && !disabledRef.current) {
+        if (isRefusal(rejection?.status) && rejection?.status !== 429 && !disabledRef.current) {
           // The BE's checks refused it (a sold-out item, a selection staff
           // released, a closed table): PayPal would be refused too.
           onOutcomeRef.current(notStartedOutcome(rejection));
@@ -124,6 +123,9 @@ const CardPayment = ({ tableId, cartId, amount, cartPath, onOutcome, onBusy, dis
   // answer comes from the payment as Stripe has it.
   const capture = async ({ tableId, cartId, paymentIntentId }: { tableId: string; cartId: string; paymentIntentId: string }) =>
     onOutcomeRef.current(await captureCardPayment(dispatch, { tableId, cartId, paymentIntentId }));
+  // The same object across renders: Elements compares its options each render.
+  const clientSecret = start.kind === "ready" ? start.clientSecret : undefined;
+  const options = useMemo(() => ({ clientSecret }), [clientSecret]);
 
   return (
     <section className="card-payment" aria-labelledby="card-payment-title">
@@ -131,7 +133,7 @@ const CardPayment = ({ tableId, cartId, amount, cartPath, onOutcome, onBusy, dis
         Pay by card
       </h2>
       {start.kind === "ready" ? (
-        <Elements stripe={start.stripe} options={{ clientSecret: start.clientSecret }}>
+        <Elements stripe={start.stripe} options={options}>
           <CardForm
             amount={start.amount}
             returnUrl={stripeReturnUrl(cartPath, start.cartId)}
@@ -176,16 +178,15 @@ const CardForm = ({ amount, returnUrl, onConfirmed, onLoadError, onBusy, disable
   const stripe = useStripe();
   const elements = useElements();
   const [ready, setReady] = useState(false);
+  // Also disables Pay, so a double tap sends one payment (React flushes the
+  // first tap's state before the second is dispatched).
   const [sending, setSending] = useState(false);
-  // Set at once, not on the next render: a double tap sends one payment.
-  const sendingRef = useRef(false);
   // Why the last try was declined, under the form.
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements || disabled || sendingRef.current) return;
-    sendingRef.current = true;
+    if (!stripe || !elements || disabled || sending) return;
     setSending(true);
     onBusy(true);
     setError(null);
@@ -207,7 +208,6 @@ const CardForm = ({ amount, returnUrl, onConfirmed, onLoadError, onBusy, disable
       // payment. A form error (an incomplete number) already shows in
       // Stripe's form, next to its field.
       setError(failure.type === "validation_error" ? null : (failure.message ?? "Your card was declined. Try another card."));
-      sendingRef.current = false;
       setSending(false);
       onBusy(false);
       return;

@@ -8,6 +8,7 @@ describe("PaymentFeedback", () => {
       <PaymentFeedback
         showFbk={true}
         variant="success"
+        message="Your payment went through."
         handleCloseFbk={vi.fn()}
       />
     )

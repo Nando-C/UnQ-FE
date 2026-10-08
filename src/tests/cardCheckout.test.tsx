@@ -53,6 +53,7 @@ const paidCart: ICart = {
   items: [{ _id: "i1", menuId: latte, qty: 1, qtyPayed: 1 }],
   split: [{ _id: "sp1", userId: "u1", menuId: latte, qty: 1, splitStatus: "closed", unitPrice: 3 }],
 }
+const CANT_START = "Card payments aren't available right now. Try again, or pay with PayPal below."
 const STILL_CONFIRMING =
   "We're still confirming your payment. Your cart will update once it's confirmed, and you'll get a note if it doesn't go through — until then, please don't pay for these items again (payment pi_1)"
 
@@ -60,8 +61,8 @@ const STILL_CONFIRMING =
 let cartGets: Record<string, number>
 let created: number
 let captures: { url: string; body: unknown }[]
-let captureAnswer: () => Response
-let createAnswer: () => Response
+let captureAnswer: () => Response | Promise<Response>
+let createAnswer: () => Response | Promise<Response>
 
 // The URL the diner is at, as the router has it.
 const Where = () => {
@@ -105,13 +106,17 @@ const renderCart = ({ at = "/shops/s1/tables/t1/cart", reloaded = false, strict 
 }
 
 type User = ReturnType<typeof userEvent.setup>
-// Opens the checkout sheet; its card form, once ready.
+// Opens the checkout sheet; `openSheet` also waits for its card form.
+const clickCheckout = async (user: User) => user.click(await screen.findByRole("button", { name: /Check out/ }))
 const openSheet = async (user: User) => {
-  await user.click(await screen.findByRole("button", { name: /Check out/ }))
+  await clickCheckout(user)
   return screen.findByRole("button", { name: "Pay £3.00" })
 }
 const payByCard = async (user: User) => user.click(await openSheet(user))
-const feedback = async (title: string) => (await screen.findByText(title)).closest(".offcanvas") as HTMLElement
+// The bottom sheet titled `title` (a payment's outcome, or the checkout).
+const sheetTitled = async (title: string) => (await screen.findByText(title)).closest(".offcanvas") as HTMLElement
+const feedback = sheetTitled
+const cantStart = () => screen.findByText(CANT_START)
 
 beforeEach(() => {
   vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "pk_test_123")
@@ -159,7 +164,7 @@ describe("the checkout sheet", () => {
     renderCart()
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole("button", { name: /Check out/ }))
+    await clickCheckout(user)
 
     expect(await screen.findByRole("button", { name: "PayPal" })).toBeInTheDocument()
     expect(screen.queryByText("Pay by card")).not.toBeInTheDocument()
@@ -204,7 +209,7 @@ describe("the checkout sheet", () => {
     await payByCard(user)
 
     expect(await screen.findByRole("button", { name: "Paying…" })).toBeDisabled()
-    const sheet = screen.getByText("Select Payment Type").closest(".offcanvas") as HTMLElement
+    const sheet = await sheetTitled("Select Payment Type")
     expect(within(sheet).queryByRole("button", { name: "Close" })).not.toBeInTheDocument()
     await user.keyboard("{Escape}")
     expect(screen.getByRole("button", { name: "Paying…" })).toBeInTheDocument()
@@ -218,7 +223,7 @@ describe("the checkout sheet", () => {
     const user = userEvent.setup()
     await payByCard(user)
     await screen.findByRole("alert")
-    const sheet = screen.getByText("Select Payment Type").closest(".offcanvas") as HTMLElement
+    const sheet = await sheetTitled("Select Payment Type")
 
     await user.click(within(sheet).getByRole("button", { name: "Close" }))
 
@@ -444,22 +449,20 @@ describe("one payment at a time in the sheet", () => {
 
   it("doesn't close the sheet on PayPal's popup when the card's start is refused meanwhile", async () => {
     const held = gate()
-    server.use(
-      http.post(`${BASE}/carts/tables/t1/cart1/createCheckoutOrder`, () => HttpResponse.json({ paypalOrderId: "order1" })),
-      http.post(`${BASE}/carts/tables/t1/cart1/createStripeCheckout`, async () => {
-        await held.opened
-        return HttpResponse.json({ message: "Some items you selected are sold out" }, { status: 409 })
-      })
-    )
+    server.use(http.post(`${BASE}/carts/tables/t1/cart1/createCheckoutOrder`, () => HttpResponse.json({ paypalOrderId: "order1" })))
+    createAnswer = async () => {
+      await held.opened
+      return HttpResponse.json({ message: "Some items you selected are sold out" }, { status: 409 })
+    }
     renderCart()
     const user = userEvent.setup()
-    await user.click(await screen.findByRole("button", { name: /Check out/ }))
+    await clickCheckout(user)
     await user.click(await screen.findByRole("button", { name: "PayPal" }))
 
     held.open()
 
     expect(
-      await screen.findByText("Card payments aren't available right now. Try again, or pay with PayPal below.")
+      await cantStart()
     ).toBeInTheDocument()
     expect(screen.getByText("Select Payment Type")).toBeInTheDocument()
     expect(screen.queryByText("Payment not completed")).not.toBeInTheDocument()
@@ -469,8 +472,8 @@ describe("one payment at a time in the sheet", () => {
     element.fails = true
     renderCart()
     const user = userEvent.setup()
-    await user.click(await screen.findByRole("button", { name: /Check out/ }))
-    await screen.findByText("Card payments aren't available right now. Try again, or pay with PayPal below.")
+    await clickCheckout(user)
+    await cantStart()
     element.fails = false
 
     await user.click(screen.getByRole("button", { name: "Try again" }))
@@ -486,10 +489,10 @@ describe("starting a card payment", () => {
     renderCart()
     const user = userEvent.setup()
 
-    await user.click(await screen.findByRole("button", { name: /Check out/ }))
+    await clickCheckout(user)
 
     expect(
-      await screen.findByText("Card payments aren't available right now. Try again, or pay with PayPal below.")
+      await cantStart()
     ).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "PayPal" })).toBeInTheDocument()
     expect(screen.queryByText("Payment not completed")).not.toBeInTheDocument()
@@ -497,18 +500,14 @@ describe("starting a card payment", () => {
 
   it("says nothing of a refusal that comes after the diner closed the sheet", async () => {
     const held = gate()
-    createAnswer = () => HttpResponse.json({ message: "Some items you selected are sold out" }, { status: 409 })
-    server.use(
-      http.post(`${BASE}/carts/tables/t1/cart1/createStripeCheckout`, async () => {
-        created += 1
-        await held.opened
-        return createAnswer()
-      })
-    )
+    createAnswer = async () => {
+      await held.opened
+      return HttpResponse.json({ message: "Some items you selected are sold out" }, { status: 409 })
+    }
     renderCart()
     const user = userEvent.setup()
-    await user.click(await screen.findByRole("button", { name: /Check out/ }))
-    const sheet = (await screen.findByText("Select Payment Type")).closest(".offcanvas") as HTMLElement
+    await clickCheckout(user)
+    const sheet = await sheetTitled("Select Payment Type")
     await user.click(within(sheet).getByRole("button", { name: "Close" }))
     await waitFor(() => expect(screen.queryByText("Select Payment Type")).not.toBeInTheDocument())
 
@@ -536,10 +535,10 @@ describe("starting a card payment", () => {
     createAnswer = () => HttpResponse.json({ message: "Could not start a card payment" }, { status: 502 })
     renderCart()
     const user = userEvent.setup()
-    await user.click(await screen.findByRole("button", { name: /Check out/ }))
+    await clickCheckout(user)
 
     expect(
-      await screen.findByText("Card payments aren't available right now. Try again, or pay with PayPal below.")
+      await cantStart()
     ).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "PayPal" })).toBeInTheDocument()
     createAnswer = () => HttpResponse.json({ clientSecret: "pi_2_secret_x", paymentIntentId: "pi_2" })
@@ -668,13 +667,10 @@ describe("back from a bank check that left the page", () => {
 
   it("offers no checkout while it asks", async () => {
     const held = gate()
-    server.use(
-      http.post(`${BASE}/carts/tables/t1/cart1/captureStripeCheckout`, async ({ request }) => {
-        captures.push({ url: request.url, body: await request.json() })
-        await held.opened
-        return HttpResponse.json(paidCart)
-      })
-    )
+    captureAnswer = async () => {
+      await held.opened
+      return HttpResponse.json(paidCart)
+    }
     renderCart({ at: returnUrl, reloaded: true })
 
     expect(await screen.findByText("Checking your card payment…")).toBeInTheDocument()
@@ -688,12 +684,10 @@ describe("back from a bank check that left the page", () => {
 
   it("shows nothing, and loads nothing, for a table the diner has left meanwhile", async () => {
     const held = gate()
-    server.use(
-      http.post(`${BASE}/carts/tables/t1/cart1/captureStripeCheckout`, async () => {
-        await held.opened
-        return HttpResponse.json(paidCart)
-      })
-    )
+    captureAnswer = async () => {
+      await held.opened
+      return HttpResponse.json(paidCart)
+    }
     renderCart({ at: returnUrl, reloaded: true })
     const user = userEvent.setup()
     await screen.findByText("Checking your card payment…")

@@ -8,7 +8,7 @@ import { useVisiblePolling } from "../../../lib/useVisiblePolling";
 import { formatPrice } from "../../../lib/price";
 import { apiErrorBody, apiErrorMessage } from "../../../lib/errors";
 import { menuIdOf } from "../../../lib/cart";
-import { clockTime, heldFor, STATE_CLASS, STATE_LABEL } from "../../../lib/tables";
+import { STATE_CLASS, STATE_LABEL, clockTime, heldFor, logActionLabel, needsStaffLine } from "../../../lib/tables";
 import { REFUND_NOTE_MAX, REFUND_REASON_LABEL, REFUND_REASONS, refundReasonText } from "../../../lib/refundReasons";
 import { providerName, refundDestination } from "../../../lib/providers";
 import { IManagerCart, IManagerLogEntry, IManagerSplit, IPayment, IRefund, ITableCarts, ITableStatus, RefundReason } from "../../../typings/tables";
@@ -283,19 +283,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
 // about card payments. A line staff must act on (a card refund Stripe won't
 // make: pay the diner back another way, or, for a dispute, accept it) is
 // marked, and flags the closed carts it's under.
-const ACTION_LABEL: Record<string, string> = {
-  releaseSelection: "Released selections",
-  removeItem: "Removed items",
-  close: "Closed the table",
-  mergeInto: "Merged carts",
-  refund: "Refunded",
-  checkPayment: "Checked a payment",
-  stripeRefundFailed: "Action needed",
-  stripeRefundedRecorded: "Refunded by Stripe",
-  stripeFinished: "Card payment finished",
-};
-const STAFF_ACTIONS = ["stripeRefundFailed"];
-const needsStaff = (cart: IManagerCart) => (cart.managerLog ?? []).some((l) => STAFF_ACTIONS.includes(l.action));
+const needsStaff = (cart: IManagerCart) => (cart.managerLog ?? []).some(needsStaffLine);
 
 // Who wrote a line: a manager, or UnQ itself (no one).
 const authorOf = (line: IManagerLogEntry) =>
@@ -309,7 +297,7 @@ const CartLog = ({ cart }: { cart: IManagerCart }) => {
       <h4 className="h6 mt-3">Log</h4>
       <ul className="list-unstyled sheet-list small">
         {lines.map((line, i) => {
-          const staff = STAFF_ACTIONS.includes(line.action);
+          const staff = needsStaffLine(line);
           return (
             <li key={`${line.at}-${line.action}-${i}`} className={staff ? "text-danger-emphasis" : undefined}>
               <div className="text-body-secondary">
@@ -317,7 +305,7 @@ const CartLog = ({ cart }: { cart: IManagerCart }) => {
               </div>
               <div>
                 {staff && <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />}
-                {ACTION_LABEL[line.action] ?? line.action}: {line.details}
+                {logActionLabel(line.action)}: {line.details}
               </div>
             </li>
           );

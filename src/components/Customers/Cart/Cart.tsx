@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, Col, Container, Image, Row, Button } from "react-bootstrap";
 import { IoArrowBack } from "react-icons/io5";
-import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
   getTableCart,
@@ -24,6 +24,7 @@ import "./Cart.css";
 import { tablePath } from "../../../lib/paths";
 import { usePageTitle } from "../../../lib/usePageTitle";
 import { captureCardPayment } from "../../../lib/paymentOutcome";
+import { stripeReturn } from "../../../lib/stripe";
 import { selectUserData } from "../../../redux/slices/userSlice";
 
 // When a card payment not settled yet is looked at again (one the BE couldn't
@@ -46,6 +47,19 @@ const Cart = () => {
   const tableName =
     shop?.tables.find((table) => table._id === tableId)?.name ?? "";
   usePageTitle(tableName ? `Cart · Table ${tableName}` : "Cart");
+
+  // Back from a bank check that took the diner away from the page (rare:
+  // Stripe.js runs it over the page). The reloaded page has lost the cart, so
+  // the return URL names it, and Stripe adds the payment (lib/stripe.ts). Asked
+  // once, with that cart (the webhook may have finished the payment and closed
+  // it already: the BE then answers with it), and the URL is cleaned at once,
+  // so a refresh doesn't ask again.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const returned = stripeReturn(searchParams);
+  const returnedCart = returned?.cartId;
+  const returnedPayment = returned?.paymentIntentId;
+  // While it's asked, the cart isn't offered for another checkout.
+  const [returning, setReturning] = useState(() => !!returnedCart && !!returnedPayment);
 
   useEffect(() => {
     if (tableId) {
@@ -120,19 +134,7 @@ const Cart = () => {
     [tableId, userId]
   );
 
-  // Back from a bank check that took the diner away from the page (rare:
-  // Stripe.js runs it over the page). The reloaded page has lost the cart, so
-  // the return URL names it, and Stripe adds the payment. Asked once, with that
-  // cart (the webhook may have finished the payment and closed it already: the
-  // BE then answers with it), and the URL is cleaned at once, so a refresh
-  // doesn't ask again.
-  const [searchParams] = useSearchParams();
-  const { pathname } = useLocation();
-  const returnedCart = searchParams.get("cart");
-  const returnedPayment = searchParams.get("payment_intent");
   const returnHandled = useRef(false);
-  // While it's asked, the cart isn't offered for another checkout.
-  const [returning, setReturning] = useState(() => !!returnedCart && !!returnedPayment);
   // The table on screen now: an answer about another one isn't shown here.
   const tableRef = useRef(tableId);
   useEffect(() => {
@@ -141,7 +143,7 @@ const Cart = () => {
   useEffect(() => {
     if (!returnedCart || returnHandled.current) return;
     returnHandled.current = true;
-    navigate(pathname, { replace: true });
+    setSearchParams({}, { replace: true });
     if (!returnedPayment || !tableId) return;
     captureCardPayment(dispatch, { tableId, cartId: returnedCart, paymentIntentId: returnedPayment }).then(
       ({ variant, message, recheck }) => {
@@ -154,7 +156,7 @@ const Cart = () => {
         dispatch(getTableCart(tableId));
       }
     );
-  }, [returnedCart, returnedPayment, tableId, pathname, navigate, dispatch, handleShowFbk]);
+  }, [returnedCart, returnedPayment, tableId, setSearchParams, dispatch, handleShowFbk]);
   const handleCloseFbk = () => {
     // By path, not back a page: see goBack.
     if (fbk?.variant === "success") goBack();

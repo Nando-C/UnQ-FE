@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit"
 import { ICart, ICartNotice, ICartStore, IItem } from "../../typings/cart"
 import backend from "../../backend/backend"
 import axios, { AxiosResponse } from "axios"
+import { apiErrorBody, type ApiErrorBody } from "../../lib/errors"
 import type { AppThunk, RootState } from "../app/store"
 import { menuIdOf, myOpenSplit } from "../../lib/cart"
 import { logOut } from "./userSlice"
@@ -41,19 +42,11 @@ const toCartPayload = (item: IItem) => ({ menuId: menuIdOf(item), qty: item.qty 
 
 // A refused cart request: the BE's status and message (e.g. 409 "Someone at
 // the table is paying for those"), for the UI to tell refusals apart, and its
-// machine-readable `reason` when it gives one (a card payment's 502
-// "STILL_CONFIRMING").
-export type CartRejection = { status?: number; message?: string; reason?: string }
+// machine-readable `reason` when it gives one (lib/errors.ts).
+export type CartRejection = ApiErrorBody & { status?: number }
 
 const reasonOf = (err: unknown): CartRejection => {
-    if (axios.isAxiosError(err)) {
-        const reason: unknown = err.response?.data?.reason
-        return {
-            status: err.response?.status,
-            message: err.response?.data?.message,
-            ...(typeof reason === "string" && { reason }),
-        }
-    }
+    if (axios.isAxiosError(err)) return { status: err.response?.status, ...apiErrorBody(err) }
     throw err
 }
 
@@ -205,6 +198,12 @@ export const captureStripeCheckout = createAsyncThunk(
     }
 )
 
+// A capture's cart taken as the cart, and any table fetch sent before it dropped.
+const takeCapturedCart = (state: ICartStore, cart: ICart) => {
+    state.data = cart
+    delete state.cartRequestId
+}
+
 // Back to no cart: also drops selections still on their way (their sync loops
 // see nothing wanted and stop) and the notes about failed ones.
 const clearCart = (state: ICartStore) => {
@@ -295,20 +294,17 @@ export const cartsSlice = createSlice({
                 }
             }
         })
-        // A capture's answer is newer than any table fetch sent before it (the
-        // popup or the card form sends focus back, which refetches): those are
-        // dropped, so the paid cart isn't replaced by the one from before.
-        builder.addCase(captureCheckout.fulfilled, (state, action) => {
-            state.data = action.payload.cart
-            delete state.cartRequestId
-        })
+        // A capture's answer (PayPal's or a card's) is newer than any table
+        // fetch sent before it (the popup or the card form sends focus back,
+        // which refetches): those are dropped, so the paid cart isn't replaced
+        // by the one from before.
+        builder.addCase(captureCheckout.fulfilled, (state, action) => takeCapturedCart(state, action.payload.cart))
         // A card capture can take a few seconds (the BE may wait on Stripe's
         // webhook), and the diner may have moved to another table meanwhile:
         // its cart only shows on its own table.
         builder.addCase(captureStripeCheckout.fulfilled, (state, action) => {
             if (state.pointers.tableId !== action.meta.arg.tableId) return
-            state.data = action.payload.cart
-            delete state.cartRequestId
+            takeCapturedCart(state, action.payload.cart)
         })
         // The table and the selections were the person logging out's: whoever
         // signs in next isn't taken back to that table.

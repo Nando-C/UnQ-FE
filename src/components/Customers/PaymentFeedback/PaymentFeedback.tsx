@@ -15,11 +15,12 @@ const TITLES: Record<FeedbackVariant, string> = {
   confirming: "Confirming your payment",
 };
 
+const clock = <AiOutlineClockCircle color="var(--bs-warning)" size={100} />;
 const ICONS: Record<FeedbackVariant, React.ReactNode> = {
   success: <AiOutlineCheckCircle color="var(--bs-success)" size={100} />,
   failure: <AiOutlineCloseCircle color="var(--bs-danger)" size={100} />,
-  pending: <AiOutlineClockCircle color="var(--bs-warning)" size={100} />,
-  confirming: <AiOutlineClockCircle color="var(--bs-warning)" size={100} />,
+  pending: clock,
+  confirming: clock,
 };
 
 interface PaymentFeedbackProps {
@@ -47,9 +48,7 @@ const PaymentFeedback = ({
           <Offcanvas.Body>
             <Row>
               {ICONS[variant]}
-              <Card.Subtitle className="mt-4 text-center">
-                {message ?? (variant === "success" ? "Your payment went through." : undefined)}
-              </Card.Subtitle>
+              <Card.Subtitle className="mt-4 text-center">{message}</Card.Subtitle>
             </Row>
           </Offcanvas.Body>
         </Offcanvas>

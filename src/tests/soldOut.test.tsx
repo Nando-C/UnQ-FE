@@ -359,7 +359,8 @@ describe("checkout onApprove 409s", () => {
     await waitFor(() =>
       expect(handleShowFbk).toHaveBeenCalledWith(
         "failure",
-        "We couldn't confirm your payment — please contact staff before paying again."
+        "We couldn't confirm your payment — please contact staff before paying again.",
+        undefined
       )
     )
   })
@@ -378,7 +379,7 @@ describe("checkout onApprove 409s", () => {
     )
 
     await user.click(screen.getByRole("button", { name: "Approve" }))
-    await waitFor(() => expect(handleShowFbk).toHaveBeenCalledWith("failure", msg))
+    await waitFor(() => expect(handleShowFbk).toHaveBeenCalledWith("failure", msg, undefined))
   })
 
   it("says the payment is under review, and not to pay again, on a 202", async () => {
@@ -397,7 +398,8 @@ describe("checkout onApprove 409s", () => {
     await waitFor(() =>
       expect(handleShowFbk).toHaveBeenCalledWith(
         "pending",
-        "PayPal is still reviewing your payment. Your items are held for you until staff confirm it — please don't pay for them again."
+        "PayPal is still reviewing your payment. Your items are held for you until staff confirm it — please don't pay for them again.",
+        false
       )
     )
     expect(handleShowFbk).toHaveBeenCalledTimes(1)

@@ -9,7 +9,7 @@ import { FaRegUserCircle } from "react-icons/fa";
 import { unpaidQty } from "../../../lib/cart";
 import { usePublishedHeight } from "../../../lib/usePublishedHeight";
 import "./NavigationBar.css";
-import { tablePath } from "../../../lib/paths";
+import { cartPath } from "../../../lib/paths";
 import {
   getTableCart,
   selectCartPointers,
@@ -59,7 +59,7 @@ const NavigationBar = () => {
               {shopId && tableId ? (
                 <NavLink
                   className="cart-link nav-link"
-                  to={`${tablePath(shopId, tableId)}/cart`}
+                  to={cartPath(shopId, tableId)}
                   aria-label={
                     itemsQty > 0 ? `Cart, ${itemsQty} items` : "Cart"
                   }

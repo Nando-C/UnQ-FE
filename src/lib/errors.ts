@@ -1,8 +1,11 @@
 import axios from "axios";
 
-// The BE's error answer: its message, and for a 400 which fields it refused.
-interface ApiErrorBody {
+// The BE's error answer: its message, for a 400 which fields it refused, and
+// its machine-readable `reason` when it gives one (a card payment's 502
+// "STILL_CONFIRMING").
+export interface ApiErrorBody {
   message?: string;
+  reason?: string;
   details?: { path?: string; message: string }[];
 }
 // Only an object answer counts (a proxy's error page is text), and `details`
@@ -10,9 +13,10 @@ interface ApiErrorBody {
 export const apiErrorBody = (err: unknown): ApiErrorBody => {
   const data: unknown = axios.isAxiosError(err) ? err.response?.data : undefined;
   if (typeof data !== "object" || data === null) return {};
-  const { message, details } = data as Record<string, unknown>;
+  const { message, reason, details } = data as Record<string, unknown>;
   return {
     ...(typeof message === "string" && { message }),
+    ...(typeof reason === "string" && { reason }),
     ...(Array.isArray(details) && { details: details as ApiErrorBody["details"] }),
   };
 };

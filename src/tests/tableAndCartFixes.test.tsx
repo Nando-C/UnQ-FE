@@ -180,7 +180,7 @@ describe("a checkout that can't start", () => {
 
     await user.click(screen.getByRole("button", { name: "Pay with PayPal" }))
 
-    await waitFor(() => expect(handleShowFbk).toHaveBeenCalledWith("failure", "No open split items to pay! — nothing was charged."))
+    await waitFor(() => expect(handleShowFbk).toHaveBeenCalledWith("failure", "No open split items to pay! — nothing was charged.", undefined))
     await waitFor(() => expect(fetches).toBe(1))
   })
 })

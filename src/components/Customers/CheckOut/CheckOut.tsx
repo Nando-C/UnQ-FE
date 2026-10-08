@@ -1,5 +1,5 @@
 import type { FeedbackVariant } from "../PaymentFeedback/PaymentFeedback";
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { Offcanvas } from "react-bootstrap";
 import { useParams } from "react-router-dom";
 import {
@@ -14,10 +14,13 @@ import {
   selectCartsData,
   type CartRejection,
 } from "../../../redux/slices/cartSlice";
-import { notStartedOutcome, paidOutcome, refusedOutcome, type PaymentOutcome } from "../../../lib/paymentOutcome";
+import { cancelledOutcome, notStartedOutcome, paidOutcome, refusedOutcome, type PaymentOutcome } from "../../../lib/paymentOutcome";
 import { stripeKey } from "../../../lib/stripe";
-import { tablePath } from "../../../lib/paths";
-import CardPayment from "./CardPayment";
+import { cartPath } from "../../../lib/paths";
+
+// Stripe's React bindings, in their own chunk: only diners who open the sheet
+// (with a key set) need them, and Stripe.js itself loads then too.
+const CardPayment = lazy(() => import("./CardPayment"));
 
 interface CheckOutProps {
   show: boolean;
@@ -38,21 +41,18 @@ const CheckOut = ({ show, handleClose, handleShowFbk, amount }: CheckOutProps) =
   const { shopId = "", tableId = "" } = useParams<{ shopId: string; tableId: string }>();
   const createOrderRejectionRef = useRef<CartRejection | undefined>(undefined);
   const cardsOn = !!stripeKey();
-  // A card being confirmed (its bank check may be open over the page): the
-  // sheet can't be closed until its outcome is known.
-  const [cardBusy, setCardBusy] = useState(false);
-  // PayPal's popup open (from its order until approved, cancelled or failed):
-  // no card payment meanwhile, as no PayPal one while a card is busy.
-  const [paypalBusy, setPaypalBusy] = useState(false);
+  // The payment under way, if one is: a card being confirmed (its bank check
+  // may be open over the page: the sheet can't be closed until its outcome is
+  // known), or PayPal's popup open (from its order until approved, cancelled
+  // or failed). Never both: each is disabled while the other is busy.
+  const [busy, setBusy] = useState<"card" | "paypal" | null>(null);
 
   // How a payment ended: the sheet closes and says so. The cart shown is on
   // the payment's table (moving to another unmounts the sheet).
   const showOutcome = ({ variant, message, refetch, recheck }: PaymentOutcome) => {
-    setCardBusy(false);
-    setPaypalBusy(false);
+    setBusy(null);
     handleClose();
-    if (recheck) handleShowFbk(variant, message, true);
-    else handleShowFbk(variant, message);
+    handleShowFbk(variant, message, recheck);
     if (refetch) dispatch(getTableCart(cart.tableId));
   };
 
@@ -63,26 +63,28 @@ const CheckOut = ({ show, handleClose, handleShowFbk, amount }: CheckOutProps) =
         placement="bottom"
         show={show}
         onHide={() => {
-          if (cardBusy) return;
-          setPaypalBusy(false);
+          if (busy === "card") return;
+          setBusy(null);
           handleClose();
         }}
       >
-        <Offcanvas.Header closeButton={!cardBusy}>
+        <Offcanvas.Header closeButton={busy !== "card"}>
           <Offcanvas.Title>Select Payment Type</Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body>
           {show && cardsOn && (
             <>
-              <CardPayment
-                tableId={cart.tableId}
-                cartId={cart._id}
-                amount={amount}
-                cartPath={`${tablePath(shopId, tableId)}/cart`}
-                onOutcome={showOutcome}
-                onBusy={setCardBusy}
-                disabled={paypalBusy}
-              />
+              <Suspense fallback={<p className="text-body-secondary small" role="status">Loading card payment…</p>}>
+                <CardPayment
+                  tableId={cart.tableId}
+                  cartId={cart._id}
+                  amount={amount}
+                  cartPath={cartPath(shopId, tableId)}
+                  onOutcome={showOutcome}
+                  onBusy={(cardBusy) => setBusy(cardBusy ? "card" : null)}
+                  disabled={busy === "paypal"}
+                />
+              </Suspense>
               <p className="text-center text-body-secondary small my-3">or pay with PayPal</p>
             </>
           )}
@@ -95,10 +97,10 @@ const CheckOut = ({ show, handleClose, handleShowFbk, amount }: CheckOutProps) =
             >
               <PayPalButtons
                 // Not a second payment while a card's is being confirmed.
-                disabled={cardBusy}
+                disabled={busy === "card"}
                 createOrder={async () => {
                   createOrderRejectionRef.current = undefined;
-                  setPaypalBusy(true);
+                  setBusy("paypal");
                   try {
                     return await dispatch(
                       createCheckoutOrder({
@@ -127,9 +129,7 @@ const CheckOut = ({ show, handleClose, handleShowFbk, amount }: CheckOutProps) =
                     showOutcome(refusedOutcome(err as CartRejection | undefined, "paypal"));
                   }
                 }}
-                onCancel={() =>
-                  showOutcome({ variant: "failure", message: "Payment cancelled — nothing was charged.", refetch: false })
-                }
+                onCancel={() => showOutcome(cancelledOutcome)}
                 onError={() => showOutcome(notStartedOutcome(createOrderRejectionRef.current))}
               />
             </PayPalScriptProvider>
