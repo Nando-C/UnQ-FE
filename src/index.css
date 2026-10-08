@@ -106,6 +106,19 @@ a:focus-visible {
   border-top-right-radius: 20px;
 }
 
+/* "or" between two ways to pay: a line either side of the word. */
+.or-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.or-divider::before,
+.or-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid var(--bs-border-color);
+}
+
 /* On tablets and desktops a sheet stays phone-sized and centred instead of
  * running edge to edge. Auto side margins centre a fixed box between left: 0
  * and right: 0; transform stays free for the slide-in animation. */

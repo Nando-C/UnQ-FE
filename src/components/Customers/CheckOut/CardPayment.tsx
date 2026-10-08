@@ -4,13 +4,11 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import type { Stripe, StripeElementsOptionsMode } from "@stripe/stripe-js";
 import { useAppDispatch } from "../../../redux/app/hooks";
 import { createStripeCheckout, getTableCart, type CartRejection } from "../../../redux/slices/cartSlice";
-import { getStripe, isRetryableCardError, stripeReturnUrl } from "../../../lib/stripe";
+import { getStripe, isRetryableCardError, LOADING_CARD, stripeReturnUrl } from "../../../lib/stripe";
 import { captureCardPayment, isRefusal, notStartedOutcome, type PaymentOutcome } from "../../../lib/paymentOutcome";
 import { formatPrice, fromPence } from "../../../lib/price";
 
 interface CardPaymentProps {
-  // Whether the Card row is open: the form is only shown once it is.
-  open: boolean;
   // The cart shown now, which a press pays for.
   tableId: string;
   cartId: string;
@@ -39,14 +37,14 @@ const NOTHING_SELECTED = "Nothing selected to pay for";
 // two stay as Stripe decides (shown where the device and domain allow).
 const ELEMENT_OPTIONS = { wallets: { link: "never" } } as const;
 
-// "Card" in the checkout sheet: Stripe's Payment Element (Apple Pay and Google
-// Pay too, where the device has them). Stripe.js loads when the sheet opens;
-// the form shows once the row is open. Nothing is created until the diner
-// presses Pay (Stripe's deferred intent): then the BE creates the payment at
+// The card form in the checkout sheet: Stripe's Payment Element (Apple Pay and
+// Google Pay too, where the device has them, as buttons at its top). Stripe.js
+// loads, and the form shows, as the sheet opens. Nothing is created until the
+// diner presses Pay (Stripe's deferred intent): then the BE creates the payment at
 // its own prices, and it's confirmed only for the amount the diner saw.
 // Confirming only authorises the card; the BE then re-checks the cart and
 // takes the money, or cancels the authorisation.
-const CardPayment = ({ open, tableId, cartId, pence, formPence, cartPath, onOutcome, onPress, disabled }: CardPaymentProps) => {
+const CardPayment = ({ tableId, cartId, pence, formPence, cartPath, onOutcome, onPress, disabled }: CardPaymentProps) => {
   // Stripe.js: loading (undefined), loaded, or failed. `attempt` loads it
   // again (Try again), and gives the form a fresh Elements.
   const [stripe, setStripe] = useState<Stripe | "failed" | undefined>(undefined);
@@ -61,12 +59,6 @@ const CardPayment = ({ open, tableId, cartId, pence, formPence, cartPath, onOutc
       live = false;
     };
   }, [attempt]);
-
-  // The form, once shown, stays (a refetch emptying the selection doesn't
-  // take it away mid-entry). It's first shown only for a positive amount:
-  // Stripe's form can't be made for nothing.
-  const [formOn, setFormOn] = useState(false);
-  if (open && pence > 0 && !formOn) setFormOn(true);
 
   // The same object across renders: Elements compares its options each render,
   // and updates the amount when it changes. These match the BE's payment
@@ -92,13 +84,15 @@ const CardPayment = ({ open, tableId, cartId, pence, formPence, cartPath, onOutc
       </Alert>
     );
   }
-  if (!formOn) {
-    return open ? <p className="text-body-secondary mb-0">{NOTHING_SELECTED}</p> : null;
-  }
+  // The sheet opens only on a selection (Check out is off without one), so
+  // its form always has an amount; a refetch emptying the selection leaves
+  // the form, and the amount it had, in place (`formPence`), and only Pay
+  // says there's nothing to pay for. Stripe's form can't be made for nothing.
+  if (formPence <= 0) return null;
   if (!stripe) {
     return (
       <p className="text-body-secondary small mb-0" role="status">
-        Loading card payment…
+        {LOADING_CARD}
       </p>
     );
   }

@@ -6,6 +6,9 @@ import type { Stripe } from "@stripe/stripe-js";
 // before. Read when asked, not at import, so tests can set it.
 export const stripeKey = (): string => import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? "";
 
+// While the card form's chunk, then Stripe.js, load (the checkout sheet).
+export const LOADING_CARD = "Loading card payment…";
+
 // Stripe.js, loaded on first use (the "pure" entry doesn't load it on import):
 // only once a diner opens the checkout sheet. A failed load is forgotten, so
 // opening the sheet again retries it.

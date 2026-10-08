@@ -455,22 +455,11 @@ const run = async ([id, role, url, action], vp) => {
         }
       }
       await open()
-      // With a Stripe key the sheet lists its ways to pay: the Card row is
-      // opened, and Stripe's form waited for (it loads in its own iframe).
-      if (action === "checkout" && CARDS_ON) {
-        await page.getByRole("button", { name: /^Card/ }).click({ timeout: 5000 })
-        const card = await page.getByRole("button", { name: /^Pay £/ }).waitFor({ timeout: 20000 })
-          .then(async () => {
-            await page.waitForFunction(() => !document.querySelector(".offcanvas.show button[type=submit]")?.disabled, null, { timeout: 20000 })
-            return true
-          }, () => false)
-        if (card) await page.waitForTimeout(1500)
-        else r.warnings.push({ kind: "not loaded", text: "Stripe's card form didn't load (offline?)" })
-      }
-      // PayPal's buttons come from its SDK over the network, in iframes, and the
-      // sandbox SDK sometimes fails to render in headless Chrome: reload once.
-      if (action === "checkout" && !CARDS_ON) {
-        const paypal = () => page.waitForFunction(() => [...document.querySelectorAll(".offcanvas.show iframe")]
+      if (action === "checkout") {
+        // PayPal's buttons come from its SDK over the network, in iframes, and the
+        // sandbox SDK sometimes fails to render in headless Chrome: reload once.
+        // PayPal's own iframes (Stripe's form is in one too).
+        const paypal = () => page.waitForFunction(() => [...document.querySelectorAll(".offcanvas.show .paypal-buttons iframe")]
           .some((f) => f.getBoundingClientRect().height > 0), null, { timeout: 15000 }).then(() => true, () => false)
         let loaded = await paypal()
         if (!loaded) {
@@ -481,6 +470,17 @@ const run = async ([id, role, url, action], vp) => {
         }
         if (loaded) await page.waitForTimeout(1500)
         else r.warnings.push({ kind: "not loaded", text: "PayPal buttons didn't load (offline?)" })
+        // With a Stripe key the sheet shows its card form under PayPal's
+        // button, in its own iframe: waited for too.
+        if (CARDS_ON) {
+          const card = await page.getByRole("button", { name: /^Pay £/ }).waitFor({ timeout: 20000 })
+            .then(async () => {
+              await page.waitForFunction(() => !document.querySelector(".offcanvas.show button[type=submit]")?.disabled, null, { timeout: 20000 })
+              return true
+            }, () => false)
+          if (card) await page.waitForTimeout(1500)
+          else r.warnings.push({ kind: "not loaded", text: "Stripe's card form didn't load (offline?)" })
+        }
       }
       await settle(page)
     }

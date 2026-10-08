@@ -139,14 +139,12 @@ const renderCart = ({ at = "/shops/s1/tables/t1/cart", reloaded = false, strict 
 }
 
 type User = ReturnType<typeof userEvent.setup>
-// The sheet's rows: the method's name, then what it covers.
-const cardRow = () => screen.getByRole("button", { name: /^Card Debit or credit card/ })
-const paypalRow = () => screen.getByRole("button", { name: /^PayPal Your PayPal account/ })
-// Opens the checkout sheet; `openSheet` also chooses Card and waits for its form.
+// PayPal's button, at the top of the sheet.
+const paypalButton = () => screen.getByRole("button", { name: "PayPal" })
+// Opens the checkout sheet; `openSheet` also waits for its card form.
 const clickCheckout = async (user: User) => user.click(await screen.findByRole("button", { name: /Check out/ }))
 const openSheet = async (user: User, pay = "Pay £3.00") => {
   await clickCheckout(user)
-  await user.click(await screen.findByRole("button", { name: /^Card Debit or credit card/ }))
   return screen.findByRole("button", { name: pay })
 }
 const payByCard = async (user: User) => user.click(await openSheet(user))
@@ -218,7 +216,7 @@ afterEach(() => {
 })
 
 describe("the checkout sheet", () => {
-  it("offers only PayPal, open by itself, and starts no card payment, without a Stripe key", async () => {
+  it("offers only PayPal, and starts no card payment, without a Stripe key", async () => {
     vi.stubEnv("VITE_STRIPE_PUBLISHABLE_KEY", "")
     renderCart()
     const user = userEvent.setup()
@@ -226,37 +224,33 @@ describe("the checkout sheet", () => {
     await clickCheckout(user)
 
     expect(await screen.findByRole("button", { name: "PayPal" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /^Card Debit/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /^PayPal Your/ })).not.toBeInTheDocument()
-    // PayPal's card button stays: it's the only way to pay by card then.
-    expect(paypalProps.at(-1)?.fundingSource).toBeUndefined()
-    expect(created).toBe(0)
-  })
-
-  it("opens on a list of methods, none chosen, with the amount, asking nothing of the BE", async () => {
-    renderCart()
-    const user = userEvent.setup()
-
-    await clickCheckout(user)
-
-    const sheet = await sheetTitled("Select Payment Type")
-    expect(within(sheet).getByText("Paying £3.00 for your selection")).toBeInTheDocument()
-    expect(cardRow()).toHaveAttribute("aria-expanded", "false")
-    expect(paypalRow()).toHaveAttribute("aria-expanded", "false")
-    expect(screen.queryByRole("button", { name: "PayPal" })).not.toBeInTheDocument()
+    expect(screen.queryByText("or")).not.toBeInTheDocument()
     expect(screen.queryByText("Card details")).not.toBeInTheDocument()
     expect(elementsOptions).toEqual([])
+    // PayPal's card button stays: it's the only way to pay by card then
+    // (PayPal draws it only in its vertical layout).
+    expect(paypalProps.at(-1)?.fundingSource).toBeUndefined()
+    expect(paypalProps.at(-1)?.style).toBeUndefined()
     expect(created).toBe(0)
   })
 
-  it("shows the card form once Card is chosen, for the amount shown, creating nothing", async () => {
+  it("opens on PayPal's button, then the card form, ready for the amount shown, creating nothing", async () => {
     renderCart()
     const user = userEvent.setup()
 
-    await openSheet(user)
+    const pay = await openSheet(user)
 
-    expect(cardRow()).toHaveAttribute("aria-expanded", "true")
-    expect(screen.getByText("Card details")).toBeInTheDocument()
+    const sheet = pay.closest(".offcanvas") as HTMLElement
+    expect(within(sheet).getByText("Paying £3.00 for your selection")).toBeInTheDocument()
+    // Top to bottom: PayPal, "or", the card form (Stripe puts Apple Pay and
+    // Google Pay at the top of its form, where the device has one).
+    const paypal = within(sheet).getByRole("button", { name: "PayPal" })
+    const or = within(sheet).getByText("or")
+    const form = within(sheet).getByText("Card details")
+    expect(paypal.compareDocumentPosition(or) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(or.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(sheet).getAllByRole("button", { name: "PayPal" })).toHaveLength(1)
+    expect(paypalProps.at(-1)).toMatchObject({ fundingSource: "paypal" })
     expect(lastOptions()).toEqual({
       mode: "payment",
       amount: 300,
@@ -268,19 +262,6 @@ describe("the checkout sheet", () => {
     // sign up): Apple Pay and Google Pay stay as Stripe decides.
     expect(element.options).toEqual({ wallets: { link: "never" } })
     expect(created).toBe(0)
-  })
-
-  it("closes Card when PayPal is chosen, and shows PayPal's own button alone", async () => {
-    renderCart()
-    const user = userEvent.setup()
-    await openSheet(user)
-
-    await user.click(paypalRow())
-
-    expect(cardRow()).toHaveAttribute("aria-expanded", "false")
-    expect(paypalRow()).toHaveAttribute("aria-expanded", "true")
-    expect(screen.getAllByRole("button", { name: "PayPal" })).toHaveLength(1)
-    expect(paypalProps.at(-1)).toMatchObject({ fundingSource: "paypal" })
   })
 
   it("at Pay, submits the form, then creates the payment, then confirms it with its secret and a return URL naming the cart, then has the BE capture it", async () => {
@@ -301,7 +282,7 @@ describe("the checkout sheet", () => {
     ])
   })
 
-  it("disables Pay and both methods, and keeps the sheet open, while it's being sent", async () => {
+  it("disables Pay and PayPal, and keeps the sheet open, while it's being sent", async () => {
     let finish!: (value: unknown) => void
     confirmPayment.mockReturnValue(new Promise((resolve) => (finish = resolve)))
     renderCart()
@@ -310,8 +291,7 @@ describe("the checkout sheet", () => {
     await payByCard(user)
 
     expect(await screen.findByRole("button", { name: "Paying…" })).toBeDisabled()
-    expect(paypalRow()).toBeDisabled()
-    expect(cardRow()).toBeDisabled()
+    expect(paypalProps.at(-1)).toMatchObject({ disabled: true })
     const sheet = await sheetTitled("Select Payment Type")
     expect(within(sheet).queryByRole("button", { name: "Close" })).not.toBeInTheDocument()
     await user.keyboard("{Escape}")
@@ -320,7 +300,7 @@ describe("the checkout sheet", () => {
     await feedback("Payment successful")
   })
 
-  it("opens with no method chosen again, after being closed with one open", async () => {
+  it("opens with its form ready again, after being closed", async () => {
     renderCart()
     const user = userEvent.setup()
     await openSheet(user)
@@ -328,11 +308,9 @@ describe("the checkout sheet", () => {
     await user.click(within(sheet).getByRole("button", { name: "Close" }))
     await waitFor(() => expect(screen.queryByText("Select Payment Type")).not.toBeInTheDocument())
 
-    await clickCheckout(user)
+    await openSheet(user)
 
-    await screen.findByText("Select Payment Type")
-    expect(cardRow()).toHaveAttribute("aria-expanded", "false")
-    expect(screen.queryByRole("button", { name: "Pay £3.00" })).not.toBeInTheDocument()
+    expect(created).toBe(0)
   })
 
   it("can be closed again after a decline", async () => {
@@ -446,20 +424,6 @@ describe("the amount a card pays", () => {
     expect(await screen.findByRole("button", { name: NOTHING_SELECTED })).toBeDisabled()
     expect(lastOptions()).toMatchObject({ amount: 300 })
     expect(screen.getByText("Card details")).toBeInTheDocument()
-  })
-
-  it("shows no form when Card is chosen after the selection emptied", async () => {
-    renderCart()
-    const user = userEvent.setup()
-    await clickCheckout(user)
-    await screen.findByText("Select Payment Type")
-
-    await refetchFinds(selecting(0))
-    await user.click(cardRow())
-
-    expect(await screen.findByText(NOTHING_SELECTED)).toBeInTheDocument()
-    expect(screen.queryByText("Card details")).not.toBeInTheDocument()
-    expect(elementsOptions).toEqual([])
   })
 })
 
@@ -680,35 +644,20 @@ describe("an open card form", () => {
 })
 
 describe("one payment at a time in the sheet", () => {
-  it("holds Card while PayPal's popup is open, and frees it when it's closed", async () => {
+  it("holds the card's Pay while PayPal's popup is open, and frees it when it's closed", async () => {
     server.use(
       http.post(`${BASE}/carts/tables/t1/cart1/createCheckoutOrder`, () => HttpResponse.json({ paypalOrderId: "order1" }))
     )
     renderCart()
     const user = userEvent.setup()
-    await clickCheckout(user)
-    await user.click(await screen.findByRole("button", { name: /^PayPal Your/ }))
+    const pay = await openSheet(user)
 
-    await user.click(screen.getByRole("button", { name: "PayPal" }))
-    await waitFor(() => expect(cardRow()).toBeDisabled())
-    expect(paypalRow()).toBeDisabled()
+    await user.click(paypalButton())
+    await waitFor(() => expect(pay).toBeDisabled())
     await user.click(screen.getByRole("button", { name: "Cancel PayPal" }))
 
     await feedback("Payment not completed")
     await user.click(await openSheet(user))
-    await feedback("Payment successful")
-  })
-
-  it("holds PayPal while a card is being paid", async () => {
-    let finish!: (value: unknown) => void
-    confirmPayment.mockReturnValue(new Promise((resolve) => (finish = resolve)))
-    renderCart()
-    const user = userEvent.setup()
-
-    await payByCard(user)
-
-    await waitFor(() => expect(paypalRow()).toBeDisabled())
-    finish({ paymentIntent: { status: "requires_capture" } })
     await feedback("Payment successful")
   })
 })
@@ -727,7 +676,7 @@ describe("starting a card payment, at Pay", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(COULDNT_START)
     expect(confirmPayment).not.toHaveBeenCalled()
-    expect(paypalRow()).toBeEnabled()
+    expect(paypalProps.at(-1)).toMatchObject({ disabled: false })
     expect(screen.queryByText("Payment not completed")).not.toBeInTheDocument()
     createAnswer = () => HttpResponse.json({ clientSecret: "pi_2_secret_x", paymentIntentId: "pi_2", amount: 300 })
 
@@ -757,10 +706,9 @@ describe("starting a card payment, at Pay", () => {
     renderCart()
     const user = userEvent.setup()
     await clickCheckout(user)
-    await user.click(await screen.findByRole("button", { name: /^Card Debit/ }))
 
     expect(await screen.findByText(CANT_START)).toBeInTheDocument()
-    expect(paypalRow()).toBeEnabled()
+    expect(paypalProps.at(-1)).toMatchObject({ disabled: false })
     element.fails = false
 
     await user.click(screen.getByRole("button", { name: "Try again" }))
@@ -769,7 +717,7 @@ describe("starting a card payment, at Pay", () => {
     expect(created).toBe(0)
   })
 
-  it("creates nothing on opening, even when React runs effects twice, and one payment per press", async () => {
+  it("creates nothing on opening, with its form ready, even when React runs effects twice, and one payment per press", async () => {
     renderCart({ strict: true })
     const user = userEvent.setup()
 
