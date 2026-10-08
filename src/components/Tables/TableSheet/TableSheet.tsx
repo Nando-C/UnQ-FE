@@ -11,13 +11,19 @@ import { menuIdOf } from "../../../lib/cart";
 import { STATE_CLASS, STATE_LABEL, clockTime, heldFor, logActionLabel, needsStaffLine } from "../../../lib/tables";
 import { REFUND_NOTE_MAX, REFUND_REASON_LABEL, REFUND_REASONS, refundReasonText } from "../../../lib/refundReasons";
 import { providerName, refundDestination } from "../../../lib/providers";
-import { IManagerCart, IManagerLogEntry, IManagerSplit, IPayment, IRefund, ITableCarts, ITableStatus, RefundReason } from "../../../typings/tables";
+import { DONE_BUTTON, doneAsFor, doneText, markQuestion, markedText, owedText } from "../../../lib/paybacks";
+import { IManagerCart, IManagerLogEntry, IManagerSplit, IPayback, IPayment, IRefund, ITableCarts, ITableStatus, PaybackDoneAs, RefundReason } from "../../../typings/tables";
 import "./TableSheet.css";
 
 // How often an open sheet refreshes (the table cards refresh every 30 s).
 const REFRESH_MS = 20_000;
-// The BE's answer when the cart changed between loading and saving.
-const CART_CHANGED = "The cart changed, please retry";
+// The BE's 409s that mean "what you saw has changed", said in the sheet's own
+// words (the sheet is reloaded after every action): the cart changed between
+// loading and saving, or a pay-back is no longer as it was shown.
+const CHANGED_TEXT = new Map([
+  ["The cart changed, please retry", "The table changed while you were looking: here it is again. Check it before trying again."],
+  ["This pay-back changed: here it is again", "This pay-back changed while you were looking: here it is again. Check it before trying again."],
+]);
 
 interface TableSheetProps {
   shopId: string;
@@ -115,15 +121,11 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
       // this action to do.
       const stale = axios.isAxiosError(err) && err.response?.status === 409;
       const text = apiErrorMessage(err);
+      const changed = stale ? CHANGED_TEXT.get(apiErrorBody(err).message ?? "") : undefined;
       setResult(
         !stale
           ? { variant: "danger", text }
-          : apiErrorBody(err).message === CART_CHANGED
-            ? {
-                variant: "warning",
-                text: "The table changed while you were looking: here it is again. Check it before trying again.",
-              }
-            : { variant: "warning", text: `${text}. Here's the table as it is now.` }
+          : { variant: "warning", text: changed ?? `${text}. Here's the table as it is now.` }
       );
     } finally {
       setBusy(false);
@@ -144,6 +146,8 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
     backend.post(`/shops/${shopId}/carts/${cartId}/refunds/${refundId}/retry`);
   const checkPayment: CheckPayment = (cartId, paymentId) => () =>
     backend.post(`/shops/${shopId}/carts/${cartId}/payments/${paymentId}/check`);
+  const markDone: MarkDone = (paybackId, as) => () =>
+    backend.post(`/shops/${shopId}/paybacks/${paybackId}/done`, { as });
 
   const open = carts?.open ?? [];
   const closed = carts?.recentlyClosed ?? [];
@@ -191,6 +195,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
             </Spinner>
           </div>
         )}
+        <Paybacks paybacks={carts?.paybacks ?? []} ask={ask} markDone={markDone} disabled={locked} />
         {carts && open.length === 0 && (
           <p className="text-body-secondary">
             {deleted ? "This table was deleted: it takes no more orders." : "No open cart: this table is free."}
@@ -278,6 +283,74 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
 };
 
 // ---------------------------------------------------------------------------
+
+type MarkDone = (paybackId: string, as: PaybackDoneAs) => PendingAction["send"];
+
+// The table's pay-backs, first on the sheet (they belong to the table, not to
+// a cart, which may be gone): what's owed and what to do about each, with the
+// button that marks it done, then the ones marked done in the last 30 days.
+const Paybacks = ({
+  paybacks,
+  ask,
+  markDone,
+  disabled,
+}: {
+  paybacks: IPayback[];
+  ask: Ask;
+  markDone: MarkDone;
+  disabled: boolean;
+}) => {
+  const headingId = useId();
+  if (paybacks.length === 0) return null;
+  const owed = paybacks.filter((p) => p.owed);
+  const done = paybacks.filter((p) => !p.owed);
+  return (
+    <section className="mb-4" aria-labelledby={headingId}>
+      <h3 id={headingId} className="h6">
+        To pay back
+      </h3>
+      {owed.length === 0 ? (
+        <p className="text-body-secondary small mb-2">Nothing owed now.</p>
+      ) : (
+        <ul className="list-unstyled sheet-list" aria-label="Owed">
+          {owed.map((p) => {
+            const as = doneAsFor(p);
+            return (
+              <li key={p._id}>
+                <p className="mb-2 text-danger-emphasis">
+                  <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
+                  {owedText(p)}
+                </p>
+                <Button
+                  variant="outline-primary"
+                  disabled={disabled}
+                  onClick={() =>
+                    ask({
+                      message: markQuestion(p),
+                      confirmLabel: DONE_BUTTON[as],
+                      danger: false,
+                      send: markDone(p._id, as),
+                      done: (data) => markedText((data as { payback?: IPayback }).payback?.doneAs),
+                    })
+                  }
+                >
+                  {DONE_BUTTON[as]}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {done.length > 0 && (
+        <ul className="list-unstyled sheet-list small text-body-secondary" aria-label="Done in the last 30 days">
+          {done.map((p) => (
+            <li key={p._id}>{doneText(p)}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+};
 
 // The cart's log, newest first: what managers did, and what the server did
 // about card payments. A line staff must act on (a card refund Stripe won't

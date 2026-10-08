@@ -18,8 +18,15 @@ const refundedAfterCapture = (status: number | undefined, message: string | unde
 // - captureStripeCheckout's 404 for a card payment that went through (or is
 //   being confirmed) when the table's cart was deleted since (with its table
 //   or shop): never "nothing was charged". Every other 404 there is raised
-//   before anything was taken.
+//   before anything was taken. Told by its `reason`, or by its wording from a
+//   BE that doesn't send one.
 const CART_GONE_MARKER = "this table's cart is no longer here";
+const cartGone = (rejection: CartRejection | undefined): "CART_GONE" | "CART_GONE_PENDING" | undefined => {
+  if (rejection?.reason === "CART_GONE" || rejection?.reason === "CART_GONE_PENDING") return rejection.reason;
+  const message = rejection?.message;
+  if (rejection?.status !== 404 || !message?.includes(CART_GONE_MARKER)) return undefined;
+  return message.includes("being confirmed") ? "CART_GONE_PENDING" : "CART_GONE";
+};
 // - A 5xx whose message explains itself: the BE asks the diner to contact
 //   staff, or (a card payment they dispute) says their bank returns it, and
 //   gives the id staff need. An unexposed error says only "Generic Server Error".
@@ -117,10 +124,20 @@ export const refusedOutcome = (
       refetch: false,
     };
   }
-  if (status === 404 && message?.includes(CART_GONE_MARKER)) {
+  const gone = cartGone(rejection);
+  if (gone) {
     // A card payment that went through, or is being confirmed, on a cart
     // deleted since: said as it is, never "nothing was charged".
-    return { variant: message.includes("being confirmed") ? "pending" : "success", message, refetch: true };
+    const pending = gone === "CART_GONE_PENDING";
+    return {
+      variant: pending ? "pending" : "success",
+      message:
+        message ??
+        (pending
+          ? "Your card payment is being confirmed, but this table's cart is no longer here"
+          : "Your card payment went through, but this table's cart is no longer here"),
+      refetch: true,
+    };
   }
   if (isRefusal(status)) return notCharged(message, "Payment could not be completed — nothing was charged.");
   if (rejection?.reason === "STILL_CONFIRMING" && message) {

@@ -1,233 +1,238 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Alert, Button } from "react-bootstrap";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import type { Stripe } from "@stripe/stripe-js";
+import type { Stripe, StripeElementsOptionsMode } from "@stripe/stripe-js";
 import { useAppDispatch } from "../../../redux/app/hooks";
-import { createStripeCheckout, type CartRejection } from "../../../redux/slices/cartSlice";
+import { createStripeCheckout, getTableCart, type CartRejection } from "../../../redux/slices/cartSlice";
 import { getStripe, isRetryableCardError, stripeReturnUrl } from "../../../lib/stripe";
 import { captureCardPayment, isRefusal, notStartedOutcome, type PaymentOutcome } from "../../../lib/paymentOutcome";
-import { formatPrice } from "../../../lib/price";
+import { formatPrice, fromPence } from "../../../lib/price";
 
 interface CardPaymentProps {
+  // Whether the Card row is open: the form is only shown once it is.
+  open: boolean;
+  // The cart shown now, which a press pays for.
   tableId: string;
   cartId: string;
-  // What the diner sees they're paying (their selection); the BE charges its
-  // own total for it.
-  amount: number;
+  // The diner's selection now, in pence (0 when nothing is selected).
+  pence: number;
+  // The amount Stripe's form shows (wallet sheets too), in pence: the one
+  // pressed during a press, else the last positive selection.
+  formPence: number;
   // The cart page's path, where a bank check that leaves the page returns.
   cartPath: string;
   // How it ended. Called once per payment: the sheet closes and shows it, and
-  // opening the sheet again starts a new payment.
+  // opening the sheet again starts afresh.
   onOutcome: (outcome: PaymentOutcome) => void;
-  // While a card is being confirmed and the outcome asked for: the sheet
-  // stays open until it's known.
-  onBusy: (busy: boolean) => void;
+  // A press starting (with its amount) and ending (null): the sheet stays
+  // open, and the amount pressed shown, until it ends.
+  onPress: (pence: number | null) => void;
   // While another payment (PayPal's popup) is under way.
   disabled: boolean;
 }
 
-// A ready payment keeps the cart, table and amount it was made for: the cart
-// shown can change under the open sheet (refetched on focus), and the payment
-// is captured on its own cart, never the new one.
-type Start =
-  | { kind: "loading" }
-  | {
-      kind: "ready";
-      stripe: Stripe;
-      clientSecret: string;
-      paymentIntentId: string;
-      tableId: string;
-      cartId: string;
-      amount: number;
-    }
-  | { kind: "failed" };
+const CANT_START = "Card payments aren't available right now. Try again, or choose PayPal.";
+const COULDNT_START = "Couldn't start the card payment. Try again in a moment, or pay with PayPal.";
+const NOTHING_SELECTED = "Nothing selected to pay for";
+// No Link, Stripe's own saved-card wallet: it asks for an email to sign up,
+// in a sheet where Apple Pay and Google Pay already make paying quick. Those
+// two stay as Stripe decides (shown where the device and domain allow).
+const ELEMENT_OPTIONS = { wallets: { link: "never" } } as const;
 
-const CANT_START = "Card payments aren't available right now. Try again, or pay with PayPal below.";
-
-// "Pay by card" in the checkout sheet: Stripe's Payment Element (Apple Pay and
-// Google Pay too, where the device has them), for a payment created when the
-// sheet opens. Confirming it only authorises the card; the BE then re-checks
-// the cart and takes the money, or cancels the authorisation.
-const CardPayment = ({ tableId, cartId, amount, cartPath, onOutcome, onBusy, disabled }: CardPaymentProps) => {
-  const dispatch = useAppDispatch();
-  const [start, setStart] = useState<Start>({ kind: "loading" });
+// "Card" in the checkout sheet: Stripe's Payment Element (Apple Pay and Google
+// Pay too, where the device has them). Stripe.js loads when the sheet opens;
+// the form shows once the row is open. Nothing is created until the diner
+// presses Pay (Stripe's deferred intent): then the BE creates the payment at
+// its own prices, and it's confirmed only for the amount the diner saw.
+// Confirming only authorises the card; the BE then re-checks the cart and
+// takes the money, or cancels the authorisation.
+const CardPayment = ({ open, tableId, cartId, pence, formPence, cartPath, onOutcome, onPress, disabled }: CardPaymentProps) => {
+  // Stripe.js: loading (undefined), loaded, or failed. `attempt` loads it
+  // again (Try again), and gives the form a fresh Elements.
+  const [stripe, setStripe] = useState<Stripe | "failed" | undefined>(undefined);
   const [attempt, setAttempt] = useState(0);
-  // The attempt already started: React runs effects twice in development, and
-  // each start creates a payment at Stripe.
-  const startedRef = useRef(-1);
-  const intentRef = useRef<{
-    tableId: string;
-    cartId: string;
-    amount: number;
-    intent: { clientSecret: string; paymentIntentId: string };
-  } | null>(null);
-  const onOutcomeRef = useRef(onOutcome);
-  const disabledRef = useRef(disabled);
   useEffect(() => {
-    onOutcomeRef.current = onOutcome;
-    disabledRef.current = disabled;
-  });
-  // Whether the sheet is still open: a start answered after it closed says
-  // nothing (the diner may be paying with PayPal by then). Set again on
-  // React's development remount.
-  const openRef = useRef(true);
-  useEffect(() => {
-    openRef.current = true;
+    let live = true;
+    getStripe().then(
+      (loaded) => live && setStripe(loaded ?? "failed"),
+      () => live && setStripe("failed")
+    );
     return () => {
-      openRef.current = false;
+      live = false;
     };
-  }, []);
-  // Started once per attempt, with the cart as shown then (when the sheet
-  // opened, or Try again was pressed): a later change to it doesn't restart
-  // it, and the payment keeps what it was made for.
-  useEffect(() => {
-    if (startedRef.current === attempt) return;
-    startedRef.current = attempt;
-    // A payment already made for this cart is reused when only Stripe.js
-    // failed: each start counts against the diner's per-minute edits.
-    const kept = intentRef.current;
-    const made = kept && kept.cartId === cartId && kept.tableId === tableId ? kept : { tableId, cartId, amount };
-    const asked =
-      kept === made
-        ? Promise.resolve(kept.intent)
-        : dispatch(createStripeCheckout({ tableId, cartId }))
-            .unwrap()
-            .then((created) => {
-              intentRef.current = { ...made, intent: created };
-              return created;
-            });
-    Promise.all([getStripe(), asked])
-      .then(([stripe, { clientSecret, paymentIntentId }]) => {
-        if (!openRef.current) return;
-        const { tableId, cartId, amount } = made;
-        setStart(stripe ? { kind: "ready", stripe, clientSecret, paymentIntentId, tableId, cartId, amount } : { kind: "failed" });
-      })
-      .catch((err: unknown) => {
-        if (!openRef.current) return;
-        const rejection = err as CartRejection | undefined;
-        // Not while PayPal's popup is open: closing the sheet would end that
-        // payment, which the BE may still take.
-        if (isRefusal(rejection?.status) && rejection?.status !== 429 && !disabledRef.current) {
-          // The BE's checks refused it (a sold-out item, a selection staff
-          // released, a closed table): PayPal would be refused too.
-          onOutcomeRef.current(notStartedOutcome(rejection));
-        } else {
-          // Stripe or its script unreachable, or too many starts in a minute
-          // (the BE limits them with the diner's edits): PayPal may still work.
-          setStart({ kind: "failed" });
-        }
-      });
-  }, [attempt, dispatch, tableId, cartId, amount]);
+  }, [attempt]);
 
-  // Asked whatever confirming said (but a decline the diner can retry): the
-  // answer comes from the payment as Stripe has it.
-  const capture = async ({ tableId, cartId, paymentIntentId }: { tableId: string; cartId: string; paymentIntentId: string }) =>
-    onOutcomeRef.current(await captureCardPayment(dispatch, { tableId, cartId, paymentIntentId }));
-  // The same object across renders: Elements compares its options each render.
-  const clientSecret = start.kind === "ready" ? start.clientSecret : undefined;
-  const options = useMemo(() => ({ clientSecret }), [clientSecret]);
+  // The form, once shown, stays (a refetch emptying the selection doesn't
+  // take it away mid-entry). It's first shown only for a positive amount:
+  // Stripe's form can't be made for nothing.
+  const [formOn, setFormOn] = useState(false);
+  if (open && pence > 0 && !formOn) setFormOn(true);
 
+  // The same object across renders: Elements compares its options each render,
+  // and updates the amount when it changes. These match the BE's payment
+  // (GBP, manual capture, cards only), as Stripe's deferred intent requires.
+  const options = useMemo<StripeElementsOptionsMode>(
+    () => ({ mode: "payment", amount: formPence, currency: "gbp", captureMethod: "manual", allowedPaymentMethodTypes: ["card"] }),
+    [formPence]
+  );
+
+  if (stripe === "failed") {
+    return (
+      <Alert variant="warning" className="py-2 mb-0">
+        <p className="mb-2">{CANT_START}</p>
+        <Button
+          variant="outline-primary"
+          onClick={() => {
+            setStripe(undefined);
+            setAttempt((a) => a + 1);
+          }}
+        >
+          Try again
+        </Button>
+      </Alert>
+    );
+  }
+  if (!formOn) {
+    return open ? <p className="text-body-secondary mb-0">{NOTHING_SELECTED}</p> : null;
+  }
+  if (!stripe) {
+    return (
+      <p className="text-body-secondary small mb-0" role="status">
+        Loading card payment…
+      </p>
+    );
+  }
   return (
-    <section className="card-payment" aria-labelledby="card-payment-title">
-      <h2 id="card-payment-title" className="h6">
-        Pay by card
-      </h2>
-      {start.kind === "ready" ? (
-        <Elements stripe={start.stripe} options={options}>
-          <CardForm
-            amount={start.amount}
-            returnUrl={stripeReturnUrl(cartPath, start.cartId)}
-            onConfirmed={() => capture(start)}
-            onBusy={onBusy}
-            disabled={disabled}
-            onLoadError={() => setStart({ kind: "failed" })}
-          />
-        </Elements>
-      ) : start.kind === "failed" ? (
-        <Alert variant="warning" className="py-2">
-          <p className="mb-2">{CANT_START}</p>
-          <Button
-            variant="outline-primary"
-            onClick={() => {
-              setStart({ kind: "loading" });
-              setAttempt((a) => a + 1);
-            }}
-          >
-            Try again
-          </Button>
-        </Alert>
-      ) : (
-        <p className="text-body-secondary small" role="status">
-          Loading card payment…
-        </p>
-      )}
-    </section>
+    <Elements key={attempt} stripe={stripe} options={options}>
+      <CardForm
+        tableId={tableId}
+        cartId={cartId}
+        pence={pence}
+        cartPath={cartPath}
+        onOutcome={onOutcome}
+        onPress={onPress}
+        disabled={disabled}
+        onLoadError={() => setStripe("failed")}
+      />
+    </Elements>
   );
 };
 
 interface CardFormProps {
-  amount: number;
-  returnUrl: string;
-  onConfirmed: () => Promise<void>;
-  onLoadError: () => void;
-  onBusy: (busy: boolean) => void;
+  tableId: string;
+  cartId: string;
+  pence: number;
+  cartPath: string;
+  onOutcome: (outcome: PaymentOutcome) => void;
+  onPress: (pence: number | null) => void;
   disabled: boolean;
+  onLoadError: () => void;
 }
 
-const CardForm = ({ amount, returnUrl, onConfirmed, onLoadError, onBusy, disabled }: CardFormProps) => {
+const CardForm = ({ tableId, cartId, pence, cartPath, onOutcome, onPress, disabled, onLoadError }: CardFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
+  const dispatch = useAppDispatch();
   const [ready, setReady] = useState(false);
   // Also disables Pay, so a double tap sends one payment (React flushes the
   // first tap's state before the second is dispatched).
   const [sending, setSending] = useState(false);
-  // Why the last try was declined, under the form.
+  // Why the last press didn't pay, under the form.
   const [error, setError] = useState<string | null>(null);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements || disabled || sending) return;
+    if (!stripe || !elements || disabled || sending || pence <= 0) return;
+    // First, before anything is awaited: Apple Pay and Google Pay open their
+    // sheet from it, which needs the diner's tap. It also checks the form. A
+    // form torn down meanwhile throws at once: said as an error like any other.
+    let submitted: ReturnType<typeof elements.submit>;
+    try {
+      submitted = elements.submit();
+    } catch {
+      submitted = Promise.resolve({ error: { type: "api_error", message: COULDNT_START } }) as ReturnType<typeof elements.submit>;
+    }
+    // What this press pays for: the cart and amount shown now, whatever a
+    // refetch meanwhile finds.
+    const press = { tableId, cartId, pence };
     setSending(true);
-    onBusy(true);
     setError(null);
+    onPress(press.pence);
+    // Ends the press without paying, saying why under the form (nothing, for
+    // an error Stripe's form already shows next to its field).
+    const stop = (why: string | null) => {
+      setError(why);
+      setSending(false);
+      onPress(null);
+    };
+
+    let formError: { type?: string; message?: string } | undefined;
+    try {
+      ({ error: formError } = await submitted);
+    } catch {
+      formError = { type: "api_connection_error" };
+    }
+    if (formError) return stop(formError.type === "validation_error" ? null : (formError.message ?? COULDNT_START));
+
+    // A payment for this press alone, at the BE's prices then.
+    let intent: { clientSecret: string; paymentIntentId: string; amount?: number };
+    try {
+      intent = await dispatch(createStripeCheckout({ tableId: press.tableId, cartId: press.cartId })).unwrap();
+    } catch (err) {
+      const rejection = err as CartRejection | undefined;
+      // The BE's checks refused it (a sold-out item, a selection staff
+      // released, a closed table): PayPal would be refused too, and the cart
+      // as it is now says why.
+      if (isRefusal(rejection?.status) && rejection?.status !== 429) return onOutcome(notStartedOutcome(rejection));
+      // Too many starts in a minute, Stripe or the BE unreachable: nothing
+      // was created, and the next press may work, or PayPal.
+      return stop(COULDNT_START);
+    }
+    if (typeof intent.amount !== "number") return stop(COULDNT_START);
+    if (intent.amount !== press.pence) {
+      // The BE prices it differently (a price changed since the cart was
+      // loaded): never confirmed. The cart is fetched again, so what's shown
+      // follows the BE's prices; the payment is left for the BE to cancel.
+      dispatch(getTableCart(press.tableId));
+      return stop(`The total is now ${formatPrice(fromPence(intent.amount))} — check it and press Pay again.`);
+    }
+
     let failure: { type?: string; code?: string; message?: string } | undefined;
     try {
       // Stripe.js runs a bank check over the page; only one that has to take
-      // the diner away comes back through returnUrl (the cart page).
+      // the diner away comes back through the return URL (the cart page).
       ({ error: failure } = await stripe.confirmPayment({
         elements,
+        clientSecret: intent.clientSecret,
         redirect: "if_required",
-        confirmParams: { return_url: returnUrl },
+        confirmParams: { return_url: stripeReturnUrl(cartPath, press.cartId) },
       }));
     } catch {
       // No answer: the card may have been authorised.
       failure = { type: "api_connection_error" };
     }
     if (failure && isRetryableCardError(failure)) {
-      // Nothing was authorised: the diner can try another card on this
-      // payment. A form error (an incomplete number) already shows in
-      // Stripe's form, next to its field.
-      setError(failure.type === "validation_error" ? null : (failure.message ?? "Your card was declined. Try another card."));
-      setSending(false);
-      onBusy(false);
-      return;
+      // Nothing was authorised: the diner can try another card, on a new
+      // payment at the next press.
+      return stop(failure.type === "validation_error" ? null : (failure.message ?? "Your card was declined. Try another card."));
     }
-    // Stays sending: whatever the answer, the sheet closes with it.
-    await onConfirmed();
-    onBusy(false);
+    // Asked whatever confirming said: the answer comes from the payment as
+    // Stripe has it. Stays sending: whatever the answer, the sheet closes
+    // with it.
+    onOutcome(await captureCardPayment(dispatch, { tableId: press.tableId, cartId: press.cartId, paymentIntentId: intent.paymentIntentId }));
   };
 
   return (
     <form onSubmit={submit} noValidate>
-      <PaymentElement onReady={() => setReady(true)} onLoadError={onLoadError} />
+      <PaymentElement options={ELEMENT_OPTIONS} onReady={() => setReady(true)} onLoadError={onLoadError} />
       {error && (
         <Alert variant="danger" className="mt-2 mb-0 py-2" role="alert">
           {error}
         </Alert>
       )}
       <div className="d-grid mt-3">
-        <Button type="submit" disabled={!stripe || !elements || !ready || sending || disabled}>
-          {sending ? "Paying…" : <>Pay <strong>{formatPrice(amount)}</strong></>}
+        <Button type="submit" disabled={!stripe || !elements || !ready || sending || disabled || pence <= 0}>
+          {sending ? "Paying…" : pence > 0 ? <>Pay <strong>{formatPrice(fromPence(pence))}</strong></> : NOTHING_SELECTED}
         </Button>
       </div>
     </form>

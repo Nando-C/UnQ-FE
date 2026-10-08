@@ -6,10 +6,10 @@
 //   npm run audit:responsive -- --screens=c-menu,c-cart --viewports=320,390-text200
 //   npm run audit:responsive -- --delay=1500   (also screenshot each page while
 //                                               its data loads, as *-loading.png)
-//   AUDIT_STRIPE_CLIENT_SECRET=pi_…_secret_… npm run audit:responsive -- --screens=c-checkout
-//     (the checkout with Stripe's real card form: the client secret of a
-//     test-mode PaymentIntent on the account of .env's publishable key.
-//     Without it the card option is off, as with no key.)
+//   The checkout (c-checkout) shows Stripe's real card form, its Card row
+//   opened, when .env has VITE_STRIPE_PUBLISHABLE_KEY (nothing is created at
+//   Stripe until Pay, which the audit never presses); without a key, PayPal's
+//   button, as the sheet shows it then.
 //
 // Needs Google Chrome installed (playwright-core drives it, no browser download);
 // point CHROME_PATH at another Chromium to use that instead. Writes
@@ -29,7 +29,7 @@
 // while the page loads.
 
 import { chromium } from "playwright-core"
-import { createServer } from "vite"
+import { createServer, loadEnv } from "vite"
 import fs from "node:fs"
 import net from "node:net"
 import path from "node:path"
@@ -336,12 +336,11 @@ const freePort = () =>
 
 // The app must call the mock on /api whatever the local .env says, and PayPal
 // runs in sandbox mode. Variables already in the environment beat .env files.
-// Stripe's card form needs a real PaymentIntent, so it's only shown when one
-// is given (see the top); otherwise no key, whatever .env says.
+// Stripe's key is .env's (or the environment's): only whether there is one
+// is read here.
 process.env.VITE_BE_URL = "/api"
 process.env.VITE_PAYPAL_CLIENT_ID = "sb"
-const STRIPE_SECRET = process.env.AUDIT_STRIPE_CLIENT_SECRET ?? ""
-if (!STRIPE_SECRET) process.env.VITE_STRIPE_PUBLISHABLE_KEY = ""
+const CARDS_ON = !!(process.env.VITE_STRIPE_PUBLISHABLE_KEY ?? loadEnv("development", ROOT, "VITE_").VITE_STRIPE_PUBLISHABLE_KEY)
 
 const port = await freePort()
 const server = await createServer({
@@ -386,9 +385,6 @@ const mockApi = async (route, role) => {
   }
   if (p.startsWith("/shops")) return json(fixtures.shops)
   if (p === "/carts/tables/t1") return json(fixtures.cart)
-  if (STRIPE_SECRET && p === `/carts/tables/t1/${fixtures.cart._id}/createStripeCheckout`) {
-    return json({ clientSecret: STRIPE_SECRET, paymentIntentId: STRIPE_SECRET.split("_secret_")[0] })
-  }
   return json({ message: "Not mocked" }, 404)
 }
 
@@ -459,9 +455,21 @@ const run = async ([id, role, url, action], vp) => {
         }
       }
       await open()
+      // With a Stripe key the sheet lists its ways to pay: the Card row is
+      // opened, and Stripe's form waited for (it loads in its own iframe).
+      if (action === "checkout" && CARDS_ON) {
+        await page.getByRole("button", { name: /^Card/ }).click({ timeout: 5000 })
+        const card = await page.getByRole("button", { name: /^Pay £/ }).waitFor({ timeout: 20000 })
+          .then(async () => {
+            await page.waitForFunction(() => !document.querySelector(".offcanvas.show button[type=submit]")?.disabled, null, { timeout: 20000 })
+            return true
+          }, () => false)
+        if (card) await page.waitForTimeout(1500)
+        else r.warnings.push({ kind: "not loaded", text: "Stripe's card form didn't load (offline?)" })
+      }
       // PayPal's buttons come from its SDK over the network, in iframes, and the
       // sandbox SDK sometimes fails to render in headless Chrome: reload once.
-      if (action === "checkout") {
+      if (action === "checkout" && !CARDS_ON) {
         const paypal = () => page.waitForFunction(() => [...document.querySelectorAll(".offcanvas.show iframe")]
           .some((f) => f.getBoundingClientRect().height > 0), null, { timeout: 15000 }).then(() => true, () => false)
         let loaded = await paypal()
@@ -473,16 +481,6 @@ const run = async ([id, role, url, action], vp) => {
         }
         if (loaded) await page.waitForTimeout(1500)
         else r.warnings.push({ kind: "not loaded", text: "PayPal buttons didn't load (offline?)" })
-        // Stripe's card form, in its own iframe, once the Pay button is on.
-        if (STRIPE_SECRET) {
-          const card = await page.getByRole("button", { name: /^Pay £/ }).waitFor({ timeout: 20000 })
-            .then(async () => {
-              await page.waitForFunction(() => !document.querySelector(".offcanvas.show button[type=submit]")?.disabled, null, { timeout: 20000 })
-              return true
-            }, () => false)
-          if (card) await page.waitForTimeout(1500)
-          else r.warnings.push({ kind: "not loaded", text: "Stripe's card form didn't load (offline, or a spent client secret?)" })
-        }
       }
       await settle(page)
     }

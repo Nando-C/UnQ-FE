@@ -363,7 +363,8 @@
       "attention": [
         "soldOut",
         "staleSelection",
-        "duplicateCarts"
+        "duplicateCarts",
+        "payBack"
       ]
     },
     {
@@ -632,6 +633,60 @@
             "details": "£28.50 card payment by Maximiliana-Alexandrina: Stripe won't refund it, so they were charged (payment pi_3Fixture0000000000000000). Pay them back another way, unless a cart shows this payment as paid and they didn't pay again, or Stripe's dashboard shows they've disputed it since (their bank returns it then)."
           }
         ]
+      }
+    ],
+    "paybacks": [
+      {
+        "_id": "pb1",
+        "shopId": "s1",
+        "tableId": "t1",
+        "cartId": "c1",
+        "kind": "refundFailed",
+        "userId": {
+          "_id": "u9",
+          "name": "Bartholomew-Alexander"
+        },
+        "amount": 1234.5,
+        "paymentAmount": 2469,
+        "currency": "GBP",
+        "paymentIntentId": "pi_3QfXyZ2eZvKYlo2C1aBcDeFg",
+        "disputed": true,
+        "owed": true,
+        "at": "2026-10-07T12:00:00.000Z"
+      },
+      {
+        "_id": "pb2",
+        "shopId": "s1",
+        "tableId": "t1",
+        "cartId": "c0",
+        "kind": "refundRefused",
+        "userId": null,
+        "amount": 45,
+        "currency": "GBP",
+        "paymentIntentId": "pi_3QfXyZ2eZvKYlo2C9zYxWvUt",
+        "owed": true,
+        "at": "2026-10-06T12:00:00.000Z"
+      },
+      {
+        "_id": "pb3",
+        "shopId": "s1",
+        "tableId": "t1",
+        "cartId": "c0",
+        "kind": "refundRefused",
+        "userId": {
+          "_id": "u8",
+          "name": "Ada"
+        },
+        "amount": 9.5,
+        "currency": "GBP",
+        "paymentIntentId": "pi_1",
+        "at": "2026-10-01T12:00:00.000Z",
+        "doneAt": "2026-10-03T14:05:00.000Z",
+        "doneByUserId": {
+          "_id": "mg1",
+          "name": "Sam"
+        },
+        "doneAs": "paidBack"
       }
     ]
   }

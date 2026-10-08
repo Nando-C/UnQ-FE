@@ -4,7 +4,7 @@ import { IItem, ISplitItem } from "./cart";
 // and GET /shops/:shopId/tables/:tableId/carts).
 
 export type TableState = "free" | "ordering" | "waitingToPay" | "partlyPaid"
-export type TableAttention = "soldOut" | "duplicateCarts" | "staleSelection" | "paymentPending"
+export type TableAttention = "soldOut" | "duplicateCarts" | "staleSelection" | "paymentPending" | "payBack"
 
 export interface ITableStatus {
     tableId: string
@@ -109,4 +109,44 @@ export interface IManagerCart {
 export interface ITableCarts {
     open: IManagerCart[]
     recentlyClosed: IManagerCart[]
+    // The table's pay-backs, owed or marked done in the last 30 days, newest
+    // first, whichever cart they came from (it may be gone).
+    paybacks?: IPayback[]
+}
+
+// Money staff must give a diner back another way, because Stripe won't
+// (UnQ-BE's Payback): a payment handed to staff (`refundRefused`), or a
+// manager's card refund Stripe accepted, then failed (`refundFailed`).
+export type PaybackKind = "refundRefused" | "refundFailed"
+// What a manager marked it as: paid back, a dispute handled (the diner's bank
+// returns the money), or checked (a cart shows its payment as paid).
+export type PaybackDoneAs = "paidBack" | "handled" | "checked"
+
+export interface IPayback {
+    _id: string
+    shopId: string
+    tableId: string
+    cartId: string
+    kind: PaybackKind | (string & {})
+    // null: the diner's account is gone.
+    userId: IDiner | null
+    // Owed, in pounds.
+    amount: number
+    currency: string
+    paymentIntentId?: string
+    refundId?: string
+    // A refundFailed one: the whole payment (a dispute is of all of it).
+    paymentAmount?: number
+    // The diner disputes the payment: their bank returns the money, not staff.
+    disputed?: boolean
+    // Until marked done.
+    owed?: boolean
+    // An owed refundRefused one whose payment a cart shows as paid (worked
+    // out by the BE when read): check it before paying it back.
+    recorded?: boolean
+    at: string
+    doneAt?: string
+    // null: the manager's account is gone.
+    doneByUserId?: IDiner | null
+    doneAs?: PaybackDoneAs
 }

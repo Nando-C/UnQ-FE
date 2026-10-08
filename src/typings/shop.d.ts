@@ -35,8 +35,8 @@ export interface IDeletedTable {
     _id: string
     name: string
     deletedAt: string
-    // Something is left to do there: an open cart, or a payment or refund
-    // its provider hasn't confirmed.
+    // Something is left to do there: an open cart, a payment or refund its
+    // provider hasn't confirmed, or a diner still to be paid back.
     needsAttention?: boolean
     // Until when its sheet shows a closed cart (a day after the latest one
     // last changed); absent when it shows none.

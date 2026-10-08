@@ -163,13 +163,15 @@ export const captureCheckout = createAsyncThunk(
     }
 )
 
-// Card checkout (Stripe), step 1: a payment for the caller's selection, which
-// the diner confirms in Stripe's Payment Element. That only authorises it.
+// Card checkout (Stripe), step 1, when the diner presses Pay: a payment for the
+// caller's selection at the BE's prices, which the diner then confirms in
+// Stripe's Payment Element. That only authorises it. `amount`: the payment's,
+// in pence, confirmed only if it's the amount the diner saw.
 export const createStripeCheckout = createAsyncThunk(
     "cart/createStripeCheckout",
     async ({tableId, cartId}: CheckOutProps, { rejectWithValue }) => {
         try {
-            const { data }: AxiosResponse<{ clientSecret: string; paymentIntentId: string }> =
+            const { data }: AxiosResponse<{ clientSecret: string; paymentIntentId: string; amount?: number }> =
                 await backend.post(`carts/tables/${tableId}/${cartId}/createStripeCheckout`)
             return data
         } catch (err) {

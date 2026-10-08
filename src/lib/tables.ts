@@ -22,6 +22,7 @@ export const ATTENTION_LABEL: Record<TableAttention, string> = {
   staleSelection: "Selection held over 15 min",
   duplicateCarts: "More than one open cart",
   paymentPending: "Payment awaiting confirmation",
+  payBack: "Diner to pay back",
 };
 
 // What a line in a cart's log says was done (the manager's sheet).
@@ -49,6 +50,16 @@ export const heldFor = (iso: string, now = Date.now()) => {
   if (min < 60) return `${min} min`;
   const h = Math.floor(min / 60);
   return min % 60 ? `${h} h ${min % 60} min` : `${h} h`;
+};
+
+// "14:32", or "3 Oct 14:32" when it wasn't today: for what's kept longer than
+// a week, where a weekday would be ambiguous.
+export const dateTime = (iso: string, now = new Date()) => {
+  const d = new Date(iso);
+  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return d.toDateString() === now.toDateString()
+    ? time
+    : `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${time}`;
 };
 
 // "14:32", or "Mon 14:32" when it wasn't today.

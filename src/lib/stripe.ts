@@ -16,9 +16,10 @@ export const getStripe = (): Promise<Stripe | null> =>
     throw err;
   }));
 
-// A confirmPayment error that leaves the payment where it was, so the diner
-// can try another card on the same intent: a decline, a form error, or a bank
-// check that failed or was abandoned (which Stripe.js reports as an
+// A confirmPayment error after which nothing was authorised, so the diner can
+// try another card (a new payment, at the next press: each press is checked
+// against the BE's prices): a decline, a form error, or a bank check that
+// failed or was abandoned (which Stripe.js reports as an
 // invalid_request_error). Anything else may come after the card was
 // authorised, so the backend is asked how it ended.
 export const isRetryableCardError = (error: { type?: string; code?: string }) =>
