@@ -1,3 +1,4 @@
+import { capitalised } from "./text";
 import type { PaymentProvider } from "../typings/tables";
 
 // A payment provider as staff and diners read it (a payment's `provider`): its
@@ -12,6 +13,6 @@ const known = (provider: string | undefined) => PROVIDERS[provider as PaymentPro
 // One it doesn't know is named as recorded, capitalised: it may start a
 // sentence ("Adyen didn't complete…").
 export const providerName = (provider: string | undefined) =>
-  known(provider)?.name ?? (provider ? provider[0].toUpperCase() + provider.slice(1) : "Payment provider");
+  known(provider)?.name ?? (provider ? capitalised(provider) : "Payment provider");
 
 export const refundDestination = (provider: string | undefined) => known(provider)?.refundsTo ?? "account";

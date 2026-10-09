@@ -1,19 +1,18 @@
 import { FormEvent, useState } from "react";
-import axios from "axios";
 import { Col, Form, Row, Button, FloatingLabel, Alert } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import backend from "../../backend/backend";
 import { useAppDispatch } from "../../redux/app/hooks";
 import { fetchUserData } from "../../redux/slices/userSlice";
 import { takeReturnTo } from "../../lib/returnTo";
-import { apiErrorMessage } from "../../lib/errors";
+import { apiErrorMessage, apiStatus } from "../../lib/errors";
 import { usePageTitle } from "../../lib/usePageTitle";
 import { AuthLayout, GoogleButton } from "../Login/AuthLayout";
 
 const MIN_PASSWORD_LENGTH = 8;
 
 const getErrorMessage = (err: unknown): string =>
-  axios.isAxiosError(err) && err.response?.status === 409
+  apiStatus(err) === 409
     ? "Email already registered"
     : apiErrorMessage(err);
 

@@ -1,3 +1,4 @@
+import { capitalised } from "./text";
 import type { RefundReason } from "../typings/tables";
 
 // Why a manager refunds, as the refund picker offers them (in this order) and
@@ -24,6 +25,5 @@ export const refundReasonText = (reason?: string, note?: string): string | undef
   if (!reason) return undefined;
   if (reason === "other" && note) return `Other (“${note}”)`;
   if (Object.hasOwn(REFUND_REASON_LABEL, reason)) return REFUND_REASON_LABEL[reason as RefundReason];
-  const words = reason.replaceAll("_", " ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
+  return capitalised(reason.replaceAll("_", " "));
 };

@@ -1,5 +1,4 @@
 import { FormEvent, useEffect, useState } from "react";
-import axios from "axios";
 import { Form, Button, FloatingLabel, Alert } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import backend from "../../backend/backend";
@@ -9,13 +8,13 @@ import { fetchUserData } from "../../redux/slices/userSlice";
 import { peekReturnTo, rememberReturnTo, takeReturnTo } from "../../lib/returnTo";
 import { tablePath } from "../../lib/paths";
 import { usePageTitle } from "../../lib/usePageTitle";
-import { apiErrorMessage } from "../../lib/errors";
+import { apiErrorMessage, apiStatus } from "../../lib/errors";
 import { AuthLayout, GoogleButton } from "./AuthLayout";
 
 // A 401 is a wrong email or password; anything else is what the BE said (e.g.
 // what's wrong with the form), as on sign-up.
 const getErrorMessage = (err: unknown): string =>
-  axios.isAxiosError(err) && err.response?.status === 401
+  apiStatus(err) === 401
     ? "Wrong email or password"
     : apiErrorMessage(err);
 

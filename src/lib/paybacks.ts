@@ -1,5 +1,6 @@
 import type { IDiner, IPayback, PaybackDoneAs } from "../typings/tables";
 import { formatPrice } from "./price";
+import { capitalised } from "./text";
 import { dateTime } from "./tables";
 
 // Pay-backs on the manager's table sheet (UnQ-BE S35): what each owed one asks
@@ -19,7 +20,6 @@ export const DONE_BUTTON: Record<PaybackDoneAs, string> = {
 
 const GONE = "a diner whose account is gone";
 const dinerName = (diner: IDiner | null) => diner?.name ?? GONE;
-const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 // " (payment pi_…)", the id staff look it up by in Stripe's dashboard.
 const paymentRef = (p: IPayback) => (p.paymentIntentId ? ` (payment ${p.paymentIntentId})` : "");
 

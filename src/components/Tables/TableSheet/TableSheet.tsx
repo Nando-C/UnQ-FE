@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import axios from "axios";
 import { Alert, Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
 import { FiAlertTriangle } from "react-icons/fi";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
 import backend from "../../../backend/backend";
 import { useVisiblePolling } from "../../../lib/useVisiblePolling";
-import { formatPrice } from "../../../lib/price";
-import { apiErrorBody, apiErrorMessage } from "../../../lib/errors";
-import { menuIdOf } from "../../../lib/cart";
-import { STATE_CLASS, STATE_LABEL, clockTime, heldFor, logActionLabel, needsStaffLine } from "../../../lib/tables";
+import { formatPrice, fromPence, toPence } from "../../../lib/price";
+import { apiErrorBody, apiErrorMessage, apiStatus } from "../../../lib/errors";
+import { menuIdOf, unpaidQty } from "../../../lib/cart";
+import { STALE_SELECTION_MS, STATE_CLASS, STATE_LABEL, clockTime, heldFor, logActionLabel, needsStaffLine } from "../../../lib/tables";
 import { REFUND_NOTE_MAX, REFUND_REASON_LABEL, REFUND_REASONS, refundReasonText } from "../../../lib/refundReasons";
 import { providerName, refundDestination } from "../../../lib/providers";
 import { DONE_BUTTON, doneAsFor, doneText, markQuestion, markedText, owedText } from "../../../lib/paybacks";
@@ -59,7 +58,6 @@ interface Result {
 
 // "2× Latte"
 const units = (qty: number, name: string | undefined) => `${qty}× ${name ?? "item"}`;
-const unpaidOf = (item: IManagerCart["items"][number]) => item.qty - (item.qtyPayed ?? 0);
 
 // One table as the manager sees it: what's in its open cart (ordered, paid and
 // selected per item), who has selected what and for how long, the payments
@@ -119,7 +117,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
       // A 409 means the table isn't as it was shown (it's reloaded below): a
       // diner paid or changed something meanwhile, or there's nothing left for
       // this action to do.
-      const stale = axios.isAxiosError(err) && err.response?.status === 409;
+      const stale = apiStatus(err) === 409;
       const text = apiErrorMessage(err);
       const changed = stale ? CHANGED_TEXT.get(apiErrorBody(err).message ?? "") : undefined;
       setResult(
@@ -394,14 +392,14 @@ const closeAction = (
   tableName: string,
   send: PendingAction["send"]
 ): PendingAction => {
-  const dropped = cart.items.filter((i) => unpaidOf(i) > 0);
+  const dropped = cart.items.filter((i) => unpaidQty(i) > 0);
   // As the BE decides: a payment record (even one refunded) keeps the cart.
   const neverPaid =
     !cart.items.some((i) => (i.qtyPayed ?? 0) > 0) &&
     !cart.split.some((s) => s.splitStatus === "closed") &&
     !cart.payments?.length;
-  const count = dropped.reduce((sum, i) => sum + unpaidOf(i), 0);
-  const what = dropped.map((i) => units(unpaidOf(i), i.menuId?.name)).join(", ");
+  const count = dropped.reduce((sum, i) => sum + unpaidQty(i), 0);
+  const what = dropped.map((i) => units(unpaidQty(i), i.menuId?.name)).join(", ");
   return {
     message:
       `Close Table ${tableName}? ` +
@@ -436,7 +434,7 @@ type SendRefund = (cartId: string, body: RefundRequest & { paymentId: string }) 
 type ReasonErrors = Partial<Record<"reason" | "reasonNote", string>>;
 
 const reasonErrorsOf = (err: unknown): ReasonErrors | null => {
-  if (!axios.isAxiosError(err) || err.response?.status !== 400) return null;
+  if (apiStatus(err) !== 400) return null;
   const errors: ReasonErrors = {};
   for (const d of apiErrorBody(err).details ?? []) {
     if (d.path === "reason" || d.path === "reasonNote") errors[d.path] ??= d.message;
@@ -488,7 +486,7 @@ const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, d
     });
 
   const remove = (item: IManagerCart["items"][number]) => {
-    const unpaid = unpaidOf(item);
+    const unpaid = unpaidQty(item);
     const what = units(unpaid, item.menuId?.name);
     const paid = item.qtyPayed ?? 0;
     ask({
@@ -513,7 +511,7 @@ const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, d
           {cart.items.map((item) => {
             const menuId = menuIdOf(item);
             const soldOut = item.menuId?.available === false;
-            const unpaid = unpaidOf(item);
+            const unpaid = unpaidQty(item);
             return (
               <li key={item._id ?? menuId}>
                 <div className="d-flex flex-wrap justify-content-between gap-1">
@@ -556,7 +554,7 @@ const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, d
       ) : (
         <ul className="list-unstyled sheet-list">
           {selections.map((s) => {
-            const long = s.claimedAt && Date.now() - new Date(s.claimedAt).getTime() > 15 * 60000;
+            const long = s.claimedAt && Date.now() - new Date(s.claimedAt).getTime() > STALE_SELECTION_MS;
             return (
               <li key={s._id} className="d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <span>
@@ -828,8 +826,7 @@ const RefundPicker = ({ payment, leftOf, disabled, onCancel, onReview }: RefundP
   const [note, setNote] = useState("");
   const id = useId();
   const lines = payment.lines.filter((l) => leftOf(l) > 0 || (disabled && (picks[l.menuId] ?? 0) > 0));
-  const amount =
-    Math.round(lines.reduce((sum, l) => sum + qtyOf(l) * l.unitPrice, 0) * 100) / 100;
+  const amount = fromPence(toPence(lines.reduce((sum, l) => sum + qtyOf(l) * l.unitPrice, 0)));
   const set = (menuId: string, qty: number) => setPicks((p) => ({ ...p, [menuId]: qty }));
   const other = reason === "other";
   // As the BE takes it: trimmed, at least one character.

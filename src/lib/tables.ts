@@ -17,6 +17,9 @@ export const STATE_CLASS: Record<TableState, string> = {
   partlyPaid: "bg-primary-subtle text-primary-emphasis",
 };
 
+// A selection held longer than this is flagged (the BE's STALE_SELECTION_MS).
+export const STALE_SELECTION_MS = 15 * 60 * 1000;
+
 export const ATTENTION_LABEL: Record<TableAttention, string> = {
   soldOut: "Sold-out item in the cart",
   staleSelection: "Selection held over 15 min",
@@ -52,21 +55,16 @@ export const heldFor = (iso: string, now = Date.now()) => {
   return min % 60 ? `${h} h ${min % 60} min` : `${h} h`;
 };
 
-// "14:32", or "3 Oct 14:32" when it wasn't today: for what's kept longer than
-// a week, where a weekday would be ambiguous.
-export const dateTime = (iso: string, now = new Date()) => {
+// "14:32", with the day in front (as `day` formats it) when it wasn't today.
+const timeOn = (iso: string, now: Date, day: Intl.DateTimeFormatOptions) => {
   const d = new Date(iso);
   const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  return d.toDateString() === now.toDateString()
-    ? time
-    : `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${time}`;
+  return d.toDateString() === now.toDateString() ? time : `${d.toLocaleDateString("en-GB", day)} ${time}`;
 };
 
+// "14:32", or "3 Oct 14:32" when it wasn't today: for what's kept longer than
+// a week, where a weekday would be ambiguous.
+export const dateTime = (iso: string, now = new Date()) => timeOn(iso, now, { day: "numeric", month: "short" });
+
 // "14:32", or "Mon 14:32" when it wasn't today.
-export const clockTime = (iso: string, now = new Date()) => {
-  const d = new Date(iso);
-  const time = d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-  return d.toDateString() === now.toDateString()
-    ? time
-    : `${d.toLocaleDateString("en-GB", { weekday: "short" })} ${time}`;
-};
+export const clockTime = (iso: string, now = new Date()) => timeOn(iso, now, { weekday: "short" });

@@ -6,6 +6,8 @@ import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { IMenu } from "../../../typings/menu";
 import placeholder from "../../../assets/placeholder.svg";
 import { apiErrorMessage } from "../../../lib/errors";
+import { uploadImage } from "../../../lib/upload";
+import { useObjectURL } from "../../../lib/useObjectURL";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
 import { useConfirmDelete } from "../../../lib/useConfirmDelete";
 
@@ -25,6 +27,18 @@ interface ItemModalProps {
   itemId: string;
 }
 
+// A new item's form: available by default, as on the BE.
+const EMPTY_ITEM: IMenu = {
+  _id: "",
+  name: "",
+  image: "",
+  short_description: "",
+  description: "",
+  price: 0,
+  available: true,
+  category: "food",
+};
+
 const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   const formId = useId();
   const shop = useAppSelector((state) =>
@@ -32,16 +46,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   );
   const menuItem = shop?.menu.find((item) => item._id === itemId);
 
-  const [item, setItem] = useState<IMenu>({
-    _id: "",
-    name: "",
-    image: "",
-    short_description: "",
-    description: "",
-    price: 0,
-    available: true,
-    category: "food",
-  });
+  const [item, setItem] = useState<IMenu>(EMPTY_ITEM);
   const [priceInput, setPriceInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   // The item Create made, once it exists: if its image then fails to upload,
@@ -66,22 +71,14 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
   // last time; and it follows the saved item when that reloads.
   useEffect(() => {
     if (!show) return;
-    setItem({
-      _id: menuItem ? menuItem._id : "",
-      name: menuItem ? menuItem.name : "",
-      image: menuItem ? menuItem.image : "",
-      short_description: menuItem ? menuItem.short_description : "",
-      description: menuItem?.description ?? "",
-      price: menuItem ? menuItem.price : 0,
-      available: menuItem ? menuItem.available : true,
-      category: menuItem ? menuItem.category : "food",
-    });
+    setItem({ ...EMPTY_ITEM, ...menuItem, description: menuItem?.description ?? "" });
     setPriceInput(menuItem ? String(menuItem.price) : "");
   }, [menuItem, show]);
 
   const dispatch = useAppDispatch();
 
   const [imageFile, setImageFile] = useState<File | null>();
+  const preview = useObjectURL(imageFile);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -90,8 +87,10 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
     setImageFile(files[0]);
   };
 
-  const createItem = async () => {
-    if (creating) return;
+  // Saves the form to the item `id` (the one edited, or the one an earlier
+  // Create made), or as a new item without one; then its image, if one was
+  // picked. Create and the form's submit both come here.
+  const saveItem = async (id: string | null) => {
     setError(null);
     const price = parseFloat(priceInput);
     const problem = priceError(priceInput, price);
@@ -99,7 +98,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       setError(problem);
       return;
     }
-    const newItem = {
+    const fields = {
       name: item.name,
       short_description: item.short_description,
       description: item.description,
@@ -107,78 +106,49 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
       available: item.available,
       category: item.category,
     };
-    setCreating(true);
     let uploading = false;
     try {
-      let id = createdId;
       if (id) {
-        await backend.put(`/shops/${shopId}/menu/${id}`, newItem);
+        await backend.put(`/shops/${shopId}/menu/${id}`, fields);
       } else {
-        id = (await backend.post(`/shops/${shopId}/menu`, newItem)).data._id as string;
+        id = (await backend.post(`/shops/${shopId}/menu`, fields)).data._id as string;
         setCreatedId(id);
       }
       if (imageFile) {
         uploading = true;
-        const newItemImg = new FormData();
-        newItemImg.append("image", imageFile);
-        await backend.put(`/shops/${shopId}/menu/${id}/img`, newItemImg);
+        await uploadImage(`/shops/${shopId}/menu/${id}/img`, "image", imageFile);
       }
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
       if (uploading) {
-        // The item exists, so the menu shows it; only the image is missing.
+        // The item is saved (diners see it), so the menu shows it; only the
+        // image is missing.
         dispatch(fetchShopList());
-        setError(`The item was created, but its image wasn't saved: ${apiErrorMessage(err)}`);
+        setError(
+          menuItem
+            ? `The changes were saved, but the image wasn't: ${apiErrorMessage(err)}`
+            : `The item was created, but its image wasn't saved: ${apiErrorMessage(err)}`
+        );
       } else {
         setError(apiErrorMessage(err));
       }
+    }
+  };
+
+  const createItem = async () => {
+    if (creating) return;
+    setCreating(true);
+    try {
+      await saveItem(createdId);
     } finally {
       setCreating(false);
     }
   };
 
-  const updateItem = async (e: React.FormEvent<HTMLFormElement>) => {
+  const updateItem = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    const price = parseFloat(priceInput);
-    const problem = priceError(priceInput, price);
-    if (problem) {
-      setError(problem);
-      return;
-    }
-    const updatedItem = {
-      name: item.name,
-      short_description: item.short_description,
-      description: item.description,
-      price,
-      available: item.available,
-      category: item.category,
-    };
-    let uploading = false;
-    try {
-      await backend.put(`/shops/${shopId}/menu/${item._id}`, updatedItem);
-
-      if (imageFile) {
-        uploading = true;
-        const newItemImg = new FormData();
-        newItemImg.append("image", imageFile);
-        await backend.put(
-          `/shops/${shopId}/menu/${item._id}/img`,
-          newItemImg
-        );
-      }
-      dispatch(fetchShopList());
-      handleClose();
-    } catch (err) {
-      if (uploading) {
-        // The changes are saved (diners see them), so the menu shows them too.
-        dispatch(fetchShopList());
-        setError(`The changes were saved, but the image wasn't: ${apiErrorMessage(err)}`);
-      } else {
-        setError(apiErrorMessage(err));
-      }
-    }
+    return saveItem(item._id);
   };
 
   const deleteItem = () => {
@@ -216,11 +186,7 @@ const ItemModal = ({ shopId, show, handleClose, itemId }: ItemModalProps) => {
                 onChange={handleFile}
               />
               <Image
-                src={
-                  imageFile
-                    ? URL.createObjectURL(imageFile)
-                    : item.image || placeholder
-                }
+                src={preview ?? (item.image || placeholder)}
                 height="200px"
                 alt="cover"
                 className="preview d-block mb-2"

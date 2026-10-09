@@ -9,6 +9,8 @@ import { IShop } from "../../../typings/shop";
 import placeholder from "../../../assets/placeholder.svg";
 import "./ShopModal.css";
 import { apiErrorMessage } from "../../../lib/errors";
+import { uploadImage } from "../../../lib/upload";
+import { useObjectURL } from "../../../lib/useObjectURL";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
 import { useConfirmDelete } from "../../../lib/useConfirmDelete";
 
@@ -35,24 +37,26 @@ interface ShopModalProps {
   shopId: string;
 }
 
+const EMPTY_SHOP: IShop = {
+  _id: "",
+  name: "",
+  cover: "",
+  bio: "",
+  open_times: "",
+  phone: "",
+  web_URL: "",
+  shopMg: [],
+  tables: [],
+  menu: [],
+};
+
 const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   const formId = useId();
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
   );
 
-  const [editShop, setEditShop] = useState<IShop>({
-    _id: "",
-    name: "",
-    cover: "",
-    bio: "",
-    open_times: "",
-    phone: "",
-    web_URL: "",
-    shopMg: [],
-    tables: [],
-    menu: [],
-  });
+  const [editShop, setEditShop] = useState<IShop>(EMPTY_SHOP);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +78,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   }, [show]);
 
   const [imageFile, setImageFile] = useState<File | null>();
+  const preview = useObjectURL(imageFile);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -87,28 +92,26 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   // saved shop when that reloads.
   useEffect(() => {
     if (!show) return;
-    setEditShop({
-      _id: shop ? shop._id : "",
-      name: shop ? shop.name : "",
-      cover: shop ? shop.cover : "",
-      bio: shop ? shop.bio : "",
-      open_times: shop ? shop.open_times : "",
-      phone: shop?.phone ?? "",
-      web_URL: shop ? shop.web_URL : "",
-      shopMg: shop ? shop.shopMg : [],
-      tables: shop ? shop.tables : [],
-      menu: shop ? shop.menu : [],
-    });
+    setEditShop({ ...EMPTY_SHOP, ...shop, phone: shop?.phone ?? "" });
   }, [shop, show]);
 
-  const createShop = async () => {
-    if (creating) return;
+  // What the saved shop is shown from: the list, and for an existing shop its
+  // page too, which shows the selected shop, not the list's copy.
+  const reload = () => {
+    dispatch(fetchShopList());
+    if (shop) dispatch(fetchSingleShop(editShop._id));
+  };
+
+  // Saves the form to the shop `id` (the one edited, or the one an earlier
+  // Create made), or as a new shop without one; then its cover, if one was
+  // picked. Create and the form's submit both come here.
+  const saveShop = async (id: string | null) => {
     setError(null);
     if (editShop.name.trim() === "") {
       setError("Name is required");
       return;
     }
-    const newShop = {
+    const fields = {
       name: editShop.name,
       bio: editShop.bio,
       open_times: editShop.open_times,
@@ -116,78 +119,49 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       phone: (editShop.phone ?? "").trim(),
       web_URL: editShop.web_URL,
     };
-    setCreating(true);
     let uploading = false;
     try {
-      let id = createdId;
       if (id) {
-        await backend.put(`/shops/${id}`, newShop);
+        await backend.put(`/shops/${id}`, fields);
       } else {
-        id = (await backend.post(`/shops`, newShop)).data._id as string;
+        id = (await backend.post(`/shops`, fields)).data._id as string;
         setCreatedId(id);
       }
       if (imageFile) {
         uploading = true;
-        const newShopCover = new FormData();
-        newShopCover.append("cover", imageFile);
-        await backend.put(`/shops/${id}/cover`, newShopCover);
+        await uploadImage(`/shops/${id}/cover`, "cover", imageFile);
       }
-      dispatch(fetchShopList());
+      reload();
       handleClose();
     } catch (err) {
       if (uploading) {
-        // The shop exists, so the list shows it; only the cover is missing.
-        dispatch(fetchShopList());
-        setError(`The shop was created, but its cover wasn't saved: ${apiErrorMessage(err)}`);
+        // The shop is saved, so the list and the page show it; only the cover
+        // is missing.
+        reload();
+        setError(
+          shop
+            ? `The changes were saved, but the cover wasn't: ${apiErrorMessage(err)}`
+            : `The shop was created, but its cover wasn't saved: ${apiErrorMessage(err)}`
+        );
       } else {
         setError(apiErrorMessage(err));
       }
+    }
+  };
+
+  const createShop = async () => {
+    if (creating) return;
+    setCreating(true);
+    try {
+      await saveShop(createdId);
     } finally {
       setCreating(false);
     }
   };
 
-  const updateShop = async (e: React.FormEvent<HTMLFormElement>) => {
+  const updateShop = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    if (editShop.name.trim() === "") {
-      setError("Name is required");
-      return;
-    }
-    const updatedShop = {
-      name: editShop.name,
-      bio: editShop.bio,
-      open_times: editShop.open_times,
-      // As typed; the BE checks it. Empty clears it.
-      phone: (editShop.phone ?? "").trim(),
-      web_URL: editShop.web_URL,
-    };
-    let uploading = false;
-    try {
-      await backend.put(`/shops/${editShop._id}`, updatedShop);
-      if (imageFile) {
-        uploading = true;
-        const newShopCover = new FormData();
-        newShopCover.append("cover", imageFile);
-        await backend.put(
-          `/shops/${editShop._id}/cover`,
-          newShopCover
-        );
-      }
-      dispatch(fetchShopList());
-      // The shop page shows the selected shop, not the list's copy.
-      dispatch(fetchSingleShop(editShop._id));
-      handleClose();
-    } catch (err) {
-      if (uploading) {
-        // The changes are saved, so the page shows them too.
-        dispatch(fetchShopList());
-        dispatch(fetchSingleShop(editShop._id));
-        setError(`The changes were saved, but the cover wasn't: ${apiErrorMessage(err)}`);
-      } else {
-        setError(apiErrorMessage(err));
-      }
-    }
+    return saveShop(editShop._id);
   };
 
   const deleteShop = () => {
@@ -225,11 +199,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 onChange={handleFile}
               />
               <Image
-                src={
-                  imageFile
-                    ? URL.createObjectURL(imageFile)
-                    : editShop.cover || placeholder
-                }
+                src={preview ?? (editShop.cover || placeholder)}
                 height="200px"
                 alt="cover"
                 className="preview d-block mb-2"

@@ -14,6 +14,8 @@ import { IUser } from "../../../typings/user";
 import placeholder from "../../../assets/placeholder.svg";
 import "./AccountOffCanvas.css";
 import { apiErrorMessage } from "../../../lib/errors";
+import { uploadImage } from "../../../lib/upload";
+import { useObjectURL } from "../../../lib/useObjectURL";
 
 interface AccountOffCanvasProps {
   show: boolean;
@@ -47,6 +49,7 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
   }, [myUser, show]);
 
   const [imageFile, setImageFile] = useState<File | null>();
+  const preview = useObjectURL(imageFile);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -88,9 +91,7 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
 
       if (imageFile) {
         uploading = true;
-        const newItemImg = new FormData();
-        newItemImg.append("avatar", imageFile);
-        await backend.put(`/users/me/avatar`, newItemImg);
+        await uploadImage(`/users/me/avatar`, "avatar", imageFile);
       }
       dispatch(fetchUserData());
       handleClose();
@@ -122,11 +123,7 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 onChange={handleFile}
               />
               <Image
-                src={
-                  imageFile
-                    ? URL.createObjectURL(imageFile)
-                    : user?.avatar || placeholder
-                }
+                src={preview ?? (user?.avatar || placeholder)}
                 width={200}
                 height={200}
                 alt=""

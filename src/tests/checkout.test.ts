@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest"
 import { http, HttpResponse } from "msw"
-import { captureCheckout, captureStripeCheckout, createCheckoutOrder, createStripeCheckout, getTableCart } from "../redux/slices/cartSlice"
+import { captureCheckout, captureStripeCheckout, createCheckoutOrder, createStripeCheckout, decreaseSplit, getTableCart, removeFromSplit } from "../redux/slices/cartSlice"
 import { paidOutcome } from "../lib/paymentOutcome"
 import { gate, makeStore, type AppStore } from "./helpers"
 import { server, BASE } from "./server"
@@ -53,6 +53,24 @@ describe("createCheckoutOrder thunk", () => {
       status: 409,
       message: "Not enough units left to split",
     })
+  })
+})
+
+// Every cart action's answer (here a selection changed) is taken as the cart.
+describe("split thunks", () => {
+  const openCart: ICart = { ...closedCart, status: "open" }
+  const item = { menuId: null, qty: 1 }
+
+  it.each([
+    ["decreaseSplit", decreaseSplit, "decreaseSplitItem"],
+    ["removeFromSplit", removeFromSplit, "removeSplitItem"],
+  ] as const)("%s puts the answered cart in the store", async (_name, thunk, route) => {
+    server.use(http.post(`${BASE}/carts/s1/tables/t1/cart1/${route}`, () => HttpResponse.json(openCart)))
+
+    const store = makeStore()
+    await store.dispatch(thunk({ shopId: "s1", tableId: "t1", cartId: "cart1", item }))
+
+    expect(store.getState().carts.data).toEqual(openCart)
   })
 })
 

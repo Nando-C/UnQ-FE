@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios, { AxiosResponse } from "axios";
+import { AxiosResponse } from "axios";
+import { apiStatus } from "../../lib/errors";
 import backend, { sessionUnknown } from "../../backend/backend";
 import { IUser, IUserStore } from "../../typings/user";
 import { RootState } from "../app/store";
@@ -29,7 +30,7 @@ export const fetchUserData = createAsyncThunk<IUser, void, { rejectValue: { sign
             const { data }: AxiosResponse<IUser> = await backend.get("users/me")
             return data
         } catch (err) {
-            const status = axios.isAxiosError(err) ? err.response?.status : undefined
+            const status = apiStatus(err)
             return rejectWithValue({ signedOut: (status === 401 && !sessionUnknown(err)) || status === 404 })
         }
     },
@@ -42,7 +43,7 @@ export const logOut = createAsyncThunk("user/logOut", async () => {
     try {
         await backend.get("/auth/logout")
     } catch (err) {
-        if (!(axios.isAxiosError(err) && err.response?.status === 401 && !sessionUnknown(err))) throw err
+        if (!(apiStatus(err) === 401 && !sessionUnknown(err))) throw err
     }
 })
 

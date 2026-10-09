@@ -3,7 +3,6 @@ import { FloatingLabel, Form, Modal, Button, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
-import { ITable } from "../../../typings/shop";
 import "./TableModal.css";
 import { apiErrorMessage } from "../../../lib/errors";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
@@ -29,11 +28,7 @@ const TableModal = ({
   );
   const selectedTable = shop?.tables.find((table) => table._id === tableId);
 
-  const [table, setTable] = useState<ITable>({
-    _id: "",
-    name: "",
-    Qr_Url: "",
-  });
+  const [name, setName] = useState("");
 
   const dispatch = useAppDispatch();
   const [error, setError] = useState<string | null>(null);
@@ -43,62 +38,50 @@ const TableModal = ({
   useEffect(() => {
     if (!show) return;
     setError(null);
-    setTable({
-      _id: selectedTable ? selectedTable._id : "",
-      name: selectedTable ? selectedTable.name : "",
-      Qr_Url: selectedTable ? selectedTable.Qr_Url : "",
-    });
+    setName(selectedTable?.name ?? "");
   }, [selectedTable, show]);
 
   // One create at a time: a double tap would otherwise send two.
   const [creating, setCreating] = useState(false);
   // Deleting asks first, in the footer (ConfirmFooter), saying what goes.
   const confirmDelete = useConfirmDelete(show);
-  const createTable = async () => {
-    if (creating) return;
+  // Saves the name: to the table edited, or as a new table.
+  const saveTable = async () => {
     setError(null);
-    if (table.name.trim() === "") {
+    if (name.trim() === "") {
       setError("Name is required");
       return;
     }
-    const newTable = {
-      name: table.name,
-    };
-    setCreating(true);
     try {
-      await backend.post(`/shops/${shopId}/tables`, newTable);
+      if (tableId === "new") await backend.post(`/shops/${shopId}/tables`, { name });
+      else await backend.put(`/shops/${shopId}/tables/${tableId}`, { name });
       dispatch(fetchShopList());
       handleClose();
     } catch (err) {
       setError(apiErrorMessage(err));
+    }
+  };
+
+  const createTable = async () => {
+    if (creating) return;
+    setCreating(true);
+    try {
+      await saveTable();
     } finally {
       setCreating(false);
     }
   };
 
-  const updateTable = async (e: React.FormEvent<HTMLFormElement>) => {
+  const updateTable = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
-    if (table.name.trim() === "") {
-      setError("Name is required");
-      return;
-    }
-    try {
-      await backend.put(`/shops/${shopId}/tables/${table._id}`, {
-        name: table.name,
-      });
-      dispatch(fetchShopList());
-      handleClose();
-    } catch (err) {
-      setError(apiErrorMessage(err));
-    }
+    return saveTable();
   };
 
   const deleteTable = () => {
     setError(null);
     return confirmDelete.run(
       async () => {
-        await backend.delete(`/shops/${shopId}/tables/${table._id}`);
+        await backend.delete(`/shops/${shopId}/tables/${tableId}`);
         dispatch(fetchShopList());
         handleClose();
       },
@@ -133,8 +116,8 @@ const TableModal = ({
               <FloatingLabel controlId={`${formId}-name`} label="Name">
                 <Form.Control
                   placeholder="Name"
-                  value={table.name}
-                  onChange={(e) => setTable({ ...table, name: e.target.value })}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </FloatingLabel>
             </Form.Group>

@@ -21,6 +21,11 @@ export const apiErrorBody = (err: unknown): ApiErrorBody => {
   };
 };
 
+// The HTTP status the BE answered with; undefined when nothing answered (no
+// connection, a fault before the request went).
+export const apiStatus = (err: unknown): number | undefined =>
+  axios.isAxiosError(err) ? err.response?.status : undefined;
+
 // What the BE said went wrong: its validation details (400), else its message.
 export const apiErrorMessage = (err: unknown): string => {
   const data = apiErrorBody(err);

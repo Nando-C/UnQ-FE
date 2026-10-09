@@ -50,66 +50,38 @@ const reasonOf = (err: unknown): CartRejection => {
     throw err
 }
 
-export const addToCart = createAsyncThunk(
-    "cart/addToCart",
-    async ({shopId, tableId, item}: AddToCartProps, { rejectWithValue }) => {
+// A cart request's thunk: `call` makes it, and a refusal is rejected with the
+// BE's answer (reasonOf) for the UI to tell apart; anything else still throws.
+const cartThunk = <Arg, Ret>(type: string, call: (arg: Arg) => Promise<Ret>) =>
+    createAsyncThunk<Ret, Arg, { rejectValue: CartRejection }>(type, async (arg, { rejectWithValue }) => {
         try {
-            const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/addItem`, toCartPayload(item))
-            return data
+            return await call(arg)
         } catch (err) {
-            // The menu card tells a sold-out 409 apart from any other failure.
             return rejectWithValue(reasonOf(err))
         }
-    }
-)
-export const addToSplit = createAsyncThunk(
-    "cart/addToSplit",
-    async ({shopId, tableId, cartId, item}: AddToSplitProps, { rejectWithValue }) => {
-        try {
-            const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/addSplitItem`, toCartPayload(item))
-            return data
-        } catch (err) {
-            // A 409 means the units were claimed first (or it sold out).
-            return rejectWithValue(reasonOf(err))
-        }
-    }
-)
-export const decreaseSplit = createAsyncThunk("cart/ decreaseSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/decreaseSplitItem`, toCartPayload(item))
-    return data
-})
+    })
+// A cart action's answer: the cart (or "" for a 204: the emptied cart was deleted).
+const postCart = async <T = ICart>(url: string, body?: object) => (await backend.post<T>(url, body)).data
+
+// The menu card tells a sold-out 409 apart from any other failure.
+export const addToCart = cartThunk("cart/addToCart", ({shopId, tableId, item}: AddToCartProps) =>
+    postCart(`carts/${shopId}/tables/${tableId}/addItem`, toCartPayload(item)))
+// A 409 means the units were claimed first (or it sold out).
+export const addToSplit = cartThunk("cart/addToSplit", ({shopId, tableId, cartId, item}: AddToSplitProps) =>
+    postCart(`carts/${shopId}/tables/${tableId}/${cartId}/addSplitItem`, toCartPayload(item)))
+export const decreaseSplit = cartThunk("cart/ decreaseSplit", ({shopId, tableId, cartId, item}: AddToSplitProps) =>
+    postCart(`carts/${shopId}/tables/${tableId}/${cartId}/decreaseSplitItem`, toCartPayload(item)))
+export const removeFromSplit = cartThunk("cart/removeFromSplit", ({shopId, tableId, cartId, item}: AddToSplitProps) =>
+    postCart(`carts/${shopId}/tables/${tableId}/${cartId}/removeSplitItem`, toCartPayload(item)))
 
 // Orders `item.qty` fewer of an item for the table. Answers 204 when that
 // empties the cart, which the BE then deletes.
-export const removeFromCart = createAsyncThunk(
-    "cart/removeFromCart",
-    async ({shopId, tableId, item}: AddToCartProps, { rejectWithValue }) => {
-        try {
-            const { data }: AxiosResponse<ICart | ""> = await backend.post(`carts/${shopId}/tables/${tableId}/removeItem`, toCartPayload(item))
-            return data
-        } catch (err) {
-            return rejectWithValue(reasonOf(err))
-        }
-    }
-)
+export const removeFromCart = cartThunk("cart/removeFromCart", ({shopId, tableId, item}: AddToCartProps) =>
+    postCart<ICart | "">(`carts/${shopId}/tables/${tableId}/removeItem`, toCartPayload(item)))
 // Removes the item's unpaid units that no one else is paying for. Answers 204
 // when that empties the cart, which the BE then deletes.
-export const deleteFromCart = createAsyncThunk(
-    "cart/deleteFromCart",
-    async ({shopId, tableId, item}: AddToCartProps, { rejectWithValue }) => {
-        try {
-            const { data }: AxiosResponse<ICart | ""> = await backend.post(`carts/${shopId}/tables/${tableId}/deleteItem`, toCartPayload(item))
-            return data
-        } catch (err) {
-            return rejectWithValue(reasonOf(err))
-        }
-    }
-)
-
-export const removeFromSplit = createAsyncThunk("cart/removeFromSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/removeSplitItem`, toCartPayload(item))
-    return data
-})
+export const deleteFromCart = cartThunk("cart/deleteFromCart", ({shopId, tableId, item}: AddToCartProps) =>
+    postCart<ICart | "">(`carts/${shopId}/tables/${tableId}/deleteItem`, toCartPayload(item)))
 
 export const getTableCart = createAsyncThunk(
     "cart/getTableCart",
@@ -134,51 +106,25 @@ interface CheckOutProps {
     tableId: string
     cartId: string
 }
-export const createCheckoutOrder = createAsyncThunk(
-    "cart/createCheckoutOrder",
-    async ({tableId, cartId}: CheckOutProps, { rejectWithValue }) => {
-        try {
-            const { data }: AxiosResponse<{ paypalOrderId: string }> = await backend.post(`carts/tables/${tableId}/${cartId}/createCheckoutOrder`)
-            return data.paypalOrderId
-        } catch (err) {
-            return rejectWithValue(reasonOf(err))
-        }
-    }
-)
+export const createCheckoutOrder = cartThunk("cart/createCheckoutOrder", async ({tableId, cartId}: CheckOutProps) =>
+    (await postCart<{ paypalOrderId: string }>(`carts/tables/${tableId}/${cartId}/createCheckoutOrder`)).paypalOrderId)
 
 interface CaptureCheckoutProps extends CheckOutProps {
     paypalOrderId: string
 }
 // `pending`: the BE answered 202, PayPal took the money but is still reviewing
 // it. The diner's items are held for them until staff confirm it.
-export const captureCheckout = createAsyncThunk(
-    "cart/captureCheckout",
-    async ({tableId, cartId, paypalOrderId}: CaptureCheckoutProps, { rejectWithValue }) => {
-        try {
-            const { data, status }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/captureCheckout`, { paypalOrderId })
-            return { cart: data, pending: status === 202 }
-        } catch (err) {
-            return rejectWithValue(reasonOf(err))
-        }
-    }
-)
+export const captureCheckout = cartThunk("cart/captureCheckout", async ({tableId, cartId, paypalOrderId}: CaptureCheckoutProps) => {
+    const { data, status } = await backend.post<ICart>(`carts/tables/${tableId}/${cartId}/captureCheckout`, { paypalOrderId })
+    return { cart: data, pending: status === 202 }
+})
 
 // Card checkout (Stripe), step 1, when the diner presses Pay: a payment for the
 // caller's selection at the BE's prices, which the diner then confirms in
 // Stripe's Payment Element. That only authorises it. `amount`: the payment's,
 // in pence, confirmed only if it's the amount the diner saw.
-export const createStripeCheckout = createAsyncThunk(
-    "cart/createStripeCheckout",
-    async ({tableId, cartId}: CheckOutProps, { rejectWithValue }) => {
-        try {
-            const { data }: AxiosResponse<{ clientSecret: string; paymentIntentId: string; amount?: number }> =
-                await backend.post(`carts/tables/${tableId}/${cartId}/createStripeCheckout`)
-            return data
-        } catch (err) {
-            return rejectWithValue(reasonOf(err))
-        }
-    }
-)
+export const createStripeCheckout = cartThunk("cart/createStripeCheckout", ({tableId, cartId}: CheckOutProps) =>
+    postCart<{ clientSecret: string; paymentIntentId: string; amount?: number }>(`carts/tables/${tableId}/${cartId}/createStripeCheckout`))
 
 interface CaptureStripeCheckoutProps extends CheckOutProps {
     paymentIntentId: string
@@ -187,18 +133,10 @@ interface CaptureStripeCheckoutProps extends CheckOutProps {
 // authorisation. Its answer comes from the payment as Stripe has it, so it's
 // asked whatever confirming it in the sheet said. `pending` as captureCheckout's
 // (a 202: Stripe is still processing it, the items are held).
-export const captureStripeCheckout = createAsyncThunk(
-    "cart/captureStripeCheckout",
-    async ({tableId, cartId, paymentIntentId}: CaptureStripeCheckoutProps, { rejectWithValue }) => {
-        try {
-            const { data, status }: AxiosResponse<ICart> =
-                await backend.post(`carts/tables/${tableId}/${cartId}/captureStripeCheckout`, { paymentIntentId })
-            return { cart: data, pending: status === 202 }
-        } catch (err) {
-            return rejectWithValue(reasonOf(err))
-        }
-    }
-)
+export const captureStripeCheckout = cartThunk("cart/captureStripeCheckout", async ({tableId, cartId, paymentIntentId}: CaptureStripeCheckoutProps) => {
+    const { data, status } = await backend.post<ICart>(`carts/tables/${tableId}/${cartId}/captureStripeCheckout`, { paymentIntentId })
+    return { cart: data, pending: status === 202 }
+})
 
 // A capture's cart taken as the cart, and any table fetch sent before it dropped.
 const takeCapturedCart = (state: ICartStore, cart: ICart) => {
@@ -239,25 +177,15 @@ export const cartsSlice = createSlice({
         },
     },
     extraReducers: (builder) => {
-        builder.addCase(addToCart.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
-        builder.addCase(addToSplit.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
-        // A 204 (no body): the BE deleted the emptied cart.
+        // A cart action's answer is the cart as it is now; a 204 (no body) means
+        // the BE deleted the emptied cart.
         const cartOrGone = (state: ICartStore, action: PayloadAction<ICart | "">) => {
             if (action.payload) state.data = action.payload
             else clearCart(state)
         }
-        builder.addCase(removeFromCart.fulfilled, cartOrGone)
-        builder.addCase(deleteFromCart.fulfilled, cartOrGone)
-        builder.addCase(decreaseSplit.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
-        builder.addCase(removeFromSplit.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
+        for (const thunk of [addToCart, addToSplit, decreaseSplit, removeFromSplit, removeFromCart, deleteFromCart]) {
+            builder.addCase(thunk.fulfilled, cartOrGone)
+        }
         // The cart shown must be the one for the table asked about, as the BE
         // has it now. Moving to another table clears the old cart at once, so it
         // is never shown (or acted on) under the new one. Only the latest fetch
