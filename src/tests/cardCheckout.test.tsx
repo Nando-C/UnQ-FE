@@ -234,7 +234,7 @@ describe("the checkout sheet", () => {
     expect(created).toBe(0)
   })
 
-  it("opens on PayPal's button, then the card form, ready for the amount shown, creating nothing", async () => {
+  it("opens on the card form, ready for the amount shown, then \"or\" and PayPal's button, creating nothing", async () => {
     renderCart()
     const user = userEvent.setup()
 
@@ -242,13 +242,14 @@ describe("the checkout sheet", () => {
 
     const sheet = pay.closest(".offcanvas") as HTMLElement
     expect(within(sheet).getByText("Paying £3.00 for your selection")).toBeInTheDocument()
-    // Top to bottom: PayPal, "or", the card form (Stripe puts Apple Pay and
-    // Google Pay at the top of its form, where the device has one).
+    // Top to bottom: the card form with its Pay (Stripe lists Apple Pay or
+    // Google Pay as rows in it, where the device has one), "or", PayPal.
     const paypal = within(sheet).getByRole("button", { name: "PayPal" })
     const or = within(sheet).getByText("or")
     const form = within(sheet).getByText("Card details")
-    expect(paypal.compareDocumentPosition(or) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(or.compareDocumentPosition(form) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(form.compareDocumentPosition(pay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(pay.compareDocumentPosition(or) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(or.compareDocumentPosition(paypal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(within(sheet).getAllByRole("button", { name: "PayPal" })).toHaveLength(1)
     expect(paypalProps.at(-1)).toMatchObject({ fundingSource: "paypal" })
     expect(lastOptions()).toEqual({
@@ -258,9 +259,14 @@ describe("the checkout sheet", () => {
       captureMethod: "manual",
       allowedPaymentMethodTypes: ["card"],
     })
-    // No Link (Stripe's own saved-card wallet, which asks for an email to
-    // sign up): Apple Pay and Google Pay stay as Stripe decides.
-    expect(element.options).toEqual({ wallets: { link: "never" } })
+    // Stripe's rows: Card first and open as the sheet opens, with or without
+    // a wallet row (Apple Pay, Google Pay) below it; spaced, no radios. No
+    // Link (Stripe's own saved-card wallet, which asks for an email to sign up).
+    expect(element.options).toEqual({
+      layout: { type: "accordion", defaultCollapsed: false, radios: "never", spacedAccordionItems: true },
+      paymentMethodOrder: ["card"],
+      wallets: { link: "never" },
+    })
     expect(created).toBe(0)
   })
 

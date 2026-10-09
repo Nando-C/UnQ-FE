@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Alert, Button } from "react-bootstrap";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import type { Stripe, StripeElementsOptionsMode } from "@stripe/stripe-js";
+import type { Stripe, StripeElementsOptionsMode, StripePaymentElementOptions } from "@stripe/stripe-js";
 import { useAppDispatch } from "../../../redux/app/hooks";
 import { createStripeCheckout, getTableCart, type CartRejection } from "../../../redux/slices/cartSlice";
 import { getStripe, isRetryableCardError, LOADING_CARD, stripeReturnUrl } from "../../../lib/stripe";
@@ -32,13 +32,20 @@ interface CardPaymentProps {
 const CANT_START = "Card payments aren't available right now. Try again, or choose PayPal.";
 const COULDNT_START = "Couldn't start the card payment. Try again in a moment, or pay with PayPal.";
 const NOTHING_SELECTED = "Nothing selected to pay for";
-// No Link, Stripe's own saved-card wallet: it asks for an email to sign up,
-// in a sheet where Apple Pay and Google Pay already make paying quick. Those
-// two stay as Stripe decides (shown where the device and domain allow).
-const ELEMENT_OPTIONS = { wallets: { link: "never" } } as const;
+// Stripe's form lists each way to pay as a row: Card, then Apple Pay or
+// Google Pay where the device and domain allow. Card comes first and is open
+// as the sheet opens, with or without a wallet row (left to itself, Stripe
+// opens it only when it's the sole row); one row is open at a time, and Pay
+// pays with the open one. Spaced rows, no radios. No Link, Stripe's own
+// saved-card wallet: it asks for an email to sign up.
+const ELEMENT_OPTIONS: StripePaymentElementOptions = {
+  layout: { type: "accordion", defaultCollapsed: false, radios: "never", spacedAccordionItems: true },
+  paymentMethodOrder: ["card"],
+  wallets: { link: "never" },
+};
 
 // The card form in the checkout sheet: Stripe's Payment Element (Apple Pay and
-// Google Pay too, where the device has them, as buttons at its top). Stripe.js
+// Google Pay too, where the device has them, as rows under Card). Stripe.js
 // loads, and the form shows, as the sheet opens. Nothing is created until the
 // diner presses Pay (Stripe's deferred intent): then the BE creates the payment at
 // its own prices, and it's confirmed only for the amount the diner saw.

@@ -35,11 +35,11 @@ interface CheckOutProps {
 
 type Method = "card" | "paypal";
 
-// The checkout sheet: PayPal's button first, then, when a publishable key is
-// set, "or" and the card form (Stripe's, ready as the sheet opens; it puts
-// Apple Pay and Google Pay at its top where the device has them, so top to
-// bottom the sheet reads PayPal, or a wallet, or card). Without a key PayPal
-// is the only way. Each provider's script loads when the sheet opens.
+// The checkout sheet: when a publishable key is set, the card form first
+// (Stripe's, its Card row open as the sheet opens; Apple Pay or Google Pay
+// as rows under it where the device has them), then "or" and PayPal's
+// button. Without a key PayPal is the only way. Each provider's script loads
+// when the sheet opens.
 const CheckOut = ({ show, handleClose, handleShowFbk, amount }: CheckOutProps) => {
   const cart = useAppSelector(selectCartsData);
   const dispatch = useAppDispatch();
@@ -104,54 +104,8 @@ const CheckOut = ({ show, handleClose, handleShowFbk, amount }: CheckOutProps) =
                 currency: "GBP",
               }}
             >
-        <PayPalButtons
-          // Above the card form, PayPal's own button only, one row high: no Pay
-          // Later, and no card through PayPal (a card goes through Stripe,
-          // below). Without a Stripe key PayPal's buttons as it draws them, card
-          // button included (only in its vertical layout): the only way to pay by
-          // card then.
-          {...(cardsOn && { fundingSource: "paypal", style: { layout: "horizontal", height: 48, label: "paypal", tagline: false } })}
-          // Not a second payment while a card's is being paid.
-          disabled={busy === "card"}
-          createOrder={async () => {
-            createOrderRejectionRef.current = undefined;
-            setBusy("paypal");
-            try {
-              return await dispatch(
-                createCheckoutOrder({
-                  tableId: cart.tableId,
-                  cartId: cart._id,
-                })
-              ).unwrap();
-            } catch (err) {
-              // The SDK's onError only gets a generic Error, so stash
-              // the BE's {status, message} here for onError to read.
-              createOrderRejectionRef.current = err as CartRejection | undefined;
-              throw err;
-            }
-          }}
-          onApprove={async (data) => {
-            try {
-              const { pending } = await dispatch(
-                captureCheckout({
-                  tableId: cart.tableId,
-                  cartId: cart._id,
-                  paypalOrderId: data.orderID,
-                })
-              ).unwrap();
-              showOutcome(paidOutcome("paypal", pending));
-            } catch (err) {
-              showOutcome(refusedOutcome(err as CartRejection | undefined, "paypal"));
-            }
-          }}
-          onCancel={() => showOutcome(cancelledOutcome)}
-          onError={() => showOutcome(notStartedOutcome(createOrderRejectionRef.current))}
-        />
               {cardsOn && (
                 <>
-                  <p className="or-divider text-body-secondary small my-3" aria-hidden>
-                    <span>or</span>
-                  </p>
                   {/* Said once as a live region, by the card form itself
                       while Stripe.js loads; here only to be seen. */}
                   <Suspense fallback={<p className="text-body-secondary small mb-0">{LOADING_CARD}</p>}>
@@ -169,8 +123,54 @@ const CheckOut = ({ show, handleClose, handleShowFbk, amount }: CheckOutProps) =
                       disabled={busy === "paypal"}
                     />
                   </Suspense>
+                  <p className="or-divider text-body-secondary small my-3" aria-hidden>
+                    <span>or</span>
+                  </p>
                 </>
               )}
+              <PayPalButtons
+                // Under the card form, PayPal's own button only, one row
+                // high: no Pay Later, and no card through PayPal (a card goes
+                // through Stripe, above). Without a Stripe key PayPal's
+                // buttons as it draws them, card button included (only in its
+                // vertical layout): the only way to pay by card then.
+                {...(cardsOn && { fundingSource: "paypal", style: { layout: "horizontal", height: 48, label: "paypal", tagline: false } })}
+                // Not a second payment while a card's is being paid.
+                disabled={busy === "card"}
+                createOrder={async () => {
+                  createOrderRejectionRef.current = undefined;
+                  setBusy("paypal");
+                  try {
+                    return await dispatch(
+                      createCheckoutOrder({
+                        tableId: cart.tableId,
+                        cartId: cart._id,
+                      })
+                    ).unwrap();
+                  } catch (err) {
+                    // The SDK's onError only gets a generic Error, so stash
+                    // the BE's {status, message} here for onError to read.
+                    createOrderRejectionRef.current = err as CartRejection | undefined;
+                    throw err;
+                  }
+                }}
+                onApprove={async (data) => {
+                  try {
+                    const { pending } = await dispatch(
+                      captureCheckout({
+                        tableId: cart.tableId,
+                        cartId: cart._id,
+                        paypalOrderId: data.orderID,
+                      })
+                    ).unwrap();
+                    showOutcome(paidOutcome("paypal", pending));
+                  } catch (err) {
+                    showOutcome(refusedOutcome(err as CartRejection | undefined, "paypal"));
+                  }
+                }}
+                onCancel={() => showOutcome(cancelledOutcome)}
+                onError={() => showOutcome(notStartedOutcome(createOrderRejectionRef.current))}
+              />
             </PayPalScriptProvider>
           )}
         </Offcanvas.Body>
