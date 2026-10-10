@@ -6,6 +6,12 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ## [Unreleased]
 
+### Added
+
+- `docs/`: the client's design knowledge, read from the code: architecture, checkout (with the table of every outcome a diner can see), manager tools, UX and engineering decisions, responsive layout and accessibility, deployment, testing, known gaps. Linked from the README.
+- A contract test: every URL the client calls is an operation in the API's OpenAPI document, kept as a fixture (`scripts/openapi.json`) and refreshed each release with `npm run contract:refresh`.
+- A docs test: every link in the Markdown resolves, and the README's environment table matches `.env.example`.
+
 ## [2.0.0] - 2026-10-09
 
 The rebuild of the 2021 client. Deploying it needs the API at 2.0.0 first, `VITE_BE_URL=/api`, the Vercel output directory set to `dist`, and `VITE_STRIPE_PUBLISHABLE_KEY`: see the README's Deployment.
