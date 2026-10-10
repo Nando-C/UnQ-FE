@@ -68,6 +68,13 @@ export default defineConfig(({ mode }) => {
       environmentOptions: { jsdom: { url: "http://localhost:3000/" } },
       globals: true,
       setupFiles: "./src/tests/setup.ts",
+      // Vitest's default is 5 s. The first case of a file pays jsdom and
+      // module start-up, which on a two-core CI runner has passed 5 s while
+      // the same test takes well under a second here; a hook that then ran
+      // out also left a request unanswered in the next test. Generous on
+      // purpose: a hung test still fails, just later.
+      testTimeout: 20_000,
+      hookTimeout: 20_000,
       // Component .css imports are no-ops in tests; skip processing them.
       css: false,
       // Deterministic env for the axios base URL, the PayPal client id and
