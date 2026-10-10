@@ -9,7 +9,7 @@
   <p align="center">
     Scan a table's QR code, order into a shared cart, and pay for exactly the items you picked. The React client for the UnQ API.
     <br />
-    React 19 · TypeScript 6 · Vite 8 · Redux Toolkit · Stripe Payment Element + PayPal · 422 tests
+    React 19 · TypeScript 6 · Vite 8 · Redux Toolkit · Stripe Payment Element + PayPal · 428 tests
     <br />
     <br />
     <a href="https://github.com/Nando-C/UnQ-BE">Back-End repo</a>
@@ -28,7 +28,7 @@
     <img src="https://img.shields.io/badge/Redux_Toolkit-2.12-764ABC?logo=redux&logoColor=white" alt="Redux Toolkit 2.12">
     <img src="https://img.shields.io/badge/React_Router-7-CA4245?logo=reactrouter&logoColor=white" alt="React Router 7">
     <img src="https://img.shields.io/badge/React--Bootstrap-2.10-7952B3?logo=bootstrap&logoColor=white" alt="React-Bootstrap 2.10">
-    <img src="https://img.shields.io/badge/tests-422%20passing-6E9F18?logo=vitest&logoColor=white" alt="422 tests passing (Vitest)">
+    <img src="https://img.shields.io/badge/tests-428%20passing-6E9F18?logo=vitest&logoColor=white" alt="428 tests passing (Vitest)">
   </p>
 </div>
 
@@ -91,7 +91,7 @@ UnQ gives every table in a venue (a restaurant, a bar, a pop-up) its own QR code
 
 This client is mobile-first for diners and desktop-first for managers. It talks to the [UnQ API](https://github.com/Nando-C/UnQ-BE) through a single axios instance that holds no tokens: auth lives in httpOnly cookies, refreshed silently and single-flighted on the first 401. Checkout never handles an amount. The API creates each payment from database prices, and the client confirms Stripe's Payment Element only when the amount it shows equals the one the API created.
 
-The first version was a five-week solo capstone (2021). The 2026 rebuild moved it from Create React App and React 17 to Vite 8 and React 19, replaced the abandoned PayPal button package, added Stripe with Apple Pay and Google Pay, added a Vitest + Testing Library + msw suite of 422 tests and a responsive audit that renders every main screen at seven viewports, and took `npm audit` from 181 findings (11 critical) to 0. Every release is listed in the [changelog](./CHANGELOG.md).
+The first version was a five-week solo capstone (2021). The 2026 rebuild moved it from Create React App and React 17 to Vite 8 and React 19, replaced the abandoned PayPal button package, added Stripe with Apple Pay and Google Pay, added a Vitest + Testing Library + msw suite of 428 tests and a responsive audit that renders every main screen at seven viewports, and took `npm audit` from 181 findings (11 critical) to 0. Every release is listed in the [changelog](./CHANGELOG.md).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -175,6 +175,17 @@ src/
 └── tests/                    Vitest + Testing Library + msw suite
 ```
 
+The design knowledge lives in `docs/`, each page read from the code:
+
+- [docs/architecture.md](./docs/architecture.md): the tree, the four slices and the "latest request wins" rule, data flow, the styling layers, the build.
+- [docs/checkout.md](./docs/checkout.md): selecting what to pay, the card and PayPal flows, and the table of every outcome a diner can see.
+- [docs/manager-tools.md](./docs/manager-tools.md): the shop page, the editors, the tables and the table sheet's actions, word for word.
+- [docs/ux-decisions.md](./docs/ux-decisions.md): why it is the way it is, dated.
+- [docs/responsive-and-a11y.md](./docs/responsive-and-a11y.md): what holds at every size, touch, focus, colour, and the audit.
+- [docs/deployment.md](./docs/deployment.md): hosts, configuration, the release order.
+- [docs/testing.md](./docs/testing.md): the gates, how the suite is built, what it covers.
+- [docs/known-gaps.md](./docs/known-gaps.md): accepted residuals, open bugs, deferred work, roadmap.
+
 ### How the two apps talk
 
 1. The browser loads this app from Vercel and calls `/api/...` on the same origin. `vercel.json` rewrites that path to the API's host.
@@ -223,6 +234,8 @@ Copy `.env.example` to `.env` and fill in:
 | `npm run preview` | Preview the production build locally |
 | `npm run lint` | Run ESLint over `src` |
 | `npm test` | Run the Vitest suite once |
+| `npm run audit:responsive` | Render the main screens at seven viewports and 200% text in headless Chrome (see [Testing](#testing)) |
+| `npm run contract:refresh` | Refresh the API contract fixture from a running API's `/openapi.json` (a URL or file as its argument) |
 
 ### Deployment
 
@@ -255,7 +268,9 @@ git push --follow-tags
 
 ## Testing
 
-The suite is written with Vitest, React Testing Library, and msw (mocking the back end at the network layer; an unhandled request fails its test). Its 422 tests cover the auth forms and the silent-refresh interceptor, the cart's split selection and totals, both checkouts with every outcome the API can answer (paid, pending, declined, refunded after a lost race, cart gone, still confirming), the manager's table sheet with its releases, refunds, payment checks and pay-backs, the paged shop search, sold-out handling, every page's loading and failure states, and the ordering of overlapping requests.
+The suite is written with Vitest, React Testing Library, and msw (mocking the back end at the network layer; an unhandled request fails its test). Its 428 tests cover the auth forms and the silent-refresh interceptor, the cart's split selection and totals, both checkouts with every outcome the API can answer (paid, pending, declined, refunded after a lost race, cart gone, still confirming), the manager's table sheet with its releases, refunds, payment checks and pay-backs, the paged shop search, sold-out handling, every page's loading and failure states, and the ordering of overlapping requests.
+
+Two tests look after the repository itself: `scripts/contract.test.mjs` checks every URL the client calls against the API's OpenAPI document, kept as a fixture (`scripts/openapi.json`, refreshed each release with `npm run contract:refresh`), and `scripts/docs.test.mjs` checks every link in the Markdown and the environment table against `.env.example`.
 
 Layout is checked separately: `npm run audit:responsive` renders the main customer and manager screens at seven sizes from 320px phones to 1440px desktops, plus a phone with text at 200%, in headless Chrome against a mocked API, and writes a report with screenshots to `responsive-report/` (needs Google Chrome installed; `--screens=` and `--viewports=` narrow the run).
 

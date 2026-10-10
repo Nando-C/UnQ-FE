@@ -1,0 +1,5464 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "UnQ API",
+    "version": "2.0.0",
+    "summary": "Order and pay at the table, split the bill, run the shop.",
+    "description": "The API behind UnQ, a food and drinks ordering app: diners at a venue scan their table's QR code, order from their phones, pick what each of them pays for, and pay by PayPal or card (Stripe); managers run their shops, menus and tables from the same app.\n\n## Conventions\n\n- **Sign-in** is two HttpOnly cookies, `accessToken` (15 minutes) and `refreshToken` (4 weeks), set by the auth routes. A 401 means refresh (`POST /auth/refreshToken`) and retry; a refresh that fails ends the session. Operations marked with the lock need the cookie; the rest are public, and some show more to a signed-in caller.\n- **Roles.** Every account is a `customer`; a `shopMg` (shop manager, set in the database) can create shops. Manager routes check that the caller manages the shop in the URL (403 otherwise).\n- **Ids** are MongoDB ObjectIds (24 hex characters). A table's id is its `_id` in the shop's `tables`.\n- **Money** is in pounds (GBP) to the penny everywhere a cart, a payment or a refund says an amount, and the `price` a manager sets is the same. The one exception is `createStripeCheckout`'s `amount`, in pence, as Stripe counts. The client never names an amount to pay: every total comes from database prices.\n- **Errors** are `{ message, details?, reason? }`. `400 Validation failed` carries `details`, one `{ path, message }` per problem; a few errors carry a machine-readable `reason`. A 5xx says only \"Generic Server Error\" unless its message was written for the user.\n- **Rate limits**, per account, not per IP: wrong passwords (10 in 15 minutes, wherever tried) and a diner's cart changes (120 a minute, starting a card payment included; capturing a payment is never limited). Both configurable (`PASSWORD_FAILS_PER_ACCOUNT`, `CART_EDITS_PER_MINUTE`).\n- **Soft deletes.** A deleted menu item stays, unavailable, for the carts that hold it; a deleted table stays under the shop's `deletedTables` so its carts and money stay reachable; a shop is deleted for good, with everything in it, once no money is moving.\n- **Concurrency.** A cart is saved under optimistic concurrency: a write that meets a newer version retries or answers 409 \"The cart changed, please retry\".\n\n## Checkout\n\nA diner selects units to pay for (`addSplitItem`), then pays in two calls around the provider's UI: PayPal `createCheckoutOrder` → popup → `captureCheckout`; card `createStripeCheckout` → Payment Element → `captureStripeCheckout`. The second call re-checks everything before money moves, and a payment that can't be recorded afterwards is refunded automatically. A card payment the diner abandons after authorising is still finished by Stripe's webhook or the server's 2-minute sweep, and the diner is told the outcome in their cart's `notices` on their next visit.",
+    "contact": {
+      "name": "Hernando Crespo",
+      "url": "https://github.com/Nando-C"
+    },
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    }
+  },
+  "externalDocs": {
+    "description": "The repository, with the engineering docs",
+    "url": "https://github.com/Nando-C/UnQ-BE"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "This host"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Sign up, sign in, tokens, Google"
+    },
+    {
+      "name": "Users",
+      "description": "The signed-in account"
+    },
+    {
+      "name": "Shops",
+      "description": "Shops and their covers"
+    },
+    {
+      "name": "Menu",
+      "description": "A shop's menu items"
+    },
+    {
+      "name": "Tables",
+      "description": "A shop's tables and their QR URLs"
+    },
+    {
+      "name": "Carts: ordering",
+      "description": "The table's shared order"
+    },
+    {
+      "name": "Carts: selecting what to pay",
+      "description": "Who pays for which units"
+    },
+    {
+      "name": "Carts: checkout",
+      "description": "Paying by PayPal or card"
+    },
+    {
+      "name": "Manager: tables",
+      "description": "What's happening at the tables, and fixing a cart (no money moves)"
+    },
+    {
+      "name": "Manager: refunds and payments",
+      "description": "Refunds, pending payments, pay-backs (money moves)"
+    },
+    {
+      "name": "Payments",
+      "description": "The payment providers' callbacks"
+    },
+    {
+      "name": "System",
+      "description": "Health and this document"
+    }
+  ],
+  "security": [
+    {
+      "cookieAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "operationId": "registerUser",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "summary": "Create an account and sign in",
+        "description": "A new account with the customer role (the manager role is set in the database). Sets the `accessToken` (15 minutes) and `refreshToken` (4 weeks) cookies: HttpOnly, Secure, SameSite=None. The avatar is a generated initials image.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "surname": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Trimmed and lowercased before it's checked and stored"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "description": "At least 8 characters"
+                  }
+                },
+                "required": [
+                  "name",
+                  "surname",
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Validation failed\" (details), or the model's own validation message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"Email already registered\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "loginUser",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "summary": "Sign in with email and password",
+        "description": "Sets the `accessToken` (15 minutes) and `refreshToken` (4 weeks) cookies: HttpOnly, Secure, SameSite=None. The refresh token stored on the account is replaced, so any other session's refresh fails from now on. Wrong passwords count towards the account's limit (lib/passwordLimit.ts); an email with no account, or a Google-only account, doesn't.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "description": "\"Invalid credentials\": no such account, no password on it, or the wrong password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyWrongPasswords"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/auth/refreshToken": {
+      "post": {
+        "operationId": "tokenRefresh",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "summary": "Rotate the session's tokens",
+        "description": "Reads the `refreshToken` cookie. A valid, current one is swapped atomically for a new pair (both cookies set again). One replaced in the last minute by another tab answers 401 with `reason: \"superseded\"` and leaves the cookies alone, so the request can be resent with the cookies that tab got. Any other invalid one (expired, replaced earlier, signed with another key, account gone) answers 401 and clears both cookies: the session is over.",
+        "parameters": [
+          {
+            "name": "refreshToken",
+            "in": "cookie",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New cookies set; no body"
+          },
+          "400": {
+            "description": "\"Refresh token MUST be provided!\": no cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "\"Invalid token\", with `reason: \"superseded\"` when another tab just rotated it (cookies kept); without it the cookies are cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "get": {
+        "operationId": "logoutUser",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign out",
+        "description": "Clears the stored refresh token (every session of the account loses its refresh) and both cookies.",
+        "responses": {
+          "204": {
+            "description": "Signed out"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/auth/googleLogin": {
+      "get": {
+        "operationId": "googleLogin",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "summary": "Start a Google sign-in",
+        "description": "Redirects the browser to Google (scopes profile and email). Open it as a navigation, not an XHR.",
+        "responses": {
+          "302": {
+            "description": "To Google's consent page"
+          }
+        }
+      }
+    },
+    "/auth/googleRedirect": {
+      "get": {
+        "operationId": "googleRedirect",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "summary": "Google's callback",
+        "description": "Where Google sends the browser back (its callback URL is `PUBLIC_API_URL/auth/googleRedirect`). An account already linked by Google id signs in; otherwise an account with the same verified email is linked (its password is removed: only Google signs it in from now on); a new email gets a new account. An unverified email that matches an account, or no email, signs nobody in. Sets the cookies and redirects to the front end's origin (`FRONTEND_URL`, else `FRONTEND_DEV_URL`); a sign-in that can't be matched safely redirects to its `/login` page instead. On a dev server with no front end running, that last redirect fails to connect; the cookies are set all the same (check with GET /users/me from /docs).",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "Google's authorization code",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "To the front end, signed in; or to its /login page, not signed in"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/users/me": {
+      "get": {
+        "operationId": "getMe",
+        "tags": [
+          "Users"
+        ],
+        "summary": "The signed-in account",
+        "responses": {
+          "200": {
+            "description": "The account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          }
+        }
+      },
+      "put": {
+        "operationId": "editMe",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Edit the signed-in account",
+        "description": "Changing the email or the password of an account that has a password needs `currentPassword`; a wrong one counts towards the account's limit. A Google-only account can't be given a password. A new password signs the account's other sessions out (new cookies for this one).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "surname": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Trimmed and lowercased"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "description": "At least 8 characters; not allowed on a Google-only account"
+                  },
+                  "currentPassword": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Required to change the email or password of an account that has one"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Validation failed\" (details); \"Enter your current password to change your email or password\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "\"Your current password is incorrect\"; \"This account signs in with Google, so it can't have a password\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "409": {
+            "description": "\"Email already registered\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyWrongPasswords"
+          },
+          "500": {
+            "description": "\"An Error ocurred while updating the user\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMe",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete the signed-in account",
+        "description": "Needs `currentPassword` when the account has a password. A manager's shops must be deleted first. Clears the cookies.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Required when the account has a password"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Deleted; cookies cleared"
+          },
+          "400": {
+            "description": "\"Validation failed\" (details); \"Enter your current password to delete your account\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "\"Your current password is incorrect\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "409": {
+            "description": "\"Delete your shops first\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyWrongPasswords"
+          },
+          "500": {
+            "description": "\"An Error ocurred while deleting the user\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/me/avatar": {
+      "put": {
+        "operationId": "editMyAvatar",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Upload a new avatar",
+        "description": "One image, uploaded to Cloudinary; the replaced one is deleted there if this app uploaded it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "avatar"
+                ],
+                "properties": {
+                  "avatar": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "JPEG, PNG, WebP, GIF, AVIF or HEIC, at most 5 MB"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account with its new avatar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Only JPEG, PNG, WebP, GIF, AVIF or HEIC images can be uploaded\"; \"No image was sent (field …)\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "413": {
+            "description": "\"The image is too large (max 5 MB)\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "\"An Error ocurred while updating the user's avatar\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shops": {
+      "post": {
+        "operationId": "createShop",
+        "tags": [
+          "Shops"
+        ],
+        "summary": "Create a shop",
+        "description": "The caller becomes its manager (`shopMg`).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "bio": {
+                    "type": "string"
+                  },
+                  "open_times": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "pattern": "^[+\\d\\s\\-().]*$",
+                    "description": "As typed, up to 30 characters: digits, spaces, dashes, brackets, +"
+                  },
+                  "web_URL": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new shop",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/ManagerOnly"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getAllShops",
+        "tags": [
+          "Shops"
+        ],
+        "security": [],
+        "summary": "Every shop",
+        "description": "Menus populated, deleted tables left out. The home page uses `GET /shops/browse` instead.",
+        "responses": {
+          "200": {
+            "description": "All shops",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Shop"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/me": {
+      "get": {
+        "operationId": "getMyShops",
+        "tags": [
+          "Shops"
+        ],
+        "summary": "The caller's shops",
+        "description": "Menus populated. Each deleted table says whether something there still needs the manager (`needsAttention`) and until when its closed carts stay on its sheet (`recentCartsUntil`).",
+        "responses": {
+          "200": {
+            "description": "The shops the caller manages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ManagerShop"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/ManagerOnly"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/browse": {
+      "get": {
+        "operationId": "browseShops",
+        "tags": [
+          "Shops"
+        ],
+        "security": [],
+        "summary": "A page of shops, searched on the server",
+        "description": "Oldest first, by id. With `q`, only shops whose name or bio holds it, or whose menu has an item named with it (case aside). `next` is the cursor for the page after, null on the last. An empty parameter counts as absent; a repeated one fails.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Text to search for (up to 100 characters); empty or absent lists every shop",
+            "schema": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "The `next` of the previous page",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Shops per page, 1 to 50 (default 20)",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}": {
+      "get": {
+        "operationId": "getSingleShop",
+        "tags": [
+          "Shops"
+        ],
+        "security": [],
+        "summary": "One shop",
+        "description": "Menu populated, deleted tables left out.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The shop",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Shop"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "editMyShop",
+        "tags": [
+          "Shops"
+        ],
+        "summary": "Edit a shop the caller manages",
+        "description": "Every field optional; only the ones sent change. An empty `phone` clears it.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "bio": {
+                    "type": "string"
+                  },
+                  "open_times": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 30,
+                    "pattern": "^[+\\d\\s\\-().]*$",
+                    "description": "As typed, up to 30 characters: digits, spaces, dashes, brackets, +"
+                  },
+                  "web_URL": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The shop as it is now (menu by id)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Validation failed\" (details); \"Shop Not Found or you are not authorized!\" (no such shop, or not the caller's)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/ManagerOnly"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMyShop",
+        "tags": [
+          "Shops"
+        ],
+        "summary": "Delete a shop and everything in it",
+        "description": "Takes its menu items (deleted ones too), its carts (payment records included) and its pay-backs; the orders remain as the sales record, written first (nothing is deleted if they can't be). Refused while money is still moving: an open cart, a payment or refund a provider hasn't confirmed, a card payment still being finished, a diner to pay back, or a payment that can still be refunded from a table's sheet (a paid cart closed or changed in the last 24 hours).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "\"Shop Not Found or you are not authorized!\": no such shop, or the caller doesn't manage it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/ManagerOnly"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "409": {
+            "description": "\"A table in this shop has an open cart — close it first\"; \"A payment or refund at table … is still awaiting PayPal|Stripe — check it there first\"; \"A payment at table … can still be refunded from its sheet: the shop can be deleted once no paid cart has changed for a day\"; or a card-payment reason (carts/stripeDeletion.ts)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "\"The shop's sales records couldn't be saved, so nothing was deleted. Try again shortly.\"; or \"Generic Server Error\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/cover": {
+      "put": {
+        "operationId": "editMyShopCover",
+        "tags": [
+          "Shops"
+        ],
+        "summary": "Upload a shop's cover image",
+        "description": "The manager check runs before the upload, so a refused request never reaches Cloudinary. The replaced image is deleted there if this app uploaded it.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "cover"
+                ],
+                "properties": {
+                  "cover": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "JPEG, PNG, WebP, GIF, AVIF or HEIC, at most 5 MB"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The shop with its new cover (menu by id)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShopRecord"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Only JPEG, PNG, WebP, GIF, AVIF or HEIC images can be uploaded\"; \"No image was sent (field \\\"cover\\\")\"; \"Shop Not Found or you are not authorized!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "$ref": "#/components/responses/ShopNotFound"
+          },
+          "413": {
+            "description": "\"The image is too large (max 5 MB)\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/tables": {
+      "post": {
+        "operationId": "createTable",
+        "tags": [
+          "Tables"
+        ],
+        "summary": "Add a table",
+        "description": "Names are unique within the shop (checked in the same update, so two requests at once can't both pass). The table's QR URL is its page in the front end.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new table",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Table"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Validation failed\" (details); \"Table name: '…' already exist!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "$ref": "#/components/responses/ShopNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getTableList",
+        "tags": [
+          "Tables"
+        ],
+        "summary": "The shop's tables",
+        "description": "Any signed-in user. Deleted tables are not listed.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Table"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/tables/{tableId}": {
+      "get": {
+        "operationId": "getSingleTable",
+        "tags": [
+          "Tables"
+        ],
+        "security": [],
+        "summary": "One table",
+        "description": "What the table's QR code opens. A deleted table, or another shop's, is not found.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The table",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Table"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "\"Table Not Found!\": no such shop, or no such table in it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "editTable",
+        "tags": [
+          "Tables"
+        ],
+        "summary": "Rename a table",
+        "description": "The new name must be unique within the shop. Answers the shop's whole table list, not the one table.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "All the shop's tables, with the rename",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Table"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Validation failed\" (details); \"Table name: '…' already exist!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Table Not Found!\"; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteTable",
+        "tags": [
+          "Tables"
+        ],
+        "summary": "Delete a table",
+        "description": "Moved to the shop's deleted tables rather than dropped: it takes no orders and diners don't see it, but the manager can still open its recent carts to refund them. Refused while it has an open cart (close it first) or a payment or refund awaiting its provider. Deleting it twice is a 204 both times.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted (or already deleted)"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Table Not Found!\"; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"This table has an open cart — close it first\"; \"A payment or refund at this table is still awaiting PayPal|Stripe — check it first\"; \"The table changed, please try again\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/tables/status": {
+      "get": {
+        "operationId": "getTablesStatus",
+        "tags": [
+          "Manager: tables"
+        ],
+        "summary": "Every table's state at a glance",
+        "description": "One entry per current table, from its open cart(s): what's owed and paid, who's waiting, and what needs attention (a sold-out item ordered, two open carts, a selection held over 15 minutes, a payment the provider hasn't confirmed, a diner to pay back).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TableStatus"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "$ref": "#/components/responses/ShopNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/tables/{tableId}/carts": {
+      "get": {
+        "operationId": "getTableCarts",
+        "tags": [
+          "Manager: tables"
+        ],
+        "summary": "A table's carts, with payments",
+        "description": "The open cart(s), those closed in the last 24 hours (or older but still awaiting a provider), and the table's pay-backs. Payment and refund records and the manager log included; diners by first name only. Works for a deleted table too.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The table's sheet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableCarts"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Table Not Found!\": not a current or deleted table of this shop; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/tables/{tableId}/carts/{cartId}/releaseSelection": {
+      "post": {
+        "operationId": "releaseSelection",
+        "tags": [
+          "Manager: tables"
+        ],
+        "summary": "Free units diners hold in open selections",
+        "description": "Everyone's (empty body), one diner's (`userId`), the selections of diners whose account no longer exists (`userId: null`), or one item's (`menuId`), so others can pay for them. Each diner affected gets a note; the manager log gets a line. No money moves.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "One diner's selections; null: those of diners whose account is gone; absent: everyone's"
+                  },
+                  "menuId": {
+                    "type": "string",
+                    "description": "One item's selections only"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagerCart"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\"; \"No selection to release\"; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"The cart changed, please retry\": another write landed first (a payment settling, another manager)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/tables/{tableId}/carts/{cartId}/removeItem": {
+      "post": {
+        "operationId": "managerRemoveItem",
+        "tags": [
+          "Manager: tables"
+        ],
+        "summary": "Take an item's unpaid units out of the cart",
+        "description": "All of them, diners' selections of it included (the diner's own bin leaves others' selections); paid units stay as the record. A cart left with nothing ordered and nothing paid closes, so the table is free again. The table's diners get a note.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "menuId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "menuId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagerCart"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\"; \"Item Not Found in Cart!\"; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"Nothing unpaid to remove\"; \"The cart changed, please retry\": another write landed first (a payment settling, another manager)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/tables/{tableId}/carts/{cartId}/close": {
+      "post": {
+        "operationId": "closeCart",
+        "tags": [
+          "Manager: tables"
+        ],
+        "summary": "Close the table's cart",
+        "description": "Unpaid units and open selections are dropped (the kitchen only acts on paid orders); paid units stay. A cart where nothing was ever paid is deleted instead. Refused while a payment on it awaits its provider.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What happened: deleted, or closed with the cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloseResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\": no open cart with this id at this table of this shop; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"A payment on this table is still awaiting PayPal|Stripe: check it first\"; \"The cart changed, please retry\": another write landed first (a payment settling, another manager)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/tables/{tableId}/carts/{cartId}/mergeInto": {
+      "post": {
+        "operationId": "mergeInto",
+        "tags": [
+          "Manager: tables"
+        ],
+        "summary": "Merge a duplicate open cart into the newest one",
+        "description": "For a table with more than one open cart (data from before the one-open-cart index). Moves this older cart's unpaid units and open selections into the newest cart, the one diners see; its paid units stay on it as the record and it closes (or is deleted if nothing on it was ever paid). Answers the newest cart.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ManagerCart"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\": no open cart with this id at this table of this shop; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"This table has only one open cart\"; \"Merge the older cart into the newest one\"; \"A payment on this table is still awaiting PayPal|Stripe: check it first\"; \"The cart changed, please retry\": another write landed first (a payment settling, another manager)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/carts/{cartId}/refunds": {
+      "post": {
+        "operationId": "refundItems",
+        "tags": [
+          "Manager: refunds and payments"
+        ],
+        "summary": "Refund units of one payment",
+        "description": "At the prices that payment charged; the units leave the cart (cancelled, not made payable again). Open or closed carts of the shop. A `pending` refund record is saved first (so a double click can't refund twice), the provider is asked with the record's id as its idempotency key, then the record is completed or marked failed. If the provider's answer is unclear the record stays pending: retry it. The payer gets a note; a pay-back is opened if Stripe later fails the refund.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "paymentId": {
+                    "type": "string",
+                    "description": "The cart's payments[]._id"
+                  },
+                  "lines": {
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "menuId": {
+                          "type": "string"
+                        },
+                        "qty": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0
+                        }
+                      },
+                      "required": [
+                        "menuId",
+                        "qty"
+                      ]
+                    },
+                    "description": "Units to refund, each item once"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "enum": [
+                      "unavailable",
+                      "wrong_item",
+                      "quality",
+                      "long_wait",
+                      "paid_by_mistake",
+                      "changed_mind",
+                      "other"
+                    ],
+                    "description": "Why, for the sales report"
+                  },
+                  "reasonNote": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "What happened, 1 to 200 characters: required with \"other\", refused otherwise"
+                  }
+                },
+                "required": [
+                  "paymentId",
+                  "lines"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The completed refund and the cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Validation failed\" (details, whose messages include \"List each item once\", \"Say what happened\" and \"A note goes with the reason Other only\"); \"That item isn't in this payment\"; \"Only N× … of this payment can still be refunded\"; \"… from this payment has already been refunded\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\": not a cart of this shop; \"Payment Not Found!\"; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"PayPal|Stripe hasn't confirmed this payment yet: check it first\"; \"This payment didn't go through at PayPal|Stripe: nothing was taken\"; \"This payment can only be refunded from PayPal|Stripe\" (no capture or charge id); \"The cart changed, please retry\": another write landed first (a payment settling, another manager)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "\"The refund went through at PayPal|Stripe but couldn't be recorded here. It shows as in progress: retry it to record it.\"; or \"Generic Server Error\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "\"PayPal|Stripe didn't confirm the refund (…). It shows as in progress: retry it, which checks with PayPal|Stripe first.\" (outcome unknown; the record stays pending); \"…. Nothing was refunded.\" (refused; the record is marked failed)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/carts/{cartId}/refunds/{refundId}/retry": {
+      "post": {
+        "operationId": "retryRefund",
+        "tags": [
+          "Manager: refunds and payments"
+        ],
+        "summary": "Settle a refund left in progress",
+        "description": "Asks the provider whether it has the refund (by the record's id). If so, it's recorded as the provider says (completed, or failed); if not, it's sent again under the same id, which the provider can't apply twice.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          },
+          {
+            "$ref": "#/components/parameters/refundId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The refund and the cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefundResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\"; \"Refund Not Found!\"; \"Payment Not Found!\"; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"This refund isn't in progress any more\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "\"The refund went through at PayPal|Stripe but couldn't be recorded here. …\"; or \"Generic Server Error\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "\"Couldn't check with PayPal|Stripe (…). The refund is still in progress: try again shortly.\"; \"PayPal|Stripe says this refund failed. Nothing was refunded.\"; or the messages of POST …/refunds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/carts/{cartId}/payments/{paymentId}/check": {
+      "post": {
+        "operationId": "checkPayment",
+        "tags": [
+          "Manager: refunds and payments"
+        ],
+        "summary": "Ask the provider about a pending payment",
+        "description": "For a payment the provider hadn't confirmed at checkout (`status: pending`). Confirmed: it becomes `completed`, and the cart closes if that was all it waited for. Failed: it becomes `failed`, its units are unpaid again and back in the payer's selection (the cart reopens if it had closed). Still pending: nothing changes. The payer is told either way.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          },
+          {
+            "$ref": "#/components/parameters/paymentId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The payment as it is now, and the cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentCheckResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\"; \"Payment Not Found!\"; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"This payment isn't awaiting confirmation any more\"; \"PayPal|Stripe is still processing this payment. Check again later\"; \"The cart changed, please retry\": another write landed first (a payment settling, another manager)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "502": {
+            "description": "\"Couldn't check with PayPal|Stripe (…). Try again shortly.\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/paybacks/{paybackId}/done": {
+      "post": {
+        "operationId": "markPaybackDone",
+        "tags": [
+          "Manager: refunds and payments"
+        ],
+        "summary": "Mark a pay-back done",
+        "description": "`as` must be what the sheet showed: `paidBack` (staff gave the diner the money another way), `handled` (a disputed payment: the bank returns it), or `checked` (a hand-over whose payment a cart now shows as paid). One already done answers as it was marked, whatever was asked. One that changed since the sheet showed it is refused, so what's stored is what the manager confirmed. The cart gets a log line without touching its `updatedAt`.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/paybackId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "as": {
+                    "type": "string",
+                    "enum": [
+                      "paidBack",
+                      "handled",
+                      "checked"
+                    ],
+                    "description": "What the sheet showed for this pay-back"
+                  }
+                },
+                "required": [
+                  "as"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The pay-back as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaybackResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Pay-back Not Found!\": not this shop's, or gone with it; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"This pay-back changed: here it is again\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/menu": {
+      "post": {
+        "operationId": "createMenuItem",
+        "tags": [
+          "Menu"
+        ],
+        "summary": "Add an item to the shop's menu",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "short_description": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "multipleOf": 0.01,
+                    "description": "In pounds, to the penny (at most 2 decimals): refunds price each unit on its own"
+                  },
+                  "available": {
+                    "type": "boolean",
+                    "description": "Defaults to true. false marks the item sold out: it can't be added, selected or paid for, and stays flagged in carts that hold it"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "food",
+                      "drinks"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "short_description",
+                  "price",
+                  "category"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "get": {
+        "operationId": "getMenuList",
+        "tags": [
+          "Menu"
+        ],
+        "summary": "The shop's menu",
+        "description": "Any signed-in user. Deleted items are not on it.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The menu items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MenuItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/menu/{itemId}": {
+      "get": {
+        "operationId": "getMenuItem",
+        "tags": [
+          "Menu"
+        ],
+        "summary": "One item of the shop's menu",
+        "description": "Any signed-in user. The item must be on this shop's menu.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/itemId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuItem"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Menu Item Not Found!\": no such item, or not on this shop's menu; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "put": {
+        "operationId": "editMenuItem",
+        "tags": [
+          "Menu"
+        ],
+        "summary": "Edit an item",
+        "description": "Every field optional; only the ones sent change.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/itemId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "short_description": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "price": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "multipleOf": 0.01,
+                    "description": "In pounds, to the penny (at most 2 decimals): refunds price each unit on its own"
+                  },
+                  "available": {
+                    "type": "boolean",
+                    "description": "Defaults to true. false marks the item sold out: it can't be added, selected or paid for, and stays flagged in carts that hold it"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "food",
+                      "drinks"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The item as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Menu Item Not Found!\": no such item, or not on this shop's menu; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMenuItem",
+        "tags": [
+          "Menu"
+        ],
+        "summary": "Take an item off the menu",
+        "description": "The item leaves the shop's menu but is kept, unavailable and marked `deletedFrom`, so carts that hold it still name it (as sold out). It goes for good with the shop.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/itemId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Taken off the menu"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Menu Item Not Found!\": not on this shop's menu; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/menu/{itemId}/img": {
+      "put": {
+        "operationId": "editMenuItemImage",
+        "tags": [
+          "Menu"
+        ],
+        "summary": "Upload an item's image",
+        "description": "The permission checks run before the upload, so a refused request never reaches Cloudinary. The replaced image is deleted there if this app uploaded it.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/itemId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "image"
+                ],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "JPEG, PNG, WebP, GIF, AVIF or HEIC, at most 5 MB"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The item with its new image",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MenuItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Only JPEG, PNG, WebP, GIF, AVIF or HEIC images can be uploaded\"; \"No image was sent (field …)\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Menu Item Not Found!\"; \"Shop Not Found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "\"The image is too large (max 5 MB)\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/carts/{shopId}/tables/{tableId}/addItem": {
+      "post": {
+        "operationId": "addItem",
+        "tags": [
+          "Carts: ordering"
+        ],
+        "summary": "Add units of an item to the table's order",
+        "description": "A table has one shared open cart: whoever orders first creates it (the caller becomes its `userId`), everyone else adds to it. The item must be on this shop's menu and not sold out, and the table one of the shop's. Racing another diner's first order is retried onto the cart that won.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "menuId": {
+                    "type": "string",
+                    "description": "The menu item"
+                  },
+                  "qty": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "description": "Units to add"
+                  }
+                },
+                "required": [
+                  "menuId",
+                  "qty"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Menu Item Not Found!\": no such item, or not on this shop's menu; \"Table Not Found!\": not one of the shop's tables; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"This item is sold out\"; \"The cart changed, please retry\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyEdits"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/carts/{shopId}/tables/{tableId}/removeItem": {
+      "post": {
+        "operationId": "decreaseItem",
+        "tags": [
+          "Carts: ordering"
+        ],
+        "summary": "Take units off an item's line (the −)",
+        "description": "Drops the line at 0. Never into units already paid for or held in someone's open selection. A cart emptied this way is deleted (204) unless it holds payment, refund or manager records; one left with everything paid closes.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "menuId": {
+                    "type": "string",
+                    "description": "The menu item"
+                  },
+                  "qty": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "description": "Units to take off"
+                  }
+                },
+                "required": [
+                  "menuId",
+                  "qty"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "204": {
+            "description": "The cart was emptied and deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Item Not Found in Cart!\": the table has no open cart with that item; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"Those units are already paid for or selected for payment\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyEdits"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/carts/{shopId}/tables/{tableId}/deleteItem": {
+      "post": {
+        "operationId": "deleteCartItem",
+        "tags": [
+          "Carts: ordering"
+        ],
+        "summary": "Remove an item's unpaid units (the bin)",
+        "description": "What stays: the paid units (the record of what was paid) and the units other diners have selected to pay for, with their selections; a line with neither is dropped. The caller's own selection goes with the units. A sold-out or deleted item goes whoever selected it (nobody can pay for it): this is how it leaves a cart. Version-checked, so a payment settling at the same moment conflicts instead of being overwritten. A cart emptied with nothing to keep is deleted (204).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "menuId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "menuId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "204": {
+            "description": "The cart was emptied and deleted"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Item Not Found in Cart!\": the table has no open cart with that item; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"Someone at the table is paying for those\": nothing the caller may remove; \"The cart changed, please retry\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyEdits"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/carts/{shopId}/tables/{tableId}/{cartId}/addSplitItem": {
+      "post": {
+        "operationId": "addSplitItem",
+        "tags": [
+          "Carts: selecting what to pay"
+        ],
+        "summary": "Select more units of an item to pay for",
+        "description": "Grows the caller's open selection of the item, or starts one. The units every diner's open selections already hold, plus the request, plus the paid units must fit in the line: checked and claimed in one atomic update, so two diners racing for the last unit can't both get it. No new claims on a sold-out item.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "menuId": {
+                    "type": "string",
+                    "description": "The menu item"
+                  },
+                  "qty": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "description": "Units to select"
+                  }
+                },
+                "required": [
+                  "menuId",
+                  "qty"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\": no open cart with this id at this table; \"Item Not Found in Cart!\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"This item is sold out\"; \"Not enough units left to split\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyEdits"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/carts/{shopId}/tables/{tableId}/{cartId}/decreaseSplitItem": {
+      "post": {
+        "operationId": "decreaseSplitItem",
+        "tags": [
+          "Carts: selecting what to pay"
+        ],
+        "summary": "Select one unit fewer",
+        "description": "Takes one unit off the caller's open selection of the item, dropping the selection at 0.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "menuId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "menuId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Item Not Found!\": the caller has no open selection of that item on this cart; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyEdits"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/carts/{shopId}/tables/{tableId}/{cartId}/removeSplitItem": {
+      "post": {
+        "operationId": "removeSplitItem",
+        "tags": [
+          "Carts: selecting what to pay"
+        ],
+        "summary": "Un-select an item",
+        "description": "Drops the caller's open selection of the item.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "menuId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "menuId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Item Not Found!\": the caller has no open selection of that item on this cart; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyEdits"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/carts/tables/{tableId}/{cartId}/createCheckoutOrder": {
+      "post": {
+        "operationId": "createCheckoutOrder",
+        "tags": [
+          "Carts: checkout"
+        ],
+        "summary": "PayPal, step 1: an order for the amount due",
+        "description": "Creates the PayPal order for exactly what the caller's open selections cost at database prices, bound to this cart and payer. Nothing is charged or stored. The checks run before PayPal is called, so a doomed checkout never mints an order. Not rate limited.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The order to approve in the popup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayPalOrder"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\": no open cart with this id at this table; \"No open split items to pay!\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"A split item is no longer in the cart\"; \"Not enough unpaid units left to settle this checkout\"; \"Some items you selected are sold out — remove them to pay for the rest\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "502": {
+            "description": "\"Could not create PayPal order\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carts/tables/{tableId}/{cartId}/captureCheckout": {
+      "post": {
+        "operationId": "captureCheckout",
+        "tags": [
+          "Carts: checkout"
+        ],
+        "summary": "PayPal, step 2: capture the approved order",
+        "description": "The money-moving call. Refuses a replayed order id, runs step 1's checks again, confirms with PayPal that the order is approved, was minted for this cart and payer and matches the amount still due, and only then captures. The settlement is saved under optimistic concurrency; if it can't be (a concurrent payer took the units) the buyer is refunded automatically and told so. A capture PayPal holds for review is recorded as a pending payment (202): its units are held, the cart stays open, and a manager checks it later. Not rate limited.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "paypalOrderId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "The order from step 1, approved in the popup"
+                  }
+                },
+                "required": [
+                  "paypalOrderId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "202": {
+            "description": "Paid, but PayPal holds the capture for review: the units are held as a pending payment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "description": "\"This PayPal order has already been used\"; \"Could not verify PayPal payment\"; \"PayPal order is not approved for capture\"; \"PayPal order was not created for this checkout\"; \"PayPal capture failed\"; \"PayPal capture did not complete\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "\"Cart Not Found!\": no open cart with this id at this table; \"No open split items to pay!\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"A split item is no longer in the cart\"; \"Not enough unpaid units left to settle this checkout\"; \"Some items you selected are sold out — remove them to pay for the rest\"; \"Your selection changed since the order was created, please retry\" (nothing charged); \"The table's cart changed while you were paying — your payment was refunded\"; \"Your payment could not be recorded — your payment was refunded\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "\"Payment captured but could not be settled or refunded — please contact staff (order …)\"; or \"Generic Server Error\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "\"We couldn't confirm your payment with PayPal — please contact staff before paying again (order …)\": PayPal's answer didn't say whether the buyer was charged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carts/tables/{tableId}/{cartId}/createStripeCheckout": {
+      "post": {
+        "operationId": "createStripeCheckout",
+        "tags": [
+          "Carts: checkout"
+        ],
+        "summary": "Card, step 1: a PaymentIntent for the amount due",
+        "description": "Creates a Stripe PaymentIntent (manual capture: the card is only authorised) for exactly what the caller's open selections cost, and a record of it the server's sweep can see. Rate limited like an edit: each call makes an intent. An intent nobody confirms holds nothing and is cancelled after an hour.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The intent for the Payment Element",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StripeIntent"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\": no open cart with this id at this table; \"No open split items to pay!\"; \"User not found!\"; \"This table is no longer at a shop\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"A split item is no longer in the cart\"; \"Not enough unpaid units left to settle this checkout\"; \"Some items you selected are sold out — remove them to pay for the rest\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyEdits"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "502": {
+            "description": "\"Could not start a card payment\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carts/tables/{tableId}/{cartId}/captureStripeCheckout": {
+      "post": {
+        "operationId": "captureStripeCheckout",
+        "tags": [
+          "Carts: checkout"
+        ],
+        "summary": "Card, step 2: capture the authorised payment",
+        "description": "After the diner confirms the intent. Checks again, then captures or releases the hold; shared with the webhook and the sweep, so the answer is right when one of them already finished the payment. A payment still processing is recorded pending (202). When the outcome can't be told yet the answer is 502 with `reason: \"STILL_CONFIRMING\"`: don't pay again; the cart updates once it's known, and the diner gets a notice. Not rate limited: a refused capture would leave an authorised payment unfinished.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/tableId"
+          },
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "paymentIntentId": {
+                    "type": "string",
+                    "pattern": "^pi_[A-Za-z0-9_]+$",
+                    "description": "The intent from step 1"
+                  }
+                },
+                "required": [
+                  "paymentIntentId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "202": {
+            "description": "Captured, but the payment is still processing: the units are held as a pending payment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cart"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "description": "\"This payment was not created for this checkout\"; \"This payment didn't go through: nothing was taken\"; \"Payment not completed — nothing was charged\"; \"Card payment capture failed — nothing was charged\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "\"Cart Not Found!\"; \"No open split items to pay!\"; \"User not found!\"; or, money moved and the cart deleted since: \"Your card payment went through, but this table's cart is no longer here\" (`reason: \"CART_GONE\"`), \"Your card payment is being confirmed, but this table's cart is no longer here\" (`reason: \"CART_GONE_PENDING\"`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"A split item is no longer in the cart\"; \"Not enough unpaid units left to settle this checkout\"; \"Some items you selected are sold out — remove them to pay for the rest\"; \"Your selection changed since the order was created, please retry\"; \"The table's cart changed while you were paying — your payment was refunded\"; \"Your payment could not be recorded — your payment was refunded\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "\"Payment captured but could not be recorded or refunded — please contact staff (payment …)\"; \"Payment captured but couldn't be refunded to your card while you dispute it: your bank returns it (payment …)\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "`reason: \"STILL_CONFIRMING\"`: \"We're still confirming your payment. Your cart will update once it's confirmed, and you'll get a note if it doesn't go through — until then, please don't pay for these items again (payment …)\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/carts/tables/{tableId}": {
+      "get": {
+        "operationId": "getTableCart",
+        "tags": [
+          "Carts: ordering"
+        ],
+        "security": [],
+        "summary": "The table's open cart",
+        "description": "Public: anyone at the table (no sign-in) sees the table's order, with its table-wide notices. A signed-in diner also gets the notices meant for them, their card payments' outcomes among them. With no open cart, the 404 carries the notices a signed-in diner who took part in a cart closed lately would otherwise miss. A cookie that is present but expired or invalid is a 401, so the front end refreshes it rather than show a guest view.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/tableId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "401": {
+            "description": "\"Invalid token\": the access-token cookie is present but expired or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No open cart at this table (\"Cart Not Found!\"), with the caller's recent notices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartNotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/carts": {
+      "get": {
+        "operationId": "getMyCarts",
+        "tags": [
+          "Carts: ordering"
+        ],
+        "summary": "The open cart the caller started",
+        "description": "One cart, not a list, despite the name: the open cart whose `userId` is the caller.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Carts Not Found!\": the caller started no open cart; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/carts/{cartId}": {
+      "get": {
+        "operationId": "getSingleCart",
+        "tags": [
+          "Carts: ordering"
+        ],
+        "summary": "A cart the caller took part in",
+        "description": "Open or closed: the caller started it or has a selection on it.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/cartId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/DinerCart"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Cart Not Found!\": no such cart, or not one the caller took part in; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/payments/stripe/webhook": {
+      "post": {
+        "operationId": "stripeWebhook",
+        "tags": [
+          "Payments"
+        ],
+        "security": [],
+        "summary": "Stripe's events",
+        "description": "Called by Stripe, not by clients: trusted by the `Stripe-Signature` header over the body's exact bytes (the signing secret is `STRIPE_WEBHOOK_SECRET`). The endpoint subscribes to `payment_intent.amount_capturable_updated`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `payment_intent.canceled` and `refund.failed`; other types are answered 200 and ignored. Handlers are idempotent and act on the state they find, since Stripe may repeat or reorder events. A 500 asks Stripe to retry (for up to 3 days); the server's 2-minute sweep is the backstop either way.",
+        "parameters": [
+          {
+            "name": "Stripe-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "A Stripe Event"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Handled (or not one of ours)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Received"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Invalid Stripe signature\": no raw body, no header, or a signature that doesn't verify",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "\"Stripe event … not handled yet: retry it\"; or \"Generic Server Error\" (Stripe retries both)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "tags": [
+          "System"
+        ],
+        "security": [],
+        "summary": "Is the server up",
+        "description": "Always 200 while the process answers; says which version runs and for how long. For the host's health check and a quick look after a deploy.",
+        "responses": {
+          "200": {
+            "description": "Up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "operationId": "openapiDocument",
+        "tags": [
+          "System"
+        ],
+        "security": [],
+        "summary": "This document",
+        "description": "The API's OpenAPI 3.1 description, built in code from the routes' validation schemas (src/openapi/). A test keeps it complete: every route the server serves is in it, and nothing else.",
+        "responses": {
+          "200": {
+            "description": "The OpenAPI document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/docs": {
+      "get": {
+        "operationId": "docs",
+        "tags": [
+          "System"
+        ],
+        "security": [],
+        "summary": "Swagger UI",
+        "description": "This document, browsable, with Try it out. The page loads Swagger UI from a CDN and reads `openapi.json` next to itself.",
+        "responses": {
+          "200": {
+            "description": "The page",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "accessToken",
+        "description": "Set by the auth routes; refreshed with POST /auth/refreshToken"
+      }
+    },
+    "parameters": {
+      "shopId": {
+        "name": "shopId",
+        "in": "path",
+        "required": true,
+        "description": "The shop",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}$",
+          "description": "A MongoDB ObjectId"
+        }
+      },
+      "tableId": {
+        "name": "tableId",
+        "in": "path",
+        "required": true,
+        "description": "The table (a shop's tables[]._id)",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}$",
+          "description": "A MongoDB ObjectId"
+        }
+      },
+      "cartId": {
+        "name": "cartId",
+        "in": "path",
+        "required": true,
+        "description": "The cart",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}$",
+          "description": "A MongoDB ObjectId"
+        }
+      },
+      "itemId": {
+        "name": "itemId",
+        "in": "path",
+        "required": true,
+        "description": "The menu item",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}$",
+          "description": "A MongoDB ObjectId"
+        }
+      },
+      "paymentId": {
+        "name": "paymentId",
+        "in": "path",
+        "required": true,
+        "description": "The payment (a cart's payments[]._id)",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}$",
+          "description": "A MongoDB ObjectId"
+        }
+      },
+      "refundId": {
+        "name": "refundId",
+        "in": "path",
+        "required": true,
+        "description": "The refund (a cart's refunds[]._id)",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}$",
+          "description": "A MongoDB ObjectId"
+        }
+      },
+      "paybackId": {
+        "name": "paybackId",
+        "in": "path",
+        "required": true,
+        "description": "The pay-back",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}$",
+          "description": "A MongoDB ObjectId"
+        }
+      }
+    },
+    "responses": {
+      "ValidationFailed": {
+        "description": "\"Validation failed\", with `details`: the body (or query) failed its schema",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "No access-token cookie (\"Please provide credentials in cookies!\"), or an expired or invalid one (\"Invalid token\"): refresh the token (POST /auth/refreshToken) and retry",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "UserGone": {
+        "description": "\"User not found!\": the token's account no longer exists",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ManagerOnly": {
+        "description": "\"Shop Manager Only!!\": the account isn't a shop manager",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotThisShopsManager": {
+        "description": "\"Shop Manager Only!\": the account doesn't manage this shop",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ShopNotFound": {
+        "description": "\"Shop Not Found!\"",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "TooManyEdits": {
+        "description": "\"Too many changes to your order — wait a minute and try again\": more than CART_EDITS_PER_MINUTE (default 120) changes by this account in a minute",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "headers": {
+          "RateLimit": {
+            "description": "The limit's current state (IETF draft 8)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "RateLimit-Policy": {
+            "description": "The limit's policy (IETF draft 8)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "TooManyWrongPasswords": {
+        "description": "\"Too many wrong passwords for this account — try again in 15 minutes\": more than PASSWORD_FAILS_PER_ACCOUNT (default 10) wrong passwords for the account in 15 minutes, wherever they were tried",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "\"Generic Server Error\", unless the message was written for the user (then it is shown as is)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "DinerCart": {
+        "description": "The cart as the caller sees it",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Cart"
+            }
+          }
+        }
+      },
+      "ManagerCart": {
+        "description": "The cart as the manager sees it",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ManagerCart"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "description": "An account, as users/model.ts's toJSON sends it: never the password hash or the refresh token",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "surname": {
+            "type": "string",
+            "description": "Absent on some Google accounts"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Stored trimmed and lowercased"
+          },
+          "avatar": {
+            "type": "string",
+            "format": "uri"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "shopMg"
+            ],
+            "description": "shopMg (shop manager) is set in the database, never through the API"
+          },
+          "googleId": {
+            "type": "string"
+          },
+          "hasPassword": {
+            "type": "boolean",
+            "description": "Whether the account can sign in with a password; a Google-only account can't"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "email",
+          "role",
+          "hasPassword",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "Table": {
+        "type": "object",
+        "description": "A table of a shop",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "Qr_Url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The table's page in the front end, printed as its QR code"
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "Qr_Url"
+        ]
+      },
+      "DeletedTable": {
+        "type": "object",
+        "description": "A table the manager deleted: it takes no orders, and its recent carts stay reachable",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "deletedAt"
+        ]
+      },
+      "ManagerDeletedTable": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "needsAttention": {
+            "type": "boolean",
+            "const": true,
+            "description": "Present when the table still has an open cart, money a provider hasn't confirmed, or a diner to pay back"
+          },
+          "recentCartsUntil": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Present while a closed cart of the table is still on its sheet (24 hours after it last changed)"
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "deletedAt"
+        ]
+      },
+      "MenuItem": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string",
+            "format": "uri",
+            "description": "A placeholder until one is uploaded"
+          },
+          "short_description": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "number",
+            "description": "The price, in pounds (GBP), to the penny"
+          },
+          "available": {
+            "type": "boolean",
+            "description": "false: sold out (or deleted). It can't be added, selected or paid for"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "food",
+              "drinks"
+            ]
+          },
+          "deletedFrom": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "The shop it was deleted from: it left the menu but is kept for the carts that hold it"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "image",
+          "short_description",
+          "price",
+          "available",
+          "category",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "Shop": {
+        "type": "object",
+        "description": "A shop as everyone sees it: menu items populated, deleted tables left out",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "cover": {
+            "type": "string",
+            "format": "uri",
+            "description": "A placeholder until one is uploaded"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "open_times": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "description": "As typed"
+          },
+          "web_URL": {
+            "type": "string"
+          },
+          "shopMg": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$",
+              "description": "A MongoDB ObjectId"
+            },
+            "description": "The managers' user ids"
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Table"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "menu": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuItem"
+            }
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "cover",
+          "shopMg",
+          "tables",
+          "menu",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ShopRecord": {
+        "type": "object",
+        "description": "A shop as stored: menu items by id, deleted tables included (the answer to creating or editing one)",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "cover": {
+            "type": "string",
+            "format": "uri",
+            "description": "A placeholder until one is uploaded"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "open_times": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "description": "As typed"
+          },
+          "web_URL": {
+            "type": "string"
+          },
+          "shopMg": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$",
+              "description": "A MongoDB ObjectId"
+            },
+            "description": "The managers' user ids"
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Table"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "menu": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$",
+              "description": "A MongoDB ObjectId"
+            },
+            "description": "The menu items' ids"
+          },
+          "deletedTables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeletedTable"
+            }
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "cover",
+          "shopMg",
+          "tables",
+          "menu",
+          "createdAt",
+          "updatedAt",
+          "deletedTables"
+        ]
+      },
+      "ManagerShop": {
+        "type": "object",
+        "description": "A shop for its manager: menu items populated, deleted tables with what still needs them",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "cover": {
+            "type": "string",
+            "format": "uri",
+            "description": "A placeholder until one is uploaded"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "open_times": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "description": "As typed"
+          },
+          "web_URL": {
+            "type": "string"
+          },
+          "shopMg": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$",
+              "description": "A MongoDB ObjectId"
+            },
+            "description": "The managers' user ids"
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Table"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "menu": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuItem"
+            }
+          },
+          "deletedTables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagerDeletedTable"
+            }
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "cover",
+          "shopMg",
+          "tables",
+          "menu",
+          "createdAt",
+          "updatedAt",
+          "deletedTables"
+        ]
+      },
+      "ShopSummary": {
+        "type": "object",
+        "description": "A shop on the home page's list",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "cover": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "cover"
+        ]
+      },
+      "ShopPage": {
+        "type": "object",
+        "properties": {
+          "shops": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShopSummary"
+            }
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$",
+                "description": "The cursor for the next page; null on the last"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "shops",
+          "next"
+        ]
+      },
+      "MenuRef": {
+        "type": "object",
+        "description": "A menu item as a cart names it",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string",
+            "description": "\"No longer on the menu\" for an item that is gone"
+          },
+          "short_description": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string",
+            "format": "uri"
+          },
+          "price": {
+            "type": "number",
+            "description": "The current price, in pounds (GBP), to the penny"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "food",
+              "drinks"
+            ]
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "price",
+          "available"
+        ]
+      },
+      "CartItem": {
+        "type": "object",
+        "description": "A line of the table's order",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "menuId": {
+            "$ref": "#/components/schemas/MenuRef"
+          },
+          "qty": {
+            "type": "integer",
+            "description": "Units ordered"
+          },
+          "qtyPayed": {
+            "type": "integer",
+            "description": "Units paid for (the spelling is part of the API)"
+          }
+        },
+        "required": [
+          "_id",
+          "menuId",
+          "qty",
+          "qtyPayed"
+        ]
+      },
+      "Split": {
+        "type": "object",
+        "description": "A diner's share of a line: who pays for how many units",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "menuId": {
+            "$ref": "#/components/schemas/MenuRef"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "splitStatus": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ],
+            "description": "open: selected to pay for; closed: paid"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "What each unit was charged at (set when paid), in pounds (GBP), to the penny"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "claimedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When first selected"
+          }
+        },
+        "required": [
+          "_id",
+          "userId",
+          "menuId",
+          "qty",
+          "splitStatus"
+        ]
+      },
+      "ManagerSplit": {
+        "type": "object",
+        "description": "A split with the diner named",
+        "properties": {
+          "userId": {
+            "anyOf": [
+              {
+                "type": "object",
+                "description": "A user by first name",
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$",
+                    "description": "A MongoDB ObjectId"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "_id",
+                  "name"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "menuId": {
+            "$ref": "#/components/schemas/MenuRef"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "splitStatus": {
+            "type": "string",
+            "enum": [
+              "open",
+              "closed"
+            ],
+            "description": "open: selected to pay for; closed: paid"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "What each unit was charged at (set when paid), in pounds (GBP), to the penny"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "claimedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When first selected"
+          }
+        },
+        "required": [
+          "_id",
+          "userId",
+          "menuId",
+          "qty",
+          "splitStatus"
+        ]
+      },
+      "Notice": {
+        "type": "object",
+        "description": "A note to the table's diners about a change to their cart",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "An ObjectId, or a longer id for a card payment's outcome"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "_id",
+          "at",
+          "message"
+        ]
+      },
+      "ManagerNotice": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "forUserId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "Present when the note is for one diner alone"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "_id",
+          "at",
+          "message"
+        ]
+      },
+      "PaymentLine": {
+        "type": "object",
+        "properties": {
+          "menuId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "The price charged per unit, in pounds (GBP), to the penny"
+          },
+          "refundedQty": {
+            "type": "integer",
+            "description": "Units of this line refunded since"
+          },
+          "category": {
+            "type": "string",
+            "description": "The item's category when paid (absent on older payments)"
+          }
+        },
+        "required": [
+          "menuId",
+          "name",
+          "qty",
+          "unitPrice",
+          "refundedQty"
+        ]
+      },
+      "Payment": {
+        "type": "object",
+        "description": "One settled checkout, at the prices charged. Manager-only",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "paypal",
+              "stripe"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "pending",
+              "failed"
+            ],
+            "description": "pending: taken but not confirmed by the provider; its units are held, the cart stays open, and it can't be refunded until a manager checks it"
+          },
+          "providerCheckoutId": {
+            "type": "string",
+            "description": "PayPal's order id, or Stripe's PaymentIntent id"
+          },
+          "providerPaymentId": {
+            "type": "string",
+            "description": "PayPal's capture id, or Stripe's charge id: what a refund is made against. Missing only if the provider gave none"
+          },
+          "currency": {
+            "type": "string",
+            "description": "GBP"
+          },
+          "userId": {
+            "anyOf": [
+              {
+                "type": "object",
+                "description": "A user by first name",
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$",
+                    "description": "A MongoDB ObjectId"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "_id",
+                  "name"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "number",
+            "description": "What was taken, in pounds (GBP), to the penny"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentLine"
+            }
+          }
+        },
+        "required": [
+          "_id",
+          "provider",
+          "status",
+          "providerCheckoutId",
+          "currency",
+          "userId",
+          "paidAt",
+          "amount",
+          "lines"
+        ]
+      },
+      "Refund": {
+        "type": "object",
+        "description": "A manager's refund of some units of a payment. Manager-only",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "paymentId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "menuId": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{24}$",
+                  "description": "A MongoDB ObjectId"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "menuId",
+                "name",
+                "qty"
+              ]
+            }
+          },
+          "amount": {
+            "type": "number",
+            "description": "Refunded, in pounds (GBP), to the penny"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "failed"
+            ],
+            "description": "pending: the provider was asked and hasn't clearly answered (retry it); completed; failed (nothing moved)"
+          },
+          "providerRefundId": {
+            "type": "string"
+          },
+          "failureReason": {
+            "type": "string"
+          },
+          "byUserId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "unavailable",
+              "wrong_item",
+              "quality",
+              "long_wait",
+              "paid_by_mistake",
+              "changed_mind",
+              "other"
+            ]
+          },
+          "reasonNote": {
+            "type": "string",
+            "description": "Only with reason \"other\""
+          }
+        },
+        "required": [
+          "_id",
+          "paymentId",
+          "lines",
+          "amount",
+          "currency",
+          "status",
+          "byUserId",
+          "at"
+        ]
+      },
+      "LogEntry": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "byUserId": {
+            "anyOf": [
+              {
+                "type": "object",
+                "description": "A user by first name",
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$",
+                    "description": "A MongoDB ObjectId"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "_id",
+                  "name"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The manager; absent when the server itself wrote the line (the Stripe sweep or webhook)"
+          },
+          "action": {
+            "type": "string",
+            "description": "releaseSelection, removeItem, close, mergeInto, refund, checkPayment, stripeRefundFailed, paybackDone"
+          },
+          "details": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "at",
+          "action"
+        ]
+      },
+      "Cart": {
+        "type": "object",
+        "description": "A table's cart as a diner sees it (carts/model.ts dinerView): no payment or refund records, no manager log, no provider ids",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "userId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "The diner who started the cart"
+          },
+          "shopId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "Absent on carts from before carts recorded their shop"
+          },
+          "tableId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "splitted",
+              "closed"
+            ],
+            "description": "\"splitted\" is a legacy value nothing sets any more"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItem"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "split": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Split"
+            }
+          },
+          "notices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "description": "Recent (2 hours), newest first, at most 5: the table's, plus the caller's own when signed in"
+          }
+        },
+        "required": [
+          "_id",
+          "userId",
+          "tableId",
+          "status",
+          "items",
+          "split",
+          "notices",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ManagerCart": {
+        "type": "object",
+        "description": "A cart as its shop's manager sees it: everything, diners by first name",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "userId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "The diner who started the cart"
+          },
+          "shopId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "Absent on carts from before carts recorded their shop"
+          },
+          "tableId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "splitted",
+              "closed"
+            ],
+            "description": "\"splitted\" is a legacy value nothing sets any more"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CartItem"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paypalOrderId": {
+            "type": "string",
+            "description": "Legacy: the one PayPal order of a cart settled before multi-payer support"
+          },
+          "paypalOrderIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every PayPal order that settled part of this cart"
+          },
+          "stripePaymentIntentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every Stripe PaymentIntent that settled part of this cart"
+          },
+          "split": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagerSplit"
+            }
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Payment"
+            }
+          },
+          "refunds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Refund"
+            }
+          },
+          "notices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagerNotice"
+            }
+          },
+          "managerLog": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LogEntry"
+            }
+          }
+        },
+        "required": [
+          "_id",
+          "userId",
+          "tableId",
+          "status",
+          "items",
+          "split",
+          "notices",
+          "createdAt",
+          "updatedAt",
+          "payments",
+          "refunds",
+          "managerLog"
+        ]
+      },
+      "CartNotFound": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "const": "Cart Not Found!"
+          },
+          "notices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Notice"
+            },
+            "description": "For a signed-in diner who took part in a cart closed lately: its recent notices (a refund, the close); empty for anyone else"
+          }
+        },
+        "required": [
+          "message",
+          "notices"
+        ]
+      },
+      "TableStatus": {
+        "type": "object",
+        "properties": {
+          "tableId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "free",
+              "ordering",
+              "waitingToPay",
+              "partlyPaid"
+            ],
+            "description": "free: nothing ordered; ordering: items, none paid or selected; waitingToPay: someone has a selection open; partlyPaid: some units paid, none selected now"
+          },
+          "owed": {
+            "type": "number",
+            "description": "Unpaid units at current prices (sold-out items not counted), in pounds (GBP), to the penny"
+          },
+          "paid": {
+            "type": "number",
+            "description": "Paid units at the prices paid, in pounds (GBP), to the penny"
+          },
+          "heldSince": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The oldest open selection's claim time, when there is one"
+          },
+          "attention": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "soldOut",
+                "duplicateCarts",
+                "staleSelection",
+                "paymentPending",
+                "payBack"
+              ]
+            }
+          }
+        },
+        "required": [
+          "tableId",
+          "name",
+          "state",
+          "owed",
+          "paid",
+          "attention"
+        ]
+      },
+      "Payback": {
+        "type": "object",
+        "description": "Money staff must give a diner back another way, because Stripe won't. Manager-only",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "shopId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "tableId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "cartId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "refundRefused",
+              "refundFailed"
+            ],
+            "description": "refundRefused: a card payment that couldn't be recorded and whose refund Stripe won't make; refundFailed: a manager's card refund Stripe accepted then failed"
+          },
+          "userId": {
+            "anyOf": [
+              {
+                "type": "object",
+                "description": "A user by first name",
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$",
+                    "description": "A MongoDB ObjectId"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "_id",
+                  "name"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The diner owed"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Owed, in pounds (GBP), to the penny"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "paymentIntentId": {
+            "type": "string",
+            "description": "Stripe's, to find it in the dashboard"
+          },
+          "refundId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "The cart refund (refundFailed)"
+          },
+          "paymentAmount": {
+            "type": "number",
+            "description": "The whole payment's amount (refundFailed), in pounds (GBP), to the penny"
+          },
+          "disputed": {
+            "type": "boolean",
+            "description": "The diner disputes the payment with their bank, which returns it: staff don't"
+          },
+          "owed": {
+            "type": "boolean",
+            "const": true,
+            "description": "Present until marked done"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "doneAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "doneByUserId": {
+            "anyOf": [
+              {
+                "type": "object",
+                "description": "A user by first name",
+                "properties": {
+                  "_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$",
+                    "description": "A MongoDB ObjectId"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "_id",
+                  "name"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "doneAs": {
+            "type": "string",
+            "enum": [
+              "paidBack",
+              "handled",
+              "checked"
+            ]
+          },
+          "recorded": {
+            "type": "boolean",
+            "const": true,
+            "description": "Present on an owed refundRefused pay-back whose payment a cart now shows as paid"
+          }
+        },
+        "required": [
+          "_id",
+          "shopId",
+          "tableId",
+          "cartId",
+          "kind",
+          "userId",
+          "amount",
+          "currency",
+          "at"
+        ]
+      },
+      "TableCarts": {
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagerCart"
+            },
+            "description": "The table's open cart (more than one only for legacy duplicates), newest first"
+          },
+          "recentlyClosed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ManagerCart"
+            },
+            "description": "Closed in the last 24 hours, or older but still awaiting a provider"
+          },
+          "paybacks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Payback"
+            },
+            "description": "Owed, and done in the last 30 days, newest first"
+          }
+        },
+        "required": [
+          "open",
+          "recentlyClosed",
+          "paybacks"
+        ]
+      },
+      "CloseResult": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "Nothing was ever paid on the cart: it was deleted",
+            "properties": {
+              "deleted": {
+                "type": "boolean",
+                "const": true
+              },
+              "dropped": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "description": "Unpaid units the close dropped",
+                  "properties": {
+                    "menuId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{24}$",
+                      "description": "A MongoDB ObjectId"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "qty": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "menuId",
+                    "name",
+                    "qty"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "deleted",
+              "dropped"
+            ]
+          },
+          {
+            "type": "object",
+            "description": "The cart is closed; its paid units stay as the record",
+            "properties": {
+              "deleted": {
+                "type": "boolean",
+                "const": false
+              },
+              "dropped": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "description": "Unpaid units the close dropped",
+                  "properties": {
+                    "menuId": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{24}$",
+                      "description": "A MongoDB ObjectId"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "qty": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "menuId",
+                    "name",
+                    "qty"
+                  ]
+                }
+              },
+              "cart": {
+                "$ref": "#/components/schemas/ManagerCart"
+              }
+            },
+            "required": [
+              "deleted",
+              "dropped",
+              "cart"
+            ]
+          }
+        ]
+      },
+      "RefundResult": {
+        "type": "object",
+        "properties": {
+          "refund": {
+            "$ref": "#/components/schemas/Refund"
+          },
+          "cart": {
+            "$ref": "#/components/schemas/ManagerCart"
+          }
+        },
+        "required": [
+          "refund",
+          "cart"
+        ]
+      },
+      "PaymentCheckResult": {
+        "type": "object",
+        "properties": {
+          "payment": {
+            "$ref": "#/components/schemas/Payment"
+          },
+          "cart": {
+            "$ref": "#/components/schemas/ManagerCart"
+          }
+        },
+        "required": [
+          "payment",
+          "cart"
+        ]
+      },
+      "PaybackResult": {
+        "type": "object",
+        "properties": {
+          "payback": {
+            "$ref": "#/components/schemas/Payback"
+          }
+        },
+        "required": [
+          "payback"
+        ]
+      },
+      "PayPalOrder": {
+        "type": "object",
+        "properties": {
+          "paypalOrderId": {
+            "type": "string",
+            "description": "The order to approve in PayPal's popup, then capture"
+          }
+        },
+        "required": [
+          "paypalOrderId"
+        ]
+      },
+      "StripeIntent": {
+        "type": "object",
+        "properties": {
+          "clientSecret": {
+            "type": "string",
+            "description": "For Stripe's Payment Element"
+          },
+          "paymentIntentId": {
+            "type": "string",
+            "pattern": "^pi_"
+          },
+          "amount": {
+            "type": "integer",
+            "description": "In pence: the front end confirms only the amount it showed"
+          }
+        },
+        "required": [
+          "clientSecret",
+          "paymentIntentId",
+          "amount"
+        ]
+      },
+      "Received": {
+        "type": "object",
+        "properties": {
+          "received": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "received"
+        ]
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          },
+          "version": {
+            "type": "string",
+            "description": "The API's version (package.json)"
+          },
+          "uptime": {
+            "type": "number",
+            "description": "Seconds since the process started"
+          }
+        },
+        "required": [
+          "status",
+          "version",
+          "uptime"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "description": "Every error answer (errorMiddlewares.ts). A 5xx says only \"Generic Server Error\" unless its message was written for the user",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "The field, dotted (\"lines.0.qty\")"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "message"
+              ]
+            },
+            "description": "With \"Validation failed\": one entry per problem"
+          },
+          "reason": {
+            "type": "string",
+            "description": "A machine-readable why, where a client acts on it: superseded, CART_GONE, CART_GONE_PENDING, STILL_CONFIRMING"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "StripeCheckoutState": {
+        "type": "string",
+        "enum": [
+          "open",
+          "finishing",
+          "releasing",
+          "recorded",
+          "released",
+          "refunded",
+          "refundFailed"
+        ],
+        "description": "A card payment record's state (carts/stripeCheckout.ts); not served by any route, listed for the notices' wording"
+      }
+    }
+  }
+}

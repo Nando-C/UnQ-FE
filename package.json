@@ -46,7 +46,8 @@
     "preview": "vite preview",
     "lint": "eslint src",
     "test": "vitest run",
-    "audit:responsive": "node scripts/responsive-audit.mjs"
+    "audit:responsive": "node scripts/responsive-audit.mjs",
+    "contract:refresh": "node scripts/refresh-openapi.mjs"
   },
   "engines": {
     "node": ">=22.12.0"
