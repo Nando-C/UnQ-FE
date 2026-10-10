@@ -11,9 +11,17 @@
   right: 5px;
 }
 
-/* The code is a 250px bitmap; on screen it shrinks to fit a narrower card (four
- * to a row in the 60rem shop page leaves ~216px) and stays square and centred.
- * Print sets its own size in mm (TableList.css). */
+/* The card has no body: its title, status and code sit on it directly, so the
+ * side padding is theirs (an attention line like "Payment awaiting confirmation"
+ * otherwise ran to the edge). */
+.SingleTable > .card > .card-title,
+.SingleTable > .card > .TableStatus {
+  padding-inline: 1rem;
+}
+
+/* The code is a 250px bitmap; on screen it shrinks to fit a narrower card
+ * (three to a row in the 60rem shop page leaves about 290px, two below 992px)
+ * and stays square and centred. Print sets its own size in mm (TableList.css). */
 .SingleTable canvas {
   display: block;
   max-width: calc(100% - 2rem);

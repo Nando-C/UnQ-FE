@@ -8,9 +8,20 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ### Added
 
+- Screenshots of the current build in `docs/images/`, taken from the live demo by `npm run shots` (`scripts/shots.mjs`) and framed in a phone or a browser window; the README and the docs pages use them. The 2021 images are gone.
 - `docs/`: the client's design knowledge, read from the code: architecture, checkout (with the table of every outcome a diner can see), manager tools, UX and engineering decisions, responsive layout and accessibility, deployment, testing, known gaps. Linked from the README.
 - A contract test: every URL the client calls is an operation in the API's OpenAPI document, kept as a fixture (`scripts/openapi.json`) and refreshed each release with `npm run contract:refresh`.
 - A docs test: every link in the Markdown resolves, and the README's environment table matches `.env.example`.
+
+### Changed
+
+- The card form starts on the United Kingdom instead of a country guessed from the diner's address.
+- Table cards: three to a row on wide screens instead of four, with side padding for the title and status lines.
+
+### Fixed
+
+- A table's QR code is drawn without the shop's cover when the cover can't be loaded into it (a host without CORS headers), and plain while a slow cover loads, instead of never.
+- Deep links on Vercel: a project with its own rewrites gets no single-page fallback, so every path but `/` was a 404 on the live site; a second rewrite sends them to `index.html`.
 
 ## [2.0.0] - 2026-10-09
 

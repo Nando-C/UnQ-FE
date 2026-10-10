@@ -49,6 +49,8 @@ Two tests look after the repository rather than the UI:
 
 Outside `src/`, `scripts/styleImports.test.mjs` keeps Sass `@import` to the one file Bootstrap needs.
 
+Not a test, but the same tooling: `npm run shots -- --env=<file>` (`scripts/shots.mjs`) signs in to the live demo as its two accounts, drives the screens the README and the docs show, and frames each capture in a phone or a browser window into `docs/images/`. It pays for two items by test card and releases a selection on the way, so the demo is seeded again afterwards.
+
 ## What it doesn't cover
 
 PayPal's popup and Stripe's iframe are the providers' (their SDKs are mocked at the component boundary); the Google OAuth round trip; real layout (jsdom has none: the responsive audit renders the real thing); real latency and image weights. A manual pass in test mode with Stripe's test cards and a PayPal sandbox account is part of each release ([deployment.md](./deployment.md)).

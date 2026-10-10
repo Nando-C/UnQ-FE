@@ -14,6 +14,8 @@ A manager is an account with the `shopMg` role, set in the database, never throu
 
 ### The three editors
 
+<img src="./images/item-editor.png" alt="The menu item editor: photo, name, the two descriptions, price, the availability switch" width="720">
+
 `ShopModal`, `ItemModal` and `TableModal` share one shape: a dialog (`fullscreen` below 576px, scrollable, the footer always in view) whose form **starts from the saved record each time it opens**, not from what was typed last time. Saving sends the fields, then the picture if one was picked (`lib/upload.ts`, a multipart `PUT` to the record's image route), then reloads the manager's shops. A picture that fails after the fields saved says so without undoing them: "The changes were saved, but the image wasn't: …". Create remembers the id it made, so pressing Create again after a failed upload saves to that record instead of making a second one; one create at a time, so a double tap sends one.
 
 The API's zod `400` is shown as its `details`, joined. The item editor checks the price is a positive number in whole pence before sending (refunds price each line, so a fraction of a penny wouldn't add up); categories are `food` or `drinks`, as the API's enum; a new item starts available.
@@ -26,19 +28,25 @@ Each menu row's switch flips `available` in the store before the `PUT` (`setMenu
 
 ## Tables
 
+<img src="./images/tables.png" alt="Five table cards: Ordering, Waiting to pay with a selection held over 15 min, Partly paid with a sold-out item, Free with a diner to pay back, and a payment awaiting confirmation; each with its QR code" width="720">
+
 Each table is a card with its name, its **status**, its **QR code**, and buttons to view and edit it.
 
 - **Status** comes from `GET /shops/:shopId/tables/status`, polled every 30 seconds while the page is visible (`lib/useVisiblePolling.ts`; a hidden tab stops asking, and coming back loads at once). A failed poll keeps the last result. The card shows a badge (Free, Ordering, Waiting to pay, Partly paid), the amount owed, and anything that needs a look, always as an icon **with text**: "Sold-out item in the cart", "Selection held over 15 min", "More than one open cart", "Payment awaiting confirmation", "Diner to pay back". The colours are Bootstrap's subtle/emphasis pairs; the words carry the meaning.
-- **QR codes** are drawn by `qr-code-styling` from the table's `Qr_Url`, in a dark teal chosen to survive print, dim rooms and red-light readers (the figures are in `SingleTable.tsx`), with the shop's own cover in the middle when it uploaded one. "Print QR codes" prints the tables section alone, three codes to a row at 45mm each, never split across a page (`TableList.css`).
+- **QR codes** are drawn by `qr-code-styling` from the table's `Qr_Url`, in a dark teal chosen to survive print, dim rooms and red-light readers (the figures are in `SingleTable.tsx`), with the shop's own cover in the middle when it uploaded one (plain if the cover can't be loaded, or while a slow one loads). "Print QR codes" prints the tables section alone, three codes to a row at 45mm each, never split across a page (`TableList.css`).
 - **Deleted tables** (`IShop.deletedTables`, from `/shops/me`) are listed under the cards while they still matter: a cart closed there in the last day, or something left to do (an open cart, a payment or refund awaiting its provider, a diner to pay back). Each opens its sheet, marked "This table was deleted: it takes no more orders." A table whose sheet was opened stays listed for the visit, so the sheet isn't pulled away and focus returns to its button.
 
 ## The table sheet
+
+<img src="./images/table-sheet.png" alt="The Window table's sheet: items with paid and selected counts, two held selections with Release, Ben's payment with Refund, and the log" width="720">
 
 `TableSheet` is where staff act. It loads `GET /shops/:shopId/tables/:tableId/carts` and refreshes every 20 seconds while open; a failed refresh keeps what's shown with "Couldn't refresh this table. What's shown may be out of date."
 
 It shows, top to bottom: the table's state, owed and paid; **To pay back** (below); each **open cart** (more than one is flagged; the first is the one diners see) with its items (ordered, paid, selected per item), who has **selected** what and for how long (over 15 minutes is flagged), its **payments**, its **log**, and the cart's actions; then the carts **closed in the last 24 hours**, collapsed, each with its payments and log.
 
 ### Actions
+
+<img src="./images/refund.png" alt="The refund picker: one Latte chosen, the reason Wrong item served, and the question Refund £3.40 to Ben" width="720">
 
 Every action is a question first, in the sheet's footer (`ConfirmFooter`), in plain words that say what will happen; destructive ones get a danger button. Nothing else in the sheet can be asked while one is being confirmed or sent. The sheet reloads after every action, and the table card refreshes its status.
 
@@ -61,6 +69,8 @@ A `409` means the table isn't as it was shown: the sheet says so in its own word
 Each recorded payment shows who, when, what, the amount and its provider's name (`lib/providers.ts`); refunds under it, with their reason. A **pending** payment ("Awaiting PayPal: it took this payment but hasn't confirmed it. The items are held as paid until then.") can only be checked; a **failed** one only seen. "Refund…" appears when the payment is complete, has a provider id, nothing of it is under way, and something is left. Paid units from before payments were recorded (closed splits without a `unitPrice`) show as "Paid, details unavailable", to refund from PayPal's dashboard.
 
 ### Pay-backs
+
+<img src="./images/pay-back.png" alt="Garden 2's sheet: the pay-back owed to Grace with the payment id, and the Mark paid back question" width="720">
 
 Money staff must give a diner another way, because Stripe won't (`lib/paybacks.ts`, from the API's `paybacks`): a refund Stripe refused, or a manager's refund Stripe accepted and then failed. They belong to the table, not a cart (whose cart may be gone), so they head the sheet. The wording names the diner, the amount, the payment's id for Stripe's dashboard, and what to do, with a precedence: a **dispute** first (the diner's bank returns the money: "don't pay them back yourselves", mark **handled**), then one a cart still shows as **paid** (check that payment first, mark **checked**), else pay it back another way (mark **paid back**). Done ones stay for 30 days, small and muted: "Paid back £12.00 to Ada · marked by Sam, 3 Oct 14:05". The table card flags an owed one as "Diner to pay back".
 

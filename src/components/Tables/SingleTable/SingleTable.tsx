@@ -10,6 +10,9 @@ import { ITableStatus } from "../../../typings/tables";
 import { ownCover } from "../../../lib/cover";
 import "./SingleTable.css";
 
+// How long the code waits for the shop's cover before it's drawn plain.
+const COVER_WAIT_MS = 4000;
+
 interface TableProps {
   tableId: string;
   shopId: string;
@@ -53,7 +56,34 @@ const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
   // The shop's own cover in the middle, or a plain code when it has none.
   const qrImage = ownCover(shop?.cover);
   useEffect(() => {
-    qrCode.update({ data: qrData, image: qrImage });
+    if (!qrImage) {
+      qrCode.update({ data: qrData, image: "" });
+      return;
+    }
+    // The library draws nothing until the cover has loaded, and never if it
+    // can't (a host without CORS headers fails a crossOrigin load), so the
+    // cover is loaded here first: the code is drawn with it once it arrives,
+    // without it if it fails, and plain meanwhile if it's slow.
+    let live = true;
+    const plain = () => qrCode.update({ data: qrData, image: "" });
+    const slow = window.setTimeout(() => { if (live) plain(); }, COVER_WAIT_MS);
+    const cover = new Image();
+    cover.crossOrigin = "anonymous";
+    cover.onload = () => {
+      if (!live) return;
+      window.clearTimeout(slow);
+      qrCode.update({ data: qrData, image: qrImage });
+    };
+    cover.onerror = () => {
+      if (!live) return;
+      window.clearTimeout(slow);
+      plain();
+    };
+    cover.src = qrImage;
+    return () => {
+      live = false;
+      window.clearTimeout(slow);
+    };
   }, [qrCode, qrData, qrImage]);
 
   const [show, setShow] = useState(false);

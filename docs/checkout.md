@@ -12,6 +12,8 @@ How a diner picks what to pay for and pays, and every message they can see about
 
 ## Selecting what to pay
 
+<img src="./images/cart.png" alt="The cart on a phone: two items selected with steppers, a sold-out item flagged and not charged, the checkout bar pinned above the tab bar" width="300">
+
 The cart is the table's, shared by everyone at it. Each unpaid unit can be **selected** by one diner at a time (an open *split* on the API). A row's checkbox selects one unit; its −/+ change how many; "Select All" takes every unit still free. What a diner can still take of an item is `availableQty`: ordered, minus paid, minus what other diners hold.
 
 **Selections are optimistic** (`cartSlice.ts`, `setSplitQty`). A tap sets the wanted count for that item in `pending` and the row shows it at once. One loop per item then brings the API round to it, one request at a time, re-reading the wanted count after every answer, so a burst of + becomes one `addSplitItem` for the difference and taps never race each other. On a refusal the wanted count is dropped, the cart is fetched again and the row says why: "Sorry, that just sold out.", "Not enough left, someone else just took it.", or "Couldn't update that, please try again.". Checkout is disabled while anything is still syncing.
@@ -23,6 +25,8 @@ The totals: **Total paid** sums closed splits at the price each unit was paid at
 The bin removes an item's unpaid units for the whole table, except units other diners have selected ("{n} kept: someone at the table is paying for them."); − orders one fewer. A 204 means the emptied cart was deleted, and the page shows "No open orders".
 
 ## The checkout sheet
+
+<img src="./images/checkout.png" alt="The checkout sheet: the card form open with the amount on the Pay button, then PayPal under or" width="300">
 
 Opens from the checkout button. Both providers' scripts load then, not before. With `VITE_STRIPE_PUBLISHABLE_KEY` set the sheet shows Stripe's card form first (Card open; Apple Pay and Google Pay as rows under it where the device and the registered domain allow), then "or" and PayPal's own button alone (`fundingSource: "paypal"`: no Pay Later, no card through PayPal). Without a key, PayPal's buttons as it draws them, card button included, are the only way. A line under the title says the amount for both: "Paying £X for your selection".
 
@@ -47,6 +51,8 @@ A bank check that takes the diner off the page (rare: Stripe.js runs it over the
 
 ## Outcomes
 
+<img src="./images/paid.png" alt="The Payment successful sheet with a green tick" width="300">
+
 One mapping for both providers (`lib/paymentOutcome.ts`), from the capture's status, message and `reason` to a sheet with a title, an icon and the message, whether the cart is fetched again (`refetch`), and whether it is looked at again later (`recheck`, cards only: Stripe's webhook or the sweep finishes an unanswered payment). Titles: **Payment successful**, **Payment not completed**, **Payment under review**, **Confirming your payment**.
 
 | The API answered | Shown | Refetch | Recheck |
@@ -70,6 +76,8 @@ One mapping for both providers (`lib/paymentOutcome.ts`), from the capture's sta
 Closing a success goes to the table's menu, by path (not back a page, which could land on the sign-in form).
 
 ### Notices
+
+<img src="./images/notice.png" alt="A notice above the cart: The staff released your selection of 1× Roast Chicken" width="300">
 
 The API attaches `notices` to the table's cart (and to its 404 when there is no open cart): what staff or the server did to this diner's table ("The staff released your selection of 2× Latte.", how an abandoned card payment ended). `CartNotices` shows the three newest the diner hasn't dismissed, above the list and on the empty cart, in one `role="status"` region. Dismissed ids are kept in `localStorage` (the last 50); without storage a note comes back until the API stops sending it.
 

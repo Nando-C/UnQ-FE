@@ -47,7 +47,8 @@
     "lint": "eslint src",
     "test": "vitest run",
     "audit:responsive": "node scripts/responsive-audit.mjs",
-    "contract:refresh": "node scripts/refresh-openapi.mjs"
+    "contract:refresh": "node scripts/refresh-openapi.mjs",
+    "shots": "node scripts/shots.mjs"
   },
   "engines": {
     "node": ">=22.12.0"
