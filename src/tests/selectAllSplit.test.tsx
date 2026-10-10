@@ -137,8 +137,9 @@ describe("Select All / individual split selection", () => {
 
     await user.click(selectAll)
 
+    // One request per row, sent together: the BE may see them in either order.
     await waitFor(() =>
-      expect(added).toEqual([
+      expect([...added].sort((a, b) => a.menuId.localeCompare(b.menuId))).toEqual([
         { menuId: "m1", qty: 2 },
         { menuId: "m2", qty: 1 },
       ])

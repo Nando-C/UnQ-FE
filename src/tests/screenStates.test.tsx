@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import { Provider } from "react-redux"
 import { Route, Routes } from "react-router-dom"
 import { http, HttpResponse } from "msw"
@@ -116,13 +116,17 @@ describe("the cart page", () => {
       http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)),
       http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cart))
     )
-    renderWithProviders(<Cart />, {
+    const { store } = renderWithProviders(<Cart />, {
       route: "/shops/s1/tables/t1/cart",
       path: "/shops/:shopId/tables/:tableId/cart",
       preloadedState: { shops: { data: [], selected: other, selectedMenu: null } },
     })
 
     expect(await screen.findByText("Table: Window")).toBeInTheDocument()
+    // The table's name comes from the shop; the cart request is still in
+    // flight. Let it land before the handlers are reset, or the next test is
+    // charged with it as unanswered (seen on CI).
+    await waitFor(() => expect(store.getState().carts.loaded?.tableId).toBe("t1"))
   })
 })
 
@@ -140,6 +144,10 @@ describe("opening one shop after another", () => {
     held: IShop | null = null
   ) => {
     const gates = [gate(), gate()]
+    // Each request is dispatched only once the one before it has reached the
+    // handler: two identical requests can reach msw in either order (they did
+    // on CI), and the handler tells them apart by arrival.
+    const arrived = [gate(), gate()]
     const byShop: Record<string, number[]> = {}
     shops.forEach((id, i) => (byShop[id] ??= []).push(i))
     const served: Record<string, number> = {}
@@ -147,6 +155,7 @@ describe("opening one shop after another", () => {
       server.use(
         http.get(`${BASE}/shops/${id}`, async () => {
           const i = byShop[id][(served[id] = (served[id] ?? 0) + 1) - 1]
+          arrived[i].open()
           await gates[i].opened
           return answers[i] === "ok"
             ? HttpResponse.json({ ...cafe, _id: id, name: `copy ${i + 1}` })
@@ -155,7 +164,11 @@ describe("opening one shop after another", () => {
       )
     }
     const store = makeStore({ shops: { data: [], selected: held, selectedMenu: null } })
-    const sent = shops.map((id) => store.dispatch(fetchSingleShop(id)))
+    const sent = []
+    for (const [i, id] of shops.entries()) {
+      sent.push(store.dispatch(fetchSingleShop(id)))
+      await arrived[i].opened
+    }
     for (const i of order) {
       gates[i].open()
       await sent[i]
