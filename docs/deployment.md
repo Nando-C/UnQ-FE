@@ -8,6 +8,7 @@ Where the client runs, what it needs from its hosts and from the API's, and the 
 |---|---|---|
 | This app | Vercel, `https://un-q.vercel.app` | framework Vite, build `npm run build`, output `dist/` (not Create React App's `build/`: a wrong setting serves an empty site) |
 | `/api/*` | the same origin, rewritten by Vercel to the API on Render | `vercel.json`; the destination omits `/api`, so the API serves its documented paths unchanged |
+| Every other path | `index.html`, by a second rewrite in `vercel.json` | A project with its own rewrites gets no single-page fallback from Vercel's Vite preset: without this line a deep link (a table's QR URL, `/login`) is a 404 |
 | The API | Render, `https://unq-be.onrender.com` | free tier: the first request after idling can take about a minute |
 
 `vercel.json` also caches the hashed `assets/*.js` and `*.css` for a year, immutable; the vendor chunk changes only when a library does.
@@ -41,7 +42,7 @@ The two repositories release together with their own [Semantic Versioning](https
 2. `npm version minor --no-git-tag-version` (or `patch`), write the changelog entry (deploy notes first when a host setting changes), update the README's version badge.
 3. Merge to `main`; CI runs on Node 24 (`npm ci`, lint, tests, build).
 4. **The API deploys first**, then this app: Vercel builds `main` on merge. Tag: `git tag -a v2.1.0 -m "UnQ front end 2.1.0"`, `git push --follow-tags`.
-5. Check on the live site: a deep link renders (`/shops/<id>/tables/<id>`, not a 404: Vercel's SPA fallback survives the rewrite); sign in on Safari with tracking prevention on; Google sign-in completes; a test card pays (`4242 4242 4242 4242`; `4000 0025 0000 3155` asks for a bank check; `4000 0000 0000 0002` is declined); Apple Pay or Google Pay shows on a registered domain.
+5. Check on the live site: a deep link renders (`/shops/<id>/tables/<id>`, not a 404: the fallback rewrite is in place); sign in on Safari with tracking prevention on; Google sign-in completes; a test card pays (`4242 4242 4242 4242`; `4000 0025 0000 3155` asks for a bank check; `4000 0000 0000 0002` is declined); Apple Pay or Google Pay shows on a registered domain.
 
 ## Local development
 
