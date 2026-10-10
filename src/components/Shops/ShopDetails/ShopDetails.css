@@ -1,9 +1,31 @@
-.ShopDetails .list-group-item {
-  border: none;
+/* Clears the fixed manager header, which is taller on this page (it adds the shop's
+ * section bar) and changes height with the viewport: ShopNavbar measures it as
+ * --unq-header-h. */
+.ShopDetails {
+  /* Until the header is measured (it only appears once the app knows the user
+   * is a manager), its usual height, so the page doesn't drop when it does:
+   * one row, or two below 640px where the section tabs get their own. In rem,
+   * as the header grows with the text size (55px and 102px at 16px). */
+  --header-guess: 3.4375rem;
+  padding-top: calc(var(--unq-header-h, var(--header-guess)) + 1.5rem);
+  padding-bottom: 3rem;
 }
 
-.ShopDetails .menu-item {
-  border: none;
+@media (max-width: 639.98px) {
+  .ShopDetails {
+    --header-guess: 6.375rem;
+  }
+}
+
+/* The menu and the tables start well clear of the section above. */
+.ShopDetails .shop-section {
+  margin-top: 3rem;
+}
+
+/* Readable on wide screens: menu rows don't stretch their price and switch far
+ * from the name. .container.: Bootstrap's own max-widths load after this file. */
+.container.ShopDetails {
+  max-width: 60rem;
 }
 
 .ShopDetails .card .card-title {
@@ -11,8 +33,25 @@
   font-weight: 600;
 }
 
-/* #shopDetails > .card-title {
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: -1.5px;
-} */
+
+/* A URL has no spaces to wrap at; let it break anywhere rather than widen the
+ * page on narrow screens or at large text. */
+.ShopDetails .shop-url {
+  overflow-wrap: anywhere;
+}
+
+/* The shop's photo in its details card: a 16:9 box, tinted until the photo
+ * arrives, so the card keeps its size. */
+.ShopDetails .shop-cover {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--bs-border-radius);
+  background-color: var(--bs-secondary-bg);
+}
+
+.ShopDetails .shop-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

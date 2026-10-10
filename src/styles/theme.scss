@@ -1,0 +1,59 @@
+// UnQ theme — Bootstrap recompiled from source with the UnQ palette. Both the customer
+// and the manager interfaces use this one theme.
+//
+// This file exists instead of importing bootstrap/dist/css/bootstrap.min.css because
+// the compiled stylesheet hardcodes its hex values (`.btn-primary` sets
+// `--bs-btn-bg:#0d6efd`, not `var(--bs-primary)`), so overriding CSS custom properties
+// would retheme some components and miss buttons entirely.
+//
+// Two layers, deliberately kept apart:
+//   - The BRAND is the logo's coral-to-amber gradient (#FF5F45 → #FFB627). It lives in
+//     the logo, the wordmark and artwork only, never on a control or on text: coral is
+//     3.01:1 against white, and it sits 14deg from the danger red, so "pay" and "delete"
+//     read as the same colour (CIE76 delta-E 20, 18 for deuteranopes).
+//   - The INTERFACE is an evergreen teal, which sits opposite the gradient on the colour
+//     wheel so the logo stands out against the UI instead of blending into it.
+// Contrast figures below are WCAG 2 ratios; delta-E figures are CIE76, with the
+// colour-blind ones simulated (Machado 2009, full severity).
+
+// Buttons, links, prices, the cart count, switches and focus rings. White labels are
+// 6.10:1 at rest, and Bootstrap's hover/press shading (15%/20% darker when the label is
+// light) raises that to 7.62:1 and 8.29:1. As text on white it is also 6.10:1, so links
+// need no separate $link-color: prices, links and buttons are one colour.
+$primary: #0F6E66;
+
+// Red now means one thing only: remove or error. 6.57:1 for white on it and for it as
+// text on white (Bootstrap's #DC3545 is 4.53:1, a hair over the line). Delta-E 95 from
+// the primary, 53 for deuteranopes and 34 for protanopes, so a bin button next to −/+
+// never reads as the same kind of button.
+$danger: #B42318;
+
+// The amber from the logo, as the attention colour: the sold-out banner and any other
+// warning alert. Alerts render it as a pale tint with dark text, so it is never used as
+// a text colour on white (1.75:1).
+$warning: #FFB627;
+
+// Payment confirmed. 5.02:1 on white. It is related to the teal (delta-E 28), so success
+// is never signalled by colour alone: it always carries an icon and text.
+$success: #15803D;
+
+// Muted chrome: secondary buttons and badges.
+// A warm grey rather than Bootstrap's cool #6C757D, to keep the logo's warmth in the
+// neutrals. 6.04:1 with white.
+$secondary: #6B6159;
+
+// Bootstrap's default border is $gray-300 (#DEE2E6), a grey with a hue of 210deg,
+// which reads faintly cold next to the warm logo. This is the same neutral shifted warm
+// at near-identical luminance (1.28:1 against white, the default is 1.30:1), so borders
+// keep their visual weight and only their temperature changes. Reaches cards, inputs, tables, list groups and dropdowns at once,
+// since $input-border-color and $card-border-color both derive from it.
+$border-color: #E8E2DC;
+
+// Buttons carry their label in semibold for presence. 600 specifically because
+// index.html already loads Georama at 400/600/800, so this is a real face rather than a
+// synthetically emboldened one, and costs no extra request. Written as a literal rather
+// than $font-weight-semibold: Bootstrap's own variables are not defined until the
+// @import below, so the named one does not exist yet here.
+$btn-font-weight: 600;
+
+@import "bootstrap/scss/bootstrap";

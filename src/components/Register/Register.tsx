@@ -1,17 +1,20 @@
 import { FormEvent, useState } from "react";
-import {
-  Col,
-  Container,
-  Form,
-  Row,
-  Button,
-  FloatingLabel,
-  Image,
-  Alert,
-} from "react-bootstrap";
-import { useHistory } from "react-router-dom";
+import { Col, Form, Row, Button, FloatingLabel, Alert } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 import backend from "../../backend/backend";
-import "./Register.css";
+import { useAppDispatch } from "../../redux/app/hooks";
+import { fetchUserData } from "../../redux/slices/userSlice";
+import { takeReturnTo } from "../../lib/returnTo";
+import { apiErrorMessage, apiStatus } from "../../lib/errors";
+import { usePageTitle } from "../../lib/usePageTitle";
+import { AuthLayout, GoogleButton } from "../Login/AuthLayout";
+
+const MIN_PASSWORD_LENGTH = 8;
+
+const getErrorMessage = (err: unknown): string =>
+  apiStatus(err) === 409
+    ? "Email already registered"
+    : apiErrorMessage(err);
 
 const Register = () => {
   const [credentials, setCredentials] = useState({
@@ -22,127 +25,152 @@ const Register = () => {
   });
 
   const [verifyPassword, setVerifyPassword] = useState("");
-  const history = useHistory();
+  // The retyped password is only judged once the diner has left the field or
+  // tried to sign up, not while they're still typing either one.
+  const [verifyTouched, setVerifyTouched] = useState(false);
+  const mismatch = verifyTouched && verifyPassword !== credentials.password;
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  usePageTitle("Sign up");
 
-  const handleSingUp = async (e: FormEvent) => {
+  const handleSignUp = async (e: FormEvent) => {
     e.preventDefault();
+    setError("");
+    setVerifyTouched(true);
 
+    if (
+      !credentials.name ||
+      !credentials.surname ||
+      !credentials.email ||
+      !credentials.password
+    ) {
+      setError("All fields are required");
+      return;
+    }
+    if (credentials.password.length < MIN_PASSWORD_LENGTH) {
+      setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+      return;
+    }
+    if (verifyPassword !== credentials.password) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
     try {
       await backend.post("/auth/register", credentials);
-      history.push("/");
-    } catch (error) {
-      console.log(error);
-      setError("Email already exists");
+      dispatch(fetchUserData());
+      // In place of this page, so Back never lands on the sign-up form again.
+      navigate(takeReturnTo() ?? "/", { replace: true });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container className="Register mb-5 text-center">
-      <Row className="align-items-center">
-        <Col xs={12} sm={6}>
-          <Image
-            src="https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png"
-            rounded
-            fluid
-          />
-        </Col>
-        <Col xs={12} sm={6}>
-          <Form onSubmit={handleSingUp}>
-            <Row>
-              <Col>
-                <Form.Group className="mb-3" controlId="formBasicEmail">
-                  <FloatingLabel controlId="floatingInput" label="First Name">
-                    <Form.Control
-                      placeholder="First name"
-                      value={credentials.name}
-                      onChange={(e) =>
-                        setCredentials({ ...credentials, name: e.target.value })
-                      }
-                      isValid={credentials.name.length > 1}
-                    />
-                  </FloatingLabel>
-                </Form.Group>
-              </Col>
-              <Col>
-                <Form.Group className="mb-3" controlId="formBasicEmail">
-                  <FloatingLabel controlId="floatingInput" label="Last Name">
-                    <Form.Control
-                      placeholder="Last name"
-                      value={credentials.surname}
-                      onChange={(e) =>
-                        setCredentials({
-                          ...credentials,
-                          surname: e.target.value,
-                        })
-                      }
-                      isValid={credentials.surname.length > 1}
-                    />
-                  </FloatingLabel>
-                </Form.Group>
-              </Col>
-            </Row>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Email address">
+    <AuthLayout title="Sign up">
+      <Form onSubmit={handleSignUp}>
+        <Row>
+          <Col>
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId="register-name" label="First Name">
                 <Form.Control
-                  type="email"
-                  placeholder="Enter email"
-                  value={credentials.email}
+                  placeholder="First name"
+                  autoComplete="given-name"
+                  value={credentials.name}
                   onChange={(e) =>
-                    setCredentials({ ...credentials, email: e.target.value })
+                    setCredentials({ ...credentials, name: e.target.value })
                   }
-                  isValid={credentials.email.split("@").length === 2}
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicPassword">
-              <FloatingLabel controlId="floatingPassword" label="Password">
+          </Col>
+          <Col>
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId="register-surname" label="Last Name">
                 <Form.Control
-                  type="password"
-                  placeholder="Password"
-                  value={credentials.password}
+                  placeholder="Last name"
+                  autoComplete="family-name"
+                  value={credentials.surname}
                   onChange={(e) =>
-                    setCredentials({ ...credentials, password: e.target.value })
-                  }
-                  isValid={
-                    verifyPassword === credentials.password &&
-                    verifyPassword !== ""
+                    setCredentials({ ...credentials, surname: e.target.value })
                   }
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicPassword">
-              <FloatingLabel
-                controlId="floatingPassword"
-                label="Re-type Password"
-              >
-                <Form.Control
-                  type="password"
-                  placeholder="Re-type Password"
-                  value={verifyPassword}
-                  onChange={(e) => setVerifyPassword(e.target.value)}
-                  isInvalid={
-                    verifyPassword === credentials.password ? false : true
-                  }
-                  isValid={
-                    verifyPassword === credentials.password &&
-                    verifyPassword !== ""
-                  }
-                />
-              </FloatingLabel>
-            </Form.Group>
-            <Button variant="primary" type="submit">
-              SignUp
-            </Button>
-            {error && (
-              <Alert className="my-3" variant="danger">
-                {error}
-              </Alert>
-            )}
-          </Form>
-        </Col>
-      </Row>
-    </Container>
+          </Col>
+        </Row>
+        <Form.Group className="mb-3">
+          <FloatingLabel controlId="register-email" label="Email address">
+            <Form.Control
+              type="email"
+              placeholder="Enter email"
+              autoComplete="email"
+              value={credentials.email}
+              onChange={(e) =>
+                setCredentials({ ...credentials, email: e.target.value })
+              }
+            />
+          </FloatingLabel>
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <FloatingLabel controlId="register-password" label="Password">
+            <Form.Control
+              type="password"
+              placeholder="Password"
+              autoComplete="new-password"
+              aria-describedby="register-password-hint"
+              value={credentials.password}
+              onChange={(e) =>
+                setCredentials({ ...credentials, password: e.target.value })
+              }
+            />
+          </FloatingLabel>
+          <Form.Text id="register-password-hint" className="d-block text-start">
+            At least {MIN_PASSWORD_LENGTH} characters.
+          </Form.Text>
+        </Form.Group>
+        <Form.Group className="mb-3">
+          <FloatingLabel controlId="register-password-again" label="Re-type Password">
+            <Form.Control
+              type="password"
+              placeholder="Re-type Password"
+              autoComplete="new-password"
+              value={verifyPassword}
+              onChange={(e) => setVerifyPassword(e.target.value)}
+              onBlur={() => setVerifyTouched(true)}
+              isInvalid={mismatch}
+            />
+            <Form.Control.Feedback type="invalid" className="text-start">
+              Doesn't match the password above.
+            </Form.Control.Feedback>
+          </FloatingLabel>
+        </Form.Group>
+        {/* Above the button, as on the log-in page. */}
+        {error && (
+          <Alert className="my-3" variant="danger">
+            {error}
+          </Alert>
+        )}
+        <Button variant="primary" type="submit" disabled={loading}>
+          Sign up
+        </Button>
+        <Form.Group className="my-3">
+          <p>
+            Already have an account?{" "}
+            {/* Padded to a 24px+ tap height; still reads as a link. */}
+            <Link to="/login" replace className="d-inline-block py-1">
+              Log in
+            </Link>
+          </p>
+          <GoogleButton label="Sign up with Google" />
+        </Form.Group>
+      </Form>
+    </AuthLayout>
   );
 };
 

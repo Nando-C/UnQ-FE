@@ -1,26 +1,42 @@
 import { useAppDispatch, useAppSelector } from "../../redux/app/hooks";
 import { Container, Button } from "react-bootstrap";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { takeReturnTo } from "../../lib/returnTo";
 import { fetchUserData, selectUserData } from "../../redux/slices/userSlice";
 import ShopList from "../Shops/ShopList/ShopList";
 import { fetchShopList } from "../../redux/slices/shopSlice";
 import ShopModal from "../Shops/ShopModal/ShopModal";
 import AllShopsList from "../Customers/AllShopsList/AllShopsList";
-// import NavigationBar from "../Customers/NavigationBar/NavigationBar"
+import { usePageTitle } from "../../lib/usePageTitle";
+import "./Dashboard.css";
 
 const Dashboard = () => {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
     dispatch(fetchUserData());
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
   const userDataStore = useAppSelector(selectUserData);
   const isManager = userDataStore.role === "shopMg" ? true : false;
+  usePageTitle(isManager ? "My Shops" : "Shops");
 
-  if (isManager) {
-    dispatch(fetchShopList());
-  }
+  // Google sign-in comes back here, to the site root: a diner who started it
+  // at a table goes back to that table.
+  const navigate = useNavigate();
+  const signedIn = !!userDataStore._id;
+  useEffect(() => {
+    if (!signedIn) return;
+    const back = takeReturnTo();
+    if (back) navigate(back, { replace: true });
+  }, [signedIn, navigate]);
+
+  useEffect(() => {
+    if (isManager) {
+      dispatch(fetchShopList());
+    }
+  }, [isManager, dispatch]);
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
@@ -29,21 +45,17 @@ const Dashboard = () => {
   return (
     <>
       {isManager ? (
-        <Container className="pt-5">
-          <div className="my-4 px-3 d-flex justify-content-end">
-            <Button className="me-3" onClick={handleShow}>
-              Add Shop
-            </Button>
+        <Container className="MyShops">
+          <div className="page-head">
+            <h1>My Shops</h1>
+            <Button onClick={handleShow}>Add Shop</Button>
           </div>
           <ShopList />
           <ShopModal show={show} handleClose={handleClose} shopId={"new"} />
         </Container>
       ) : (
         <Container>
-          {/* <h2>User Dashboard</h2> */}
           <AllShopsList />
-          {/* <TableMenu/> */}
-          {/* <NavigationBar /> */}
         </Container>
       )}
     </>

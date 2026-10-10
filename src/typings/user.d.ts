@@ -2,15 +2,27 @@
 export interface IUser {
     _id: string
     name: string
-    surname: string
+    // Absent on a Google account whose Google profile has no family name.
+    surname?: string
     email: string
-    password?: string
     avatar?: string
+    // "shopMg" for a shop manager, "customer" otherwise ("" while signed out).
     role: string
-    refreshToken?: string
-    googleId?: string
+    // False for a Google-only account; changing the email of one that has a
+    // password needs it. Absent on the logged-out placeholder.
+    hasPassword?: boolean
 }
+
+export type UserStatus = "idle" | "loading" | "authenticated" | "guest"
 
 export interface IUserStore {
     data: IUser
+    status: UserStatus
+    // "Who am I" checks are numbered as they're sent (several go out at once on
+    // a page load). The latest one sent: only its failure counts.
+    latestCheck?: number
+    // The one whose answer was applied last: an older success doesn't undo it.
+    // Logging out sets it to the latest sent, so a check sent before can't sign
+    // the user back in.
+    decidedCheck?: number
 }

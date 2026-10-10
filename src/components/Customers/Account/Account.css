@@ -1,11 +1,28 @@
-.Account>.card {
-    position: relative;
+/* Managers have a fixed header (ShopNavbar publishes its height as
+ * --unq-header-h, and until then App.css's --header-guess stands in);
+ * customers don't, so theirs falls back to 0. Keeps the header off the top of
+ * the card. */
+.Account {
+  padding-top: calc(var(--unq-header-h, var(--header-guess, 0px)) + 0.5rem);
 }
 
-.Account>.card .btn {
-    background-color: rgba(255, 255, 255, 0);
-    border: none;
-    position: absolute;
-    top: 10px;
-    right: 10px;
+.Account > .card {
+  position: relative;
+}
+
+/* A teal pencil in the card's corner (variant="link" gives it the primary
+ * colour). */
+.Account > .card .edit-profile {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+/* A portrait-sized avatar at every width, square-cropped so a non-square photo
+ * stays a circle. */
+.Account .avatar {
+  width: 100%;
+  max-width: 10rem;
+  aspect-ratio: 1;
+  object-fit: cover;
 }

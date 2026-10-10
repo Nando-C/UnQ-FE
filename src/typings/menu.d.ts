@@ -3,7 +3,8 @@ export interface IMenu {
     name: string
     image: string
     short_description: string
-    description: string
+    // Optional: the BE doesn't require one.
+    description?: string
     price: number
     available: boolean
     category: string

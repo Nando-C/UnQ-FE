@@ -1,5 +1,6 @@
 import { configureStore, ThunkAction, Action } from "@reduxjs/toolkit"
 import shopReducer from "../slices/shopSlice"
+import browseReducer from "../slices/browseSlice"
 import userReducer from "../slices/userSlice"
 import cartReducer from "../slices/cartSlice"
 
@@ -7,6 +8,7 @@ export const store = configureStore({
     reducer: {
         user: userReducer,
         shops: shopReducer,
+        browse: browseReducer,
         carts: cartReducer,
     },
 })

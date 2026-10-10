@@ -1,25 +1,29 @@
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useId, useRef, useState } from "react";
 import {
+  Alert,
   Form,
   Image,
   Offcanvas,
   Button,
   FloatingLabel,
-  Row,
 } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchUserData, selectUserData } from "../../../redux/slices/userSlice";
 import { IUser } from "../../../typings/user";
+import placeholder from "../../../assets/placeholder.svg";
 import "./AccountOffCanvas.css";
+import { apiErrorMessage } from "../../../lib/errors";
+import { uploadImage } from "../../../lib/upload";
+import { useObjectURL } from "../../../lib/useObjectURL";
 
 interface AccountOffCanvasProps {
   show: boolean;
   handleClose: () => void;
 }
 const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
+  const fieldId = useId();
   const dispatch = useAppDispatch();
-  // dispatch(fetchUserData())
   const myUser = useAppSelector(selectUserData);
 
   const [user, setUser] = useState<IUser>({
@@ -30,41 +34,77 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
     avatar: "",
     role: "",
   });
+  // The form follows the saved account, and starts from it each time the panel
+  // opens, not from edits made and abandoned last time.
   useEffect(() => {
+    if (!show) return;
     setUser({
       _id: myUser._id,
       name: myUser.name,
-      surname: myUser.surname,
+      surname: myUser.surname ?? "",
       email: myUser.email,
       avatar: myUser.avatar,
       role: myUser.role,
     });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [myUser, show]);
 
   const [imageFile, setImageFile] = useState<File | null>();
+  const preview = useObjectURL(imageFile);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  // Opening the panel also drops the photo picked, the password typed and the
+  // error shown last time. Only on opening: an error set just after a save
+  // reloaded the account must stay.
+  useEffect(() => {
+    if (!show) return;
+    setImageFile(null);
+    setCurrentPassword("");
+    setError(null);
+  }, [show]);
+  // The BE asks for the current password to change the email of an account
+  // that has one (it compares addresses trimmed and lowercased, as it stores them).
+  const emailChanges = user.email.trim().toLowerCase() !== myUser.email.trim().toLowerCase();
+  const needsPassword = emailChanges && !!myUser.hasPassword;
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.currentTarget.files;
     if (!files) return;
     setImageFile(files[0]);
-    // console.log("imageFile: ", imageFile)
   };
 
   const updateUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
 
-    const data = await backend.put(`/users/me`, user);
-    console.log("updatedUser: ", data); //<=========================================== LOG
+    let uploading = false;
+    try {
+      await backend.put(`/users/me`, {
+        name: user.name,
+        // Left out while empty on an account that never had one (a Google
+        // account can be without it); the BE refuses an empty surname.
+        ...((user.surname || myUser.surname) && { surname: user.surname }),
+        email: user.email,
+        ...(needsPassword && { currentPassword }),
+      });
+      setCurrentPassword("");
 
-    if (imageFile) {
-      const newItemImg = new FormData();
-      newItemImg.append("avatar", imageFile);
-      const newImage = await backend.put(`/users/me/avatar`, newItemImg);
-      console.log(newImage);
+      if (imageFile) {
+        uploading = true;
+        await uploadImage(`/users/me/avatar`, "avatar", imageFile);
+      }
+      dispatch(fetchUserData());
+      handleClose();
+    } catch (err) {
+      if (uploading) {
+        // The details are saved, so the account shows them too (and a changed
+        // email no longer asks for the password again).
+        dispatch(fetchUserData());
+        setError(`Your details were saved, but the photo wasn't: ${apiErrorMessage(err)}`);
+      } else {
+        setError(apiErrorMessage(err));
+      }
     }
-    dispatch(fetchUserData());
-    handleClose();
   };
 
   return (
@@ -83,37 +123,40 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 onChange={handleFile}
               />
               <Image
-                src={
-                  imageFile
-                    ? URL.createObjectURL(imageFile)
-                    : user?.avatar ||
-                      "https://via.placeholder.com/600x600?text=Blog+Image"
-                }
-                height="200px"
-                // width="400px"
-                alt="cover"
-                className="d-block mx-auto pb-5"
+                src={preview ?? (user?.avatar || placeholder)}
+                width={200}
+                height={200}
+                alt=""
+                className="avatar-preview d-block mx-auto mb-4"
                 roundedCircle
               />
-              <Row className="mx-5">
+              <div className="d-grid gap-2 mx-5">
+                {/* Secondary: a teal outline, so the filled Save stays the one
+                    action that stands out. */}
                 <Button
-                  variant="dark"
-                  className=""
+                  variant="outline-primary"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   Upload Image
                 </Button>
-                <Button
-                  variant="outline-dark"
-                  className="my-2"
-                  onClick={() => setImageFile(null)}
-                >
-                  Reset Image
-                </Button>
-              </Row>
+                {/* Only once a new photo has been picked: it undoes that
+                    pick. The input is cleared too, or picking the same file
+                    again would fire no change. */}
+                {imageFile && (
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => {
+                      setImageFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                  >
+                    Reset Image
+                  </Button>
+                )}
+              </div>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Name">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${fieldId}-name`} label="Name">
                 <Form.Control
                   placeholder="Name"
                   value={user.name}
@@ -121,8 +164,8 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Surname">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${fieldId}-surname`} label="Surname">
                 <Form.Control
                   placeholder="Surname"
                   value={user.surname}
@@ -132,8 +175,8 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Email">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${fieldId}-email`} label="Email">
                 <Form.Control
                   type="email"
                   placeholder="Email"
@@ -142,25 +185,27 @@ const AccountOffCanvas = ({ show, handleClose }: AccountOffCanvasProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingSelect" label="Role">
-                <Form.Select
-                  aria-label="Floating label select example"
-                  value={user.role}
-                  onChange={(e) =>
-                    setUser({ ...user, role: e.currentTarget.value })
-                  }
-                >
-                  <option>Open this select menu</option>
-                  <option value="customer">Customer</option>
-                  <option value="shopMg">Shop Manager</option>
-                </Form.Select>
-              </FloatingLabel>
-            </Form.Group>
+            {needsPassword && (
+              <Form.Group className="mb-3">
+                <FloatingLabel controlId={`${fieldId}-password`} label="Current password">
+                  <Form.Control
+                    type="password"
+                    placeholder="Current password"
+                    autoComplete="current-password"
+                    required
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
+                </FloatingLabel>
+                <Form.Text>Needed to change your email.</Form.Text>
+              </Form.Group>
+            )}
+            {error && (
+              <Alert className="my-2" variant="danger">
+                {error}
+              </Alert>
+            )}
             <Form.Group className="d-flex justify-content-end">
-              {/* <Button variant="outline-danger" className="my-2" onClick={deleteItem}>
-                                Delete Item
-                            </Button> */}
               <Button className="my-2" variant="primary" type="submit">
                 Save Changes
               </Button>

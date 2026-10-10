@@ -1,10 +1,61 @@
-.NavigationBar .cart-link {
+/* Moving focus (Tab) or jumping to an anchor scrolls the target clear of the
+ * fixed bottom bar, and on phones of the cart's checkout bar pinned above it,
+ * instead of underneath them. Both heights are measured (--unq-footer-h by
+ * NavigationBar, --unq-checkout-h by CartListItems) and removed when they
+ * unmount, so the manager side, with neither, is unaffected. */
+html {
+  scroll-padding-bottom: var(--unq-footer-h, 0px);
+}
+
+/* The checkout bar is only pinned below 768px (CartListItems.css); wider, it
+ * sits in the page and covers nothing. */
+@media (max-width: 767.98px) {
+  html {
+    scroll-padding-bottom: calc(var(--unq-footer-h, 0px) + var(--unq-checkout-h, 0px));
+  }
+}
+
+/* Resting icons stay Bootstrap's navbar grey; teal marks meaning only. The page
+ * you're on is teal (NavLink sets .active), and on a device that can hover, so is
+ * the icon under the pointer. Hover is gated on (hover: hover) because phones apply
+ * :hover on tap and keep it, which would leave a tapped icon teal after you've
+ * navigated away from its page. Teal is 6.10:1 on the white bar. */
+.NavigationBar .navbar {
+  --bs-navbar-active-color: var(--bs-primary);
+}
+
+@media (hover: hover) {
+  .NavigationBar .navbar {
+    --bs-navbar-hover-color: var(--bs-primary);
+  }
+}
+
+/* Three equal cells, each at least 44×44 with its icon centred, kept to about
+ * the width the icons had on a phone so they don't spread across a desktop. */
+.NavigationBar .bottom-tabs {
+  width: 100%;
+  max-width: 20rem;
+  margin-inline: auto;
+}
+
+.NavigationBar .bottom-tabs > .nav-link {
+  flex: 1 1 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.NavigationBar .cart-icon {
   position: relative;
 }
 
-.NavigationBar .cart-link .qty-indicator {
+/* A filled pill so the count reads as a count, not stray text by the icon. */
+.NavigationBar .cart-icon .qty-indicator {
   position: absolute;
-  top: 0px;
-  right: 0px;
-  font-weight: 600;
+  top: 2px;
+  right: -6px;
+  /* 12px at the default text size, the smallest the audit accepts. */
+  font-size: 0.75rem;
 }

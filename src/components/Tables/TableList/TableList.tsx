@@ -1,7 +1,14 @@
-import { useState } from "react";
-import { Button, Card, Row, Col } from "react-bootstrap";
-import { useAppSelector } from "../../../redux/app/hooks";
+import { useCallback, useState } from "react";
+import { Button, Row, Col } from "react-bootstrap";
+import { FaPrint } from "react-icons/fa";
+import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
+import { fetchShopList } from "../../../redux/slices/shopSlice";
+import backend from "../../../backend/backend";
+import { useVisiblePolling } from "../../../lib/useVisiblePolling";
+import { ITableStatus } from "../../../typings/tables";
+import { IDeletedTable } from "../../../typings/shop";
 import SingleTable from "../SingleTable/SingleTable";
+import TableSheet from "../TableSheet/TableSheet";
 import TableModal from "../TableModal/TableModal";
 import "./TableList.css";
 
@@ -14,35 +21,149 @@ const TableList = ({ shopId }: ShopMenuProps) => {
     state.shops.data.find((shop) => shop._id === shopId)
   );
 
+  const tableCount = shop?.tables.length ?? 0;
+
+  // Each table's state for its card, refreshed every 30 s while the page is in
+  // view. A failed refresh keeps the last one; with none yet, the cards simply
+  // show no status.
+  const [statuses, setStatuses] = useState<Record<string, ITableStatus>>({});
+  const loadStatuses = useCallback(() => {
+    backend
+      .get<ITableStatus[]>(`/shops/${shopId}/tables/status`)
+      .then(({ data }) => {
+        const next: Record<string, ITableStatus> = Object.fromEntries(data.map((s) => [s.tableId, s]));
+        // Unchanged since the last refresh: keep the same object, so the
+        // cards don't all render again for nothing.
+        setStatuses((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+      })
+      .catch(() => {});
+  }, [shopId]);
+  useVisiblePolling(loadStatuses, 30_000, tableCount > 0);
+
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
+  // The deleted tables whose sheet was opened on this visit stay listed until
+  // the page is left, so an open sheet isn't pulled away when what it shows is
+  // done, and closing it returns focus to the button that opened it.
+  const [opened, setOpened] = useState<string[]>([]);
+  // A deleted table is listed while its sheet has something on it: a cart
+  // closed there in the last 24 hours, or something left to do.
+  const recentlyDeleted = (shop?.deletedTables ?? []).filter(
+    (table) =>
+      (!!table.recentCartsUntil && Date.parse(table.recentCartsUntil) > Date.now()) ||
+      table.needsAttention ||
+      opened.includes(table._id)
+  );
+
+  // Shown once the manager's shops have loaded (the menu above shows
+  // placeholders meanwhile): with nothing below the menu while it loads,
+  // however many items it turns out to have, nothing on screen is pushed down.
+  if (!shop) return null;
+
   return (
-    <div id="tableList" className="py-4">
-      <hr />
-      <Card.Title className="m-5">TABLES</Card.Title>
-      <div className="pb-5">
-        <Button onClick={handleShow}>Add Table</Button>
+    <section id="tableList" className="shop-section" aria-labelledby="table-list-heading">
+      <div className="page-head d-print-none">
+        <h2 id="table-list-heading" className="h5">
+          Tables
+        </h2>
+        <div className="actions">
+          <Button
+            variant="outline-primary"
+            onClick={() => window.print()}
+            disabled={tableCount === 0}
+            title="Print QR codes"
+            aria-label="Print QR codes"
+          >
+            {/* Icon only below sm, so both actions fit beside the heading on a
+                320px screen. The aria-label above names it. */}
+            <FaPrint className="me-sm-2" />
+            <span className="d-none d-sm-inline">Print QR codes</span>
+          </Button>
+          <Button onClick={handleShow}>Add table</Button>
+        </div>
       </div>
+
+      {/* Paper only. A printed sheet of codes is useless if you cannot tell which shop
+          it belongs to, but that heading would be redundant on screen. */}
+      <h2 className="d-none d-print-block mb-4">{shop.name}</h2>
+
       <Row>
-        {/* <ListGroup className="px-0" variant="flush"> */}
-        {shop?.tables.map((table) => (
+        {shop.tables.map((table) => (
           <Col key={table._id} className="mb-4" sm={12} md={6} lg={4} xl={3}>
-            {/* <ListGroup.Item key={table._id} className="px-0 menu-item"> */}
-            <SingleTable shopId={shopId} tableId={table._id} />
-            {/* </ListGroup.Item> */}
+            <SingleTable
+              shopId={shopId}
+              tableId={table._id}
+              status={statuses[table._id]}
+              onChanged={loadStatuses}
+            />
           </Col>
         ))}
-        {/* </ListGroup> */}
       </Row>
+      {recentlyDeleted.length > 0 && (
+        <section className="d-print-none mb-4" aria-labelledby="deleted-tables-heading">
+          <h3 id="deleted-tables-heading" className="h6">
+            Deleted tables
+          </h3>
+          <p className="small text-body-secondary">
+            Their recent carts, to refund or check if needed.
+          </p>
+          <div className="d-flex flex-wrap gap-2">
+            {recentlyDeleted.map((table) => (
+              <DeletedTable
+                key={table._id}
+                shopId={shopId}
+                table={table}
+                onOpen={() => setOpened((ids) => (ids.includes(table._id) ? ids : [...ids, table._id]))}
+              />
+            ))}
+          </div>
+        </section>
+      )}
       <TableModal
         shopId={shopId}
         show={show}
         handleClose={handleClose}
         tableId={"new"}
       />
-    </div>
+    </section>
+  );
+};
+
+// A deleted table: its name, opening its sheet. An action there can change
+// whether it still needs attention, so the manager's shops are reloaded after.
+interface DeletedTableProps {
+  shopId: string;
+  table: IDeletedTable;
+  onOpen: () => void;
+}
+
+const DeletedTable = ({ shopId, table, onOpen }: DeletedTableProps) => {
+  const dispatch = useAppDispatch();
+  const [show, setShow] = useState(false);
+  return (
+    <>
+      <Button
+        variant="outline-secondary"
+        onClick={() => {
+          onOpen();
+          setShow(true);
+        }}
+        aria-label={`View deleted table ${table.name}`}
+      >
+        {table.name}
+      </Button>
+      <TableSheet
+        shopId={shopId}
+        tableId={table._id}
+        tableName={table.name}
+        show={show}
+        handleClose={() => setShow(false)}
+        onChanged={() => dispatch(fetchShopList())}
+        deleted
+      />
+    </>
   );
 };
 

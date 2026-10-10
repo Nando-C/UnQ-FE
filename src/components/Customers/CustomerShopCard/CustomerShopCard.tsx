@@ -1,34 +1,25 @@
-import { Card, Col, Image, Row } from "react-bootstrap";
+import { Card } from "react-bootstrap";
 import "./CustomerShopCard.css";
 
 interface ShopCardProps {
   name: string;
   cover: string;
-  bio: string;
+  bio?: string;
 }
 
-const CustomerShopCard = ({
-  // _id,
-  name,
-  cover,
-  bio,
-}: ShopCardProps) => {
+// Photo on top, name and bio under it: the same card in a one-column list on a
+// phone and in the two- or three-column grid on wider screens.
+const CustomerShopCard = ({ name, cover, bio }: ShopCardProps) => {
   return (
-    <>
-      <Card className="CustomerShopCard">
-        <Row className="text-start">
-          <Col className="image-col" xs={4}>
-            <Image src={cover} rounded fluid className="w-100 h-100" />
-          </Col>
-          <Col className="pt-2" xs={8}>
-            <Card.Subtitle>{name}</Card.Subtitle>
-            <Card.Body className="p-0">
-              <small>{bio}</small>
-            </Card.Body>
-          </Col>
-        </Row>
-      </Card>
-    </>
+    <Card className="CustomerShopCard">
+      <Card.Img variant="top" src={cover} alt="" />
+      <Card.Body>
+        <Card.Title as="h2">{name}</Card.Title>
+        <Card.Text as="p" className="bio">
+          {bio}
+        </Card.Text>
+      </Card.Body>
+    </Card>
   );
 };
 

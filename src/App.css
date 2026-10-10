@@ -1,44 +1,39 @@
-body {
-  font-family: "Georama", -apple-system, BlinkMacSystemFont, "Segoe UI",
-    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
-    "Helvetica Neue", sans-serif;
-}
-
+/* dvh follows the visible viewport as a phone's toolbars show and hide; 100vh
+ * is the fallback for browsers without it. */
 .App {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+/* The skip link, once focused, sits over the top-left corner, above the
+ * manager's fixed header. */
+.skip-link:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 1100;
+  padding: 0.5rem 1rem;
+  background-color: var(--bs-body-bg);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 0 0 var(--bs-focus-ring-width) var(--bs-focus-ring-color);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+/* The skip link's target: focused so the next Tab starts from the content,
+ * but it isn't a control, so no ring. */
+#main:focus {
+  outline: 0;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+/* A manager's pages sit under the fixed header, whose height (--unq-header-h)
+ * is only known once it has been measured, a moment after it appears. Until
+ * then they allow for its usual height, in rem as it grows with the text size
+ * (55px at 16px), so the page doesn't drop when the measurement lands. */
+.App.is-manager {
+  --header-guess: 3.4375rem;
 }
 
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+/* Everyone else has the fixed bottom bar instead (--unq-footer-h, measured by
+ * NavigationBar), 3.5rem at 16px until then. */
+.App:not(.is-manager) {
+  --footer-guess: 3.5rem;
 }

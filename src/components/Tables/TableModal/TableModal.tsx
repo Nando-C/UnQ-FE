@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
-import { FloatingLabel, Form, Modal, Button } from "react-bootstrap";
+import { useEffect, useState, useId } from "react";
+import { FloatingLabel, Form, Modal, Button, Alert } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
-import { ITable } from "../../../typings/shop";
 import "./TableModal.css";
+import { apiErrorMessage } from "../../../lib/errors";
+import { ConfirmFooter } from "../../Common/ConfirmFooter";
+import { useConfirmDelete } from "../../../lib/useConfirmDelete";
 
 interface TableModalProps {
   shopId: string;
+  // "new" to create a table.
   tableId: string;
   show: boolean;
   handleClose: () => void;
@@ -19,105 +22,150 @@ const TableModal = ({
   show,
   handleClose,
 }: TableModalProps) => {
+  const formId = useId();
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
   );
   const selectedTable = shop?.tables.find((table) => table._id === tableId);
 
-  const [table, setTable] = useState<ITable>({
-    _id: "",
-    name: "",
-    Qr_Url: "",
-  });
-
-  useEffect(() => {
-    setTable({
-      _id: selectedTable ? selectedTable._id : "",
-      name: selectedTable ? selectedTable.name : "",
-      Qr_Url: selectedTable ? selectedTable.Qr_Url : "",
-    });
-  }, [selectedTable]);
+  const [name, setName] = useState("");
 
   const dispatch = useAppDispatch();
+  const [error, setError] = useState<string | null>(null);
+
+  // Each time the dialog opens it starts from the table as saved (an empty
+  // name for a new one), not from what was typed last time.
+  useEffect(() => {
+    if (!show) return;
+    setError(null);
+    setName(selectedTable?.name ?? "");
+  }, [selectedTable, show]);
+
+  // One create at a time: a double tap would otherwise send two.
+  const [creating, setCreating] = useState(false);
+  // Deleting asks first, in the footer (ConfirmFooter), saying what goes.
+  const confirmDelete = useConfirmDelete(show);
+  // Saves the name: to the table edited, or as a new table.
+  const saveTable = async () => {
+    setError(null);
+    if (name.trim() === "") {
+      setError("Name is required");
+      return;
+    }
+    try {
+      if (tableId === "new") await backend.post(`/shops/${shopId}/tables`, { name });
+      else await backend.put(`/shops/${shopId}/tables/${tableId}`, { name });
+      dispatch(fetchShopList());
+      handleClose();
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  };
 
   const createTable = async () => {
-    const newTable = {
-      name: table.name,
-    };
-
-    const created = await backend.post(`/shops/${shopId}/tables`, newTable);
-    console.log("createdTable: ", created); //<========================================== LOG
-
-    dispatch(fetchShopList());
-    handleClose();
+    if (creating) return;
+    setCreating(true);
+    try {
+      await saveTable();
+    } finally {
+      setCreating(false);
+    }
   };
 
-  const updateTable = async (e: React.FormEvent<HTMLFormElement>) => {
+  const updateTable = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    const updated = await backend.put(
-      `/shops/${shopId}/tables/${table._id}`,
-      table
-    );
-    console.log("updatedTable: ", updated); //<========================================== LOG
-
-    dispatch(fetchShopList());
-    handleClose();
+    return saveTable();
   };
 
-  const deleteTable = async () => {
-    const deleted = await backend.delete(
-      `/shops/${shopId}/tables/${table._id}`
+  const deleteTable = () => {
+    setError(null);
+    return confirmDelete.run(
+      async () => {
+        await backend.delete(`/shops/${shopId}/tables/${tableId}`);
+        dispatch(fetchShopList());
+        handleClose();
+      },
+      (err) => setError(apiErrorMessage(err))
     );
-    console.log("deletedTable: ", deleted); //<========================================== LOG
-
-    dispatch(fetchShopList());
-    handleClose();
   };
 
   return (
     <>
-      <Modal className="ShopModal" show={show} onHide={handleClose}>
+      <Modal
+        className="ShopModal"
+        show={show}
+        onHide={handleClose}
+        fullscreen="sm-down"
+        scrollable
+      >
         <Modal.Header closeButton>
           <Modal.Title>Table</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form onSubmit={(e) => updateTable(e)}>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Name">
+          {/* Enter in the name field saves: a rename, or for a new table
+              the same as Create. */}
+          <Form
+            id={formId}
+            onSubmit={(e) => {
+              if (tableId !== "new") return updateTable(e);
+              e.preventDefault();
+              void createTable();
+            }}
+          >
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-name`} label="Name">
                 <Form.Control
                   placeholder="Name"
-                  value={table.name}
-                  onChange={(e) => setTable({ ...table, name: e.target.value })}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </FloatingLabel>
             </Form.Group>
-            {tableId !== "new" ? (
-              <Form.Group className="d-flex justify-content-between">
-                <Button
-                  variant="outline-danger"
-                  className="my-2"
-                  onClick={deleteTable}
-                >
-                  Delete Table
-                </Button>
-                <Button className="my-2" variant="primary" type="submit">
-                  Save Changes
-                </Button>
-              </Form.Group>
-            ) : (
-              <Form.Group className="d-flex justify-content-end">
-                <Button
-                  className="my-2"
-                  variant="primary"
-                  onClick={createTable}
-                >
-                  Create Table
-                </Button>
-              </Form.Group>
+            {error && (
+              <Alert className="my-2" variant="danger">
+                {error}
+              </Alert>
             )}
           </Form>
         </Modal.Body>
+        {/* Outside the scrolling body, so the actions stay in view however
+            long the form is. The submit button reaches the form through its
+            form attribute. */}
+        {confirmDelete.confirming ? (
+          <ConfirmFooter
+            // The saved name: that is the table deleted, whatever the form says.
+            message={`Delete ${selectedTable ? `table ${selectedTable.name}` : "this table"}? Its QR code will no longer take orders.`}
+            confirmLabel="Delete table"
+            danger
+            busy={confirmDelete.busy}
+            onConfirm={deleteTable}
+            onCancel={confirmDelete.cancel}
+            returnFocus={() => confirmDelete.buttonRef.current}
+          />
+        ) : (
+          <Modal.Footer
+            className={tableId !== "new" ? "justify-content-between" : undefined}
+          >
+            {tableId !== "new" ? (
+              <>
+                <Button
+                  ref={confirmDelete.buttonRef}
+                  variant="outline-danger"
+                  onClick={confirmDelete.ask}
+                >
+                  Delete table
+                </Button>
+                <Button variant="primary" type="submit" form={formId}>
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary" onClick={createTable} disabled={creating}>
+                Create Table
+              </Button>
+            )}
+          </Modal.Footer>
+        )}
       </Modal>
     </>
   );

@@ -1,126 +1,196 @@
+import { useId } from "react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
-import { Modal, Button, Form, FloatingLabel, Image } from "react-bootstrap";
-import { useHistory } from "react-router-dom";
+import { Modal, Button, Form, FloatingLabel, Image, Alert } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { fetchShopList } from "../../../redux/slices/shopSlice";
+import { fetchShopList, fetchSingleShop } from "../../../redux/slices/shopSlice";
 import { IShop } from "../../../typings/shop";
+import placeholder from "../../../assets/placeholder.svg";
 import "./ShopModal.css";
+import { apiErrorMessage } from "../../../lib/errors";
+import { uploadImage } from "../../../lib/upload";
+import { useObjectURL } from "../../../lib/useObjectURL";
+import { ConfirmFooter } from "../../Common/ConfirmFooter";
+import { useConfirmDelete } from "../../../lib/useConfirmDelete";
+
+const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+// What deleting a shop takes with it: its menu and its tables, whose printed
+// QR codes then lead nowhere, and its payment records. (The BE refuses while a
+// paid cart closed less than a day ago, or a payment provider still owes an answer.)
+const deleteShopMessage = (shop: IShop | undefined) => {
+  if (!shop) return "Delete this shop?";
+  const tables = shop.tables.length;
+  return (
+    `Delete ${shop.name}? This also deletes its ${count(shop.menu.length, "menu item")} ` +
+    `and ${count(tables, "table")}` +
+    (tables ? ", and their QR codes stop working." : ".") +
+    " Its payment history goes too: refunds can then only be made from the payment provider."
+  );
+};
 
 interface ShopModalProps {
   show: boolean;
   handleClose: () => void;
-  // shop: IShop | undefined
+  // "new" to create a shop.
   shopId: string;
 }
 
+const EMPTY_SHOP: IShop = {
+  _id: "",
+  name: "",
+  cover: "",
+  bio: "",
+  open_times: "",
+  phone: "",
+  web_URL: "",
+  shopMg: [],
+  tables: [],
+  menu: [],
+};
+
 const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
+  const formId = useId();
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
   );
-  // console.log("shop: ", shop)
 
-  const [editShop, setEditShop] = useState<IShop>({
-    _id: "",
-    name: "",
-    cover: "",
-    bio: "",
-    open_times: "",
-    phone: 0,
-    web_URL: "",
-    shopMg: [],
-    tables: [],
-    menu: [],
-  });
+  const [editShop, setEditShop] = useState<IShop>(EMPTY_SHOP);
   const dispatch = useAppDispatch();
-  const history = useHistory();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  // The shop Create made, once it exists: if its cover then fails to upload,
+  // pressing Create again saves the fields and the cover to it instead of
+  // making a second shop. Forgotten when the dialog is opened again.
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  // Deleting asks first, in the footer (ConfirmFooter), saying what goes.
+  const confirmDelete = useConfirmDelete(show);
+  // Opening the dialog also drops the cover picked and the error shown last
+  // time. Only on opening: an error set just after a save reloaded the shop
+  // must stay.
+  useEffect(() => {
+    if (!show) return;
+    setCreatedId(null);
+    setImageFile(null);
+    setError(null);
+  }, [show]);
 
   const [imageFile, setImageFile] = useState<File | null>();
+  const preview = useObjectURL(imageFile);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.currentTarget.files;
     if (!files) return;
     setImageFile(files[0]);
-    // console.log("imageFile: ", imageFile)
   };
 
+  // Each time the dialog opens it starts from the shop as saved (an empty form
+  // for a new one), not from what was typed last time; and it follows the
+  // saved shop when that reloads.
   useEffect(() => {
-    setEditShop({
-      _id: shop ? shop._id : "",
-      name: shop ? shop.name : "",
-      cover: shop ? shop.cover : "",
-      bio: shop ? shop.bio : "",
-      open_times: shop ? shop.open_times : "",
-      phone: shop ? shop.phone : 0,
-      web_URL: shop ? shop.web_URL : "",
-      shopMg: shop ? shop.shopMg : [],
-      tables: shop ? shop.tables : [],
-      menu: shop ? shop.menu : [],
-    });
-  }, [shop]);
+    if (!show) return;
+    setEditShop({ ...EMPTY_SHOP, ...shop, phone: shop?.phone ?? "" });
+  }, [shop, show]);
 
-  const createShop = async () => {
-    const newShop = {
+  // What the saved shop is shown from: the list, and for an existing shop its
+  // page too, which shows the selected shop, not the list's copy.
+  const reload = () => {
+    dispatch(fetchShopList());
+    if (shop) dispatch(fetchSingleShop(editShop._id));
+  };
+
+  // Saves the form to the shop `id` (the one edited, or the one an earlier
+  // Create made), or as a new shop without one; then its cover, if one was
+  // picked. Create and the form's submit both come here.
+  const saveShop = async (id: string | null) => {
+    setError(null);
+    if (editShop.name.trim() === "") {
+      setError("Name is required");
+      return;
+    }
+    const fields = {
       name: editShop.name,
       bio: editShop.bio,
       open_times: editShop.open_times,
-      phone: editShop.phone,
+      // As typed; the BE checks it. Empty clears it.
+      phone: (editShop.phone ?? "").trim(),
       web_URL: editShop.web_URL,
     };
-    const created = await backend.post(`/shops`, newShop);
-    console.log("newShop: ", created);
-
-    if (imageFile) {
-      const newShopCover = new FormData();
-      newShopCover.append("cover", imageFile);
-      const newCover = await backend.put(
-        `/shops/${created.data._id}/cover`,
-        newShopCover
-      );
-      console.log(newCover);
+    let uploading = false;
+    try {
+      if (id) {
+        await backend.put(`/shops/${id}`, fields);
+      } else {
+        id = (await backend.post(`/shops`, fields)).data._id as string;
+        setCreatedId(id);
+      }
+      if (imageFile) {
+        uploading = true;
+        await uploadImage(`/shops/${id}/cover`, "cover", imageFile);
+      }
+      reload();
+      handleClose();
+    } catch (err) {
+      if (uploading) {
+        // The shop is saved, so the list and the page show it; only the cover
+        // is missing.
+        reload();
+        setError(
+          shop
+            ? `The changes were saved, but the cover wasn't: ${apiErrorMessage(err)}`
+            : `The shop was created, but its cover wasn't saved: ${apiErrorMessage(err)}`
+        );
+      } else {
+        setError(apiErrorMessage(err));
+      }
     }
-    dispatch(fetchShopList());
-    handleClose();
   };
 
-  const updateShop = async (e: React.FormEvent<HTMLFormElement>) => {
+  const createShop = async () => {
+    if (creating) return;
+    setCreating(true);
+    try {
+      await saveShop(createdId);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const updateShop = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log(editShop);
-
-    const data = await backend.put(`/shops/${editShop._id}`, editShop);
-    console.log(data);
-    if (imageFile) {
-      const newShopCover = new FormData();
-      newShopCover.append("cover", imageFile);
-      const newCover = await backend.put(
-        `/shops/${editShop._id}/cover`,
-        newShopCover
-      );
-      console.log(newCover);
-    }
-    dispatch(fetchShopList());
-    // setEditShop({
-    //     _id: "",name: "",cover: "",bio: "",open_times: "",phone: 0,web_URL: "",shopMg: [],tables: [],menu: []
-    // })
-    handleClose();
+    return saveShop(editShop._id);
   };
 
-  const deleteShop = async () => {
-    const deleted = await backend.delete(`/shops/${editShop._id}`);
-    console.log("Deleted Shop: ", deleted); //<========================================== LOG
-    history.push("/");
-    handleClose();
+  const deleteShop = () => {
+    setError(null);
+    return confirmDelete.run(
+      async () => {
+        await backend.delete(`/shops/${editShop._id}`);
+        navigate("/");
+        handleClose();
+      },
+      (err) => setError(apiErrorMessage(err))
+    );
   };
 
   return (
     <>
-      <Modal className="ShopModal" show={show} onHide={handleClose} size="lg">
+      <Modal
+        className="ShopModal"
+        show={show}
+        onHide={handleClose}
+        size="lg"
+        fullscreen="sm-down"
+        scrollable
+      >
         <Modal.Header closeButton>
           <Modal.Title>Shop</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form onSubmit={(e) => updateShop(e)}>
+          <Form id={formId} onSubmit={(e) => updateShop(e)}>
             <Form.Group className="my-2">
               <Form.Control
                 type="file"
@@ -129,34 +199,39 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 onChange={handleFile}
               />
               <Image
-                src={
-                  imageFile
-                    ? URL.createObjectURL(imageFile)
-                    : editShop.cover ||
-                      "https://nayemdevs.com/wp-content/uploads/2020/03/default-product-image.png"
-                }
+                src={preview ?? (editShop.cover || placeholder)}
                 height="200px"
-                // width="400px"
                 alt="cover"
-                className="d-block mb-2"
+                className="preview d-block mb-2"
               />
-              <Button
-                variant="dark"
-                className="me-2"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Upload Image
-              </Button>
-              <Button
-                variant="outline-dark"
-                className="my-2"
-                onClick={() => setImageFile(null)}
-              >
-                Reset Image
-              </Button>
+              {/* A fixed gap, so the form doesn't shift when Reset appears. */}
+              <div className="d-flex flex-wrap gap-2">
+                {/* Secondary: a teal outline, so the filled Save stays the one
+                    action that stands out. */}
+                <Button
+                  variant="outline-primary"
+                                onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload Image
+                </Button>
+                {/* Only once a new photo has been picked: it undoes that pick. The
+                    input is cleared too, or picking the same file again would fire
+                    no change. */}
+                {imageFile && (
+                  <Button
+                    variant="outline-secondary"
+                                  onClick={() => {
+                      setImageFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                  >
+                    Reset Image
+                  </Button>
+                )}
+              </div>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Name">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-name`} label="Name">
                 <Form.Control
                   placeholder="Name"
                   value={editShop.name}
@@ -166,8 +241,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicPassword">
-              <FloatingLabel controlId="ffloatingTextarea" label="Bio">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-bio`} label="Bio">
                 <Form.Control
                   as="textarea"
                   placeholder="Bio"
@@ -179,8 +254,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Open Times">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-open-times`} label="Open Times">
                 <Form.Control
                   placeholder="Open Times"
                   value={editShop.open_times}
@@ -190,22 +265,20 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Phone Number">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-phone`} label="Phone Number">
                 <Form.Control
+                  type="tel"
                   placeholder="Phone Number"
-                  value={editShop.phone}
+                  value={editShop.phone ?? ""}
                   onChange={(e) =>
-                    setEditShop({
-                      ...editShop,
-                      phone: parseInt(e.target.value),
-                    })
+                    setEditShop({ ...editShop, phone: e.target.value })
                   }
                 />
               </FloatingLabel>
             </Form.Group>
-            <Form.Group className="mb-3" controlId="formBasicEmail">
-              <FloatingLabel controlId="floatingInput" label="Web URL">
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-web-url`} label="Web URL">
                 <Form.Control
                   placeholder="Web URL"
                   value={editShop.web_URL}
@@ -215,28 +288,50 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
-            {shopId !== "new" ? (
-              <Form.Group className="d-flex justify-content-between">
-                <Button
-                  variant="outline-danger"
-                  className="my-2"
-                  onClick={deleteShop}
-                >
-                  Delete Shop
-                </Button>
-                <Button className="my-2" variant="primary" type="submit">
-                  Save Changes
-                </Button>
-              </Form.Group>
-            ) : (
-              <Form.Group className="d-flex justify-content-end">
-                <Button className="my-2" variant="primary" onClick={createShop}>
-                  Create Shop
-                </Button>
-              </Form.Group>
+            {error && (
+              <Alert className="my-2" variant="danger">
+                {error}
+              </Alert>
             )}
           </Form>
         </Modal.Body>
+        {/* Outside the scrolling body, so the actions stay in view however
+            long the form is. The submit button reaches the form through its
+            form attribute. */}
+        {confirmDelete.confirming ? (
+          <ConfirmFooter
+            message={deleteShopMessage(shop)}
+            confirmLabel="Delete shop"
+            danger
+            busy={confirmDelete.busy}
+            onConfirm={deleteShop}
+            onCancel={confirmDelete.cancel}
+            returnFocus={() => confirmDelete.buttonRef.current}
+          />
+        ) : (
+          <Modal.Footer
+            className={shopId !== "new" ? "justify-content-between" : undefined}
+          >
+            {shopId !== "new" ? (
+              <>
+                <Button
+                  ref={confirmDelete.buttonRef}
+                  variant="outline-danger"
+                  onClick={confirmDelete.ask}
+                >
+                  Delete shop
+                </Button>
+                <Button variant="primary" type="submit" form={formId}>
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary" onClick={createShop} disabled={creating}>
+                Create Shop
+              </Button>
+            )}
+          </Modal.Footer>
+        )}
       </Modal>
     </>
   );

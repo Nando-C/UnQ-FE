@@ -1,5 +1,25 @@
+/* Its bottom margin, 3rem on phones and none from sm up, is AuthLayout's
+ * mb-5 mb-sm-0: keep that breakpoint in step with the one below. */
 .Register {
     padding: 2rem 1rem;
+}
+
+/* Two columns from sm up: the wordmark and the form sit in the middle of the
+ * space above the fixed bottom bar, rather than bunched at the top of a mostly
+ * empty screen. Its height is measured (--unq-footer-h, by NavigationBar); until
+ * then App.css's --footer-guess stands in, so nothing moves when it lands (a
+ * manager has no bottom bar, nor the guess). A minimum height, so a short
+ * screen (a phone on its side, large text) still scrolls from the top, and the
+ * bottom padding keeps the last control clear of the bar. */
+@media (min-width: 576px) {
+    .Register {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding-bottom: calc(2rem + var(--unq-footer-h, var(--footer-guess, 0px)));
+    }
 }
 
 .Register img {

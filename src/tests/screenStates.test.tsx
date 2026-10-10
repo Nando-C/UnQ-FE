@@ -1,0 +1,320 @@
+import { describe, it, expect } from "vitest"
+import { render, screen, waitFor } from "@testing-library/react"
+import { Provider } from "react-redux"
+import { Route, Routes } from "react-router-dom"
+import { http, HttpResponse } from "msw"
+import App from "../App"
+import Cart from "../components/Customers/Cart/Cart"
+import TableMenu from "../components/Customers/TableMenu/TableMenu"
+import AllShopsList from "../components/Customers/AllShopsList/AllShopsList"
+import ShopList from "../components/Shops/ShopList/ShopList"
+import { getTableCart } from "../redux/slices/cartSlice"
+import { fetchSingleShop } from "../redux/slices/shopSlice"
+import { gate, makeStore, renderWithProviders } from "./helpers"
+import { server, BASE } from "./server"
+import type { ICart } from "../typings/cart"
+import type { IMenu } from "../typings/menu"
+import type { IShop } from "../typings/shop"
+
+const latte: IMenu = { _id: "m1", name: "Latte", image: "", short_description: "Hot", description: "", price: 3, available: true, category: "drinks" }
+const cafe = { _id: "s1", name: "Cafe", cover: "", bio: "Coffee", menu: [latte], tables: [{ _id: "t1", name: "Window", Qr_Url: "" }] } as unknown as IShop
+const other = { ...cafe, _id: "s2", name: "Other Place", tables: [] } as IShop
+const cart: ICart = {
+  _id: "c1", userId: "u1", tableId: "t1", status: "open",
+  items: [{ _id: "i1", menuId: latte, qty: 1, qtyPayed: 0 }], split: [],
+}
+const emptyCart: ICart = { _id: "", userId: "", tableId: "", status: "", items: [], split: [] }
+
+const renderCart = () =>
+  renderWithProviders(
+    <Routes>
+      <Route path="/shops/:shopId/tables/:tableId/cart" element={<Cart />} />
+      <Route path="/shops/:shopId/tables/:tableId" element={<p>table menu</p>} />
+    </Routes>,
+    { route: "/shops/s1/tables/t1/cart", preloadedState: { carts: { data: emptyCart, pointers: { shopId: "s1", tableId: "t1" } } } }
+  )
+
+describe("the cart page", () => {
+  it("shows placeholders, not 'No open orders', until the table's cart has loaded", async () => {
+    const answer = gate()
+    server.use(
+      http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)),
+      http.get(`${BASE}/carts/tables/t1`, async () => {
+        await answer.opened
+        return HttpResponse.json({ message: "Cart Not Found!" }, { status: 404 })
+      })
+    )
+    const { user } = renderCart()
+
+    expect(screen.getByText("Loading the table's cart")).toBeInTheDocument()
+    expect(screen.queryByText("No open orders")).not.toBeInTheDocument()
+
+    answer.open()
+    expect(await screen.findByText("No open orders")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Back to the menu" }))
+    expect(await screen.findByText("table menu")).toBeInTheDocument()
+  })
+
+  it("offers to try again when the cart can't be loaded, and shows it once it can", async () => {
+    let fail = true
+    server.use(
+      http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)),
+      http.get(`${BASE}/carts/tables/t1`, () =>
+        fail ? HttpResponse.json({ message: "Generic Server Error" }, { status: 500 }) : HttpResponse.json(cart)
+      )
+    )
+    const { user } = renderCart()
+
+    expect(await screen.findByText("Couldn't load this table's cart.")).toBeInTheDocument()
+    expect(screen.queryByText("No open orders")).not.toBeInTheDocument()
+    fail = false
+    await user.click(screen.getByRole("button", { name: "Try again" }))
+
+    expect(await screen.findByText("Latte")).toBeInTheDocument()
+  })
+
+  it("keeps the last answer when a later refresh of the same table fails", async () => {
+    let fail = false
+    server.use(
+      http.get(`${BASE}/carts/tables/t1`, () =>
+        fail
+          ? HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })
+          : HttpResponse.json({ message: "Cart Not Found!" }, { status: 404 })
+      )
+    )
+    const store = makeStore()
+
+    await store.dispatch(getTableCart("t1"))
+    fail = true
+    await store.dispatch(getTableCart("t1"))
+
+    expect(store.getState().carts.loaded).toEqual({ tableId: "t1", failed: false })
+  })
+
+  it("counts no table as answered once moving to another table clears the cart", async () => {
+    const answer = gate()
+    server.use(
+      http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cart)),
+      http.get(`${BASE}/carts/tables/t2`, async () => {
+        await answer.opened
+        return HttpResponse.json({ message: "Cart Not Found!" }, { status: 404 })
+      })
+    )
+    const store = makeStore()
+
+    await store.dispatch(getTableCart("t1"))
+    const toT2 = store.dispatch(getTableCart("t2"))
+
+    // Back to t1 now would otherwise count t1's cleared cart as its answer.
+    expect(store.getState().carts.loaded).toBeUndefined()
+    answer.open()
+    await toT2
+  })
+
+  it("names the table even when the store still holds another shop", async () => {
+    server.use(
+      http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)),
+      http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json(cart))
+    )
+    const { store } = renderWithProviders(<Cart />, {
+      route: "/shops/s1/tables/t1/cart",
+      path: "/shops/:shopId/tables/:tableId/cart",
+      preloadedState: { shops: { data: [], selected: other, selectedMenu: null } },
+    })
+
+    expect(await screen.findByText("Table: Window")).toBeInTheDocument()
+    // The table's name comes from the shop; the cart request is still in
+    // flight. Let it land before the handlers are reset, or the next test is
+    // charged with it as unanswered (seen on CI).
+    await waitFor(() => expect(store.getState().carts.loaded?.tableId).toBe("t1"))
+  })
+})
+
+describe("opening one shop after another", () => {
+  // Two requests for a shop are sent, first then second; their answers are
+  // let through in `order`. Each either brings its own copy (named after the
+  // request) or fails. Whatever the order, the page must end up with the copy
+  // from the newest request that succeeded, never a shop it isn't showing, and
+  // report a failure only when the newest request failed.
+  type Answer = "ok" | "fail"
+  const run = async (
+    shops: [string, string],
+    answers: [Answer, Answer],
+    order: [0, 1] | [1, 0],
+    held: IShop | null = null
+  ) => {
+    const gates = [gate(), gate()]
+    // Each request is dispatched only once the one before it has reached the
+    // handler: two identical requests can reach msw in either order (they did
+    // on CI), and the handler tells them apart by arrival.
+    const arrived = [gate(), gate()]
+    const byShop: Record<string, number[]> = {}
+    shops.forEach((id, i) => (byShop[id] ??= []).push(i))
+    const served: Record<string, number> = {}
+    for (const id of Object.keys(byShop)) {
+      server.use(
+        http.get(`${BASE}/shops/${id}`, async () => {
+          const i = byShop[id][(served[id] = (served[id] ?? 0) + 1) - 1]
+          arrived[i].open()
+          await gates[i].opened
+          return answers[i] === "ok"
+            ? HttpResponse.json({ ...cafe, _id: id, name: `copy ${i + 1}` })
+            : HttpResponse.json({ message: "Generic Server Error" }, { status: 500 })
+        })
+      )
+    }
+    const store = makeStore({ shops: { data: [], selected: held, selectedMenu: null } })
+    const sent = []
+    for (const [i, id] of shops.entries()) {
+      sent.push(store.dispatch(fetchSingleShop(id)))
+      await arrived[i].opened
+    }
+    for (const i of order) {
+      gates[i].open()
+      await sent[i]
+    }
+    const { selected, selectedFailed } = store.getState().shops
+    return { shown: selected?._id === shops[1] ? selected.name : null, failed: selectedFailed ?? null }
+  }
+
+  const old = { ...cafe, name: "old copy" } as IShop
+  it.each([
+    // [answers, order, held, shown, failed]
+    [["ok", "ok"], [0, 1], null, "copy 2", null],
+    [["ok", "ok"], [1, 0], null, "copy 2", null],
+    [["ok", "ok"], [1, 0], old, "copy 2", null],
+    [["ok", "fail"], [0, 1], null, "copy 1", "s1"],
+    [["ok", "fail"], [1, 0], null, "copy 1", "s1"],
+    [["ok", "fail"], [0, 1], old, "copy 1", "s1"],
+    [["ok", "fail"], [1, 0], old, "copy 1", "s1"],
+    [["fail", "ok"], [0, 1], null, "copy 2", null],
+    [["fail", "ok"], [1, 0], null, "copy 2", null],
+    [["fail", "fail"], [1, 0], null, null, "s1"],
+    [["fail", "fail"], [1, 0], old, "old copy", "s1"],
+  ] as const)("same shop: answers %j arriving %j over %j", async (answers, order, held, shown, failed) => {
+    const result = await run(["s1", "s1"], [...answers], [...order] as [0, 1] | [1, 0], held)
+    expect(result).toEqual({ shown, failed })
+  })
+
+  it.each([
+    [["ok", "ok"], [1, 0], "copy 2", null],
+    [["fail", "ok"], [1, 0], "copy 2", null],
+    [["ok", "fail"], [1, 0], null, "s1"],
+    [["ok", "fail"], [0, 1], null, "s1"],
+  ] as const)("another shop opened first: answers %j arriving %j", async (answers, order, shown, failed) => {
+    const result = await run(["s2", "s1"], [...answers], [...order] as [0, 1] | [1, 0])
+    expect(result).toEqual({ shown, failed })
+  })
+})
+
+describe("a shop's menu", () => {
+  const renderMenu = (selected: IShop | null) =>
+    renderWithProviders(<TableMenu />, {
+      route: "/shops/s1/tables/t1",
+      path: "/shops/:shopId/tables/:tableId",
+      preloadedState: { shops: { data: [], selected, selectedMenu: null } },
+    })
+
+  it("shows placeholders, never the shop opened before, until this one arrives", async () => {
+    const answer = gate()
+    server.use(
+      http.get(`${BASE}/shops/s1`, async () => {
+        await answer.opened
+        return HttpResponse.json(cafe)
+      })
+    )
+    renderMenu(other)
+
+    expect(screen.getByText("Loading the menu")).toBeInTheDocument()
+    expect(screen.queryByText("Other Place")).not.toBeInTheDocument()
+
+    answer.open()
+    expect(await screen.findByText("Cafe")).toBeInTheDocument()
+    expect(screen.getByText("Latte")).toBeInTheDocument()
+    expect(screen.queryByText("Loading the menu")).not.toBeInTheDocument()
+  })
+
+  it("offers to try again when the menu can't be loaded", async () => {
+    let fail = true
+    server.use(
+      http.get(`${BASE}/shops/s1`, () =>
+        fail ? HttpResponse.json({ message: "Generic Server Error" }, { status: 500 }) : HttpResponse.json(cafe)
+      )
+    )
+    const { user } = renderMenu(null)
+
+    expect(await screen.findByText("Couldn't load this menu.")).toBeInTheDocument()
+    // The page is still named, not left on a loading bar.
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Menu")
+    expect(document.title).toBe("Menu · UnQ")
+    fail = false
+    await user.click(screen.getByRole("button", { name: "Try again" }))
+
+    expect(await screen.findByText("Latte")).toBeInTheDocument()
+  })
+
+  it("says when nothing matches the search, and clears it", async () => {
+    server.use(http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)))
+    const { user } = renderMenu(cafe)
+
+    await user.type(screen.getByLabelText("Search Menu"), "tea")
+    expect(screen.getByText(/No dishes match “tea”/)).toBeInTheDocument()
+    expect(screen.queryByText("Latte")).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }))
+    expect(screen.getByText("Latte")).toBeInTheDocument()
+    expect(screen.queryByText(/No dishes match/)).not.toBeInTheDocument()
+  })
+})
+
+describe("the shop list", () => {
+  it("shows placeholders until the shops arrive", () => {
+    renderWithProviders(<AllShopsList />)
+
+    expect(screen.getByText("Loading shops")).toBeInTheDocument()
+  })
+
+  it("says when no shop matches the search", async () => {
+    const { user } = renderWithProviders(<AllShopsList />, {
+      preloadedState: { browse: { shops: [cafe], query: "", wanted: "", next: null, status: "ready" } },
+    })
+
+    // The default handler finds nothing.
+    await user.type(screen.getByLabelText("Search Shop"), "pizza")
+
+    expect(await screen.findByText(/No shops match “pizza”/)).toBeInTheDocument()
+  })
+
+  it("offers to try again when the shops can't be loaded", async () => {
+    server.use(
+      http.get(`${BASE}/shops/browse`, () => HttpResponse.json({ message: "down" }, { status: 500 }), { once: true }),
+      http.get(`${BASE}/shops/browse`, () => HttpResponse.json({ shops: [cafe], next: null }))
+    )
+    const { user } = renderWithProviders(<AllShopsList />)
+
+    await user.click(await screen.findByRole("button", { name: "Try again" }))
+
+    expect(await screen.findByText("Cafe")).toBeInTheDocument()
+  })
+
+  it("on My Shops, shows placeholders until the manager's shops arrive", () => {
+    renderWithProviders(<ShopList />, { preloadedState: { shops: { data: [], selected: null, selectedMenu: null, dataStatus: "loading" } } })
+
+    expect(screen.getByText("Loading your shops")).toBeInTheDocument()
+  })
+})
+
+describe("an address no page answers", () => {
+  it("says the page wasn't found and links home", async () => {
+    window.history.pushState({}, "", "/no-such-page")
+    render(
+      <Provider store={makeStore()}>
+        <App />
+      </Provider>
+    )
+
+    expect(await screen.findByRole("heading", { name: "Page not found" })).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Go to the home page" })).toHaveAttribute("href", "/")
+    window.history.pushState({}, "", "/")
+  })
+})

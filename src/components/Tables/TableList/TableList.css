@@ -1,0 +1,60 @@
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  /* Print the table grid and nothing else. Hiding by visibility rather than display
+   * keeps this component from having to know what else is on the page — the navbar,
+   * the shop details card and the menu all live in ShopDetails, and listing them here
+   * would break the moment that page gains a section. The absolute position then
+   * reclaims the space the hidden ancestors would otherwise still reserve. */
+  body * {
+    visibility: hidden;
+  }
+
+  #tableList,
+  #tableList * {
+    visibility: visible;
+  }
+
+  #tableList {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* Also drops the screen's gap above the section (.shop-section), so the
+     * sheet starts at the paper's own margin. */
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Bootstrap's responsive columns resolve against the PAPER width — roughly 794px for
+   * A4, which lands on the md breakpoint and yields only two codes per row. Three is
+   * the density that fills a sheet without shrinking the codes below a comfortable
+   * scanning size. */
+  #tableList .row > [class*="col"] {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+  }
+
+  /* A code split across a page break is unscannable, so never break inside one. */
+  #tableList .SingleTable {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* The canvas is a 250px bitmap; sizing it in mm fixes the printed dimensions instead
+   * of leaving them at the mercy of the browser's pixel-to-paper scaling. At 45mm a
+   * ~33-module code gives ~1.3mm per module, comfortably above the ~0.4mm floor where
+   * scanners start to struggle. */
+  #tableList .SingleTable canvas {
+    width: 45mm !important;
+    height: 45mm !important;
+  }
+
+  /* Cards are containers on paper, not objects — drop the screen chrome. */
+  #tableList .SingleTable > .card {
+    box-shadow: none;
+    border: none;
+  }
+}

@@ -3,19 +3,32 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <!-- <a href="https://github.com/Nando-C/UnQ-FE">
-    <img src="" alt="Logo" height="100">
-  </a> -->
 
-<h3 align="center">UnQ -> [Front-End]</h3>
+<h3 align="center">UnQ — Front-End</h3>
 
   <p align="center">
-    A Food & Drinks Ordering Application, solo capstone project developed for Strive School's Full Stack program!
+    Scan a table's QR code, order into a shared cart, and pay for exactly the items you picked. The React client for the UnQ API.
+    <br />
+    React 19 · TypeScript 6 · Vite 8 · Redux Toolkit · Stripe Payment Element + PayPal · 422 tests
     <br />
     <br />
+    <a href="https://github.com/Nando-C/UnQ-BE">Back-End repo</a>
+    ·
     <a href="#try-customer-interface">View Demo</a>
-    <!-- ·
-    <a href="https://github.com/Nando-C/UnQ-FE/issues">Report Bug</a> -->
+    ·
+    <a href="./CHANGELOG.md">Changelog</a>
+  </p>
+
+  <p align="center">
+    <a href="https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml"><img src="https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <img src="https://img.shields.io/badge/version-2.0.0-635bff" alt="Version 2.0.0">
+    <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19">
+    <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?logo=typescript&logoColor=white" alt="TypeScript 6.0">
+    <img src="https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white" alt="Vite 8">
+    <img src="https://img.shields.io/badge/Redux_Toolkit-2.12-764ABC?logo=redux&logoColor=white" alt="Redux Toolkit 2.12">
+    <img src="https://img.shields.io/badge/React_Router-7-CA4245?logo=reactrouter&logoColor=white" alt="React Router 7">
+    <img src="https://img.shields.io/badge/React--Bootstrap-2.10-7952B3?logo=bootstrap&logoColor=white" alt="React-Bootstrap 2.10">
+    <img src="https://img.shields.io/badge/tests-422%20passing-6E9F18?logo=vitest&logoColor=white" alt="422 tests passing (Vitest)">
   </p>
 </div>
 
@@ -29,6 +42,23 @@
         <li><a href="#built-with">Built With</a></li>
       </ul>
     </li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#architecture">Architecture</a>
+      <ul>
+        <li><a href="#how-the-two-apps-talk">How the two apps talk</a></li>
+        <li><a href="#engineering-decisions">Engineering decisions</a></li>
+      </ul>
+    </li>
+    <li><a href="#setup">Setup</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#environment-variables">Environment Variables</a></li>
+        <li><a href="#scripts">Scripts</a></li>
+        <li><a href="#deployment">Deployment</a></li>
+        <li><a href="#versioning-and-releases">Versioning and releases</a></li>
+      </ul>
+    </li>
+    <li><a href="#testing">Testing</a></li>
     <li><a href="#app-use">App Use</a>
      <ul>
         <li><a href="#customer-interface">Customer Interface</a>
@@ -43,7 +73,7 @@
                 <li><a href="#details">Details</a>
                 <li><a href="#menu">Menu</a>
                 <li><a href="#tables">Tables</a>
-                <li><a href="#sales-analysis">Sales Analysis</a>
+                <li><a href="#sales-reports">Sales reports</a>
                 <li><a href="#try-venue-interface">Try Venue Interface</a>
             </ul>
         </li>
@@ -57,26 +87,177 @@
 
 ## About The Project
 
-<!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
+UnQ gives every table in a venue (a restaurant, a bar, a pop-up) its own QR code. Diners scan it, order from the live menu into one shared cart, and each pay for exactly the items they chose, by card, Apple Pay, Google Pay or PayPal, with no app to install and no waiter to wait for. A venue manager runs the shop, the menu, the tables and their QR codes from the same app, and sees every table's carts, payments, refunds and the diners still owed money.
 
-This is the Front-End of my Solo Capstone project for the Full Stack Master Camp at Strive School.
+This client is mobile-first for diners and desktop-first for managers. It talks to the [UnQ API](https://github.com/Nando-C/UnQ-BE) through a single axios instance that holds no tokens: auth lives in httpOnly cookies, refreshed silently and single-flighted on the first 401. Checkout never handles an amount. The API creates each payment from database prices, and the client confirms Stripe's Payment Element only when the amount it shows equals the one the API created.
 
-Developed completly from (not having idea of what to conceive) concept to deployment in 5 weeks, implementing both the Font-End & Back-End from scratch within this time frame.
-
-In reality this is a MVP (Minimal Viable Product) that I am planning to improve in the near future, but still makes me really proud! 😁
-
-You can find the Back-End repo of this project in the following link: [UnQ's Back-End](https://github.com/Nando-C/UnQ-BE)
+The first version was a five-week solo capstone (2021). The 2026 rebuild moved it from Create React App and React 17 to Vite 8 and React 19, replaced the abandoned PayPal button package, added Stripe with Apple Pay and Google Pay, added a Vitest + Testing Library + msw suite of 422 tests and a responsive audit that renders every main screen at seven viewports, and took `npm audit` from 181 findings (11 critical) to 0. Every release is listed in the [changelog](./CHANGELOG.md).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ### Built With
 
-- [TypeScript](https://typescriptlang.org/)
-- [Node.js](https://nodejs.org/)
-- [React.js](https://reactjs.org/)
-- [Bootstrap](https://getbootstrap.com)
-- [Redux](https://redux.js.org/)
-- Love ❤️ and lots of coffee ☕️
+- [React](https://reactjs.org/) + [TypeScript](https://typescriptlang.org/)
+- [Vite](https://vitejs.dev/)
+- [Redux Toolkit](https://redux-toolkit.js.org/) + [React Router](https://reactrouter.com/)
+- [React-Bootstrap](https://react-bootstrap.github.io/)
+- [Vitest](https://vitest.dev/) + [Testing Library](https://testing-library.com/) + [msw](https://mswjs.io/)
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- FEATURES -->
+
+## Features
+
+- **QR-driven table menus** — each table gets its own QR code; scanning it opens that shop's menu scoped to that table.
+- **Shared table cart with per-item bill splitting** — anyone at the table can add items to the same cart and choose exactly which items (and quantities) they're paying for.
+- **Sold-out items** — an item the manager marks unavailable is shown greyed out with a "Sold out" badge and can't be ordered; if it sells out after it was added, it stays in the cart flagged, is never charged, and has to be removed before the rest can be paid for.
+- **Checkout** — by card (Stripe's Payment Element in the checkout sheet, with Apple Pay and Google Pay where the device has them) or PayPal (`@paypal/react-paypal-js`), with server-created and server-captured payments: the back end creates the payment for the buyer's DB-priced split total and captures it itself after the buyer confirms (a card is only authorised until then), so the client never handles money — a post-capture conflict is refunded automatically. A card payment the back end can't confirm at once is finished by Stripe's webhook, and the cart page shows how it ended.
+- **Table sheet for staff** — each table's carts, selections and payments (with refunds, and checks of payments a provider hasn't confirmed), and each cart's log of what managers and UnQ did, marking what staff must act on (a card refund Stripe won't make).
+- **Auth** — email/password and Google OAuth, JWT access + refresh tokens in httpOnly cookies, with silent refresh-on-401 so a 15-minute access token never logs the user out mid-session.
+- **Manager dashboard** — CRUD for shops, menu items (with per-item availability toggle), and tables; QR-code generation per table via `qr-code-styling`; images are uploaded through the back end to Cloudinary.
+- **Role-aware UI** — the app renders the customer or manager interface based on the signed-in user's role. Promoting a user to manager (`shopMg`) is a back-end/admin operation today — there's no self-service "become a manager" flow in the UI.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- ARCHITECTURE -->
+
+## Architecture
+
+```mermaid
+flowchart LR
+    QR(["📱 Table QR code<br/>/shops/:shopId/tables/:tableId"]) --> Router
+
+    subgraph FE["Front-End — React 19 + TypeScript (Vite)"]
+        Router["react-router v7<br/>App.tsx"]
+        UI["Components<br/>Customers · Shops · Tables · Dashboard"]
+        Store["Redux Toolkit store<br/>slices: user · shops · carts"]
+        Axios["axios instance — backend.ts<br/>single-flight refresh-on-401"]
+
+        Router --> UI
+        UI -->|"useAppSelector /<br/>useAppDispatch"| Store
+        Store -->|async thunks| Axios
+    end
+
+    Axios <-->|"REST · httpOnly JWT cookies<br/>(access 15 min / refresh 4 wk)"| BE["UnQ-BE<br/>Express + zod"]
+    BE <-->|"createCheckoutOrder → mint order<br/>captureCheckout → capture + settle"| PayPal["PayPal<br/>(sandbox)"]
+    UI <-->|"buyer approves in popup<br/>@paypal/react-paypal-js"| PayPal
+    BE <-->|"createStripeCheckout → PaymentIntent<br/>captureStripeCheckout → capture + settle"| Stripe["Stripe<br/>(test mode)"]
+    UI <-->|"card confirmed in the Payment Element<br/>@stripe/react-stripe-js"| Stripe
+
+    BE --> Mongo[("MongoDB")]
+    BE --> Cloudinary["Cloudinary<br/>images"]
+    BE --> Google["Google OAuth"]
+```
+
+- **Entry**: `src/index.tsx` → `src/App.tsx`, which owns routing (`react-router-dom` v7) and switches between the customer `NavigationBar` and the manager `ShopNavbar`.
+- **State**: Redux Toolkit, one slice per domain — `user` (auth/profile + `status: "idle" | "loading" | "authenticated" | "guest"`), `shops` (venues, menu items, tables), `carts` (table cart + per-item split state). Components read/dispatch through the typed hooks in `redux/app/hooks.ts` (`useAppDispatch`/`useAppSelector`) rather than the bare react-redux hooks.
+- **API access**: exclusively through the axios instance in `src/backend/backend.ts` (`withCredentials: true` — auth lives in httpOnly cookies, never in JS-readable storage). A response interceptor there transparently refreshes an expired access token on a 401 (single-flighted, so concurrent 401s share one refresh call) and replays the original request once.
+- **Shared types**: `src/typings/`.
+- **Env vars**: `VITE_BE_URL` (back-end base URL), `VITE_PAYPAL_CLIENT_ID` (PayPal sandbox/app client ID) and `VITE_STRIPE_PUBLISHABLE_KEY` (Stripe's publishable key) — see [Environment Variables](#environment-variables).
+
+```
+src/
+├── App.tsx                 routes + top-level nav switch
+├── index.tsx                entry point
+├── backend/
+│   └── backend.ts           axios instance + refresh-on-401 interceptor
+├── redux/
+│   ├── app/                 store + typed hooks
+│   └── slices/               user, shops, carts
+├── components/
+│   ├── Customers/            table menu, cart, split/checkout, navbar
+│   ├── Shops/                 shop details/menu/items (manager CRUD)
+│   ├── Tables/                table list + QR-code generation
+│   ├── Dashboard/             post-login landing (shop list / customer view)
+│   ├── Login/ Register/       auth forms
+├── typings/                  shared TS types (cart, menu, shop, user)
+└── tests/                    Vitest + Testing Library + msw suite
+```
+
+### How the two apps talk
+
+1. The browser loads this app from Vercel and calls `/api/...` on the same origin. `vercel.json` rewrites that path to the API's host.
+2. The API answers with two httpOnly cookies: a 15-minute access token and a 4-week refresh token. Because the request was same-origin, Safari treats them as first-party and keeps them. Served from a second domain, Safari's tracking prevention would drop them.
+3. On the first 401, the axios interceptor calls the refresh endpoint once, queues every other request behind it, and replays them all with the new cookie. A refresh another tab has just made is recognised (`reason: "superseded"`) and the request is simply retried.
+4. At checkout, the client asks the API to create the payment, then hands the provider's client secret or order id to Stripe's Payment Element or PayPal's popup. After the buyer confirms, the client asks the API to capture. The API re-checks the cart and only then takes the money.
+5. If the API can't answer the capture at once (a bank check, a closed tab), the cart page shows the outcome the API's webhook wrote, as a notice on the table.
+
+### Engineering decisions
+
+- **The API is served from this origin.** Not cosmetic: the auth cookies are `Secure; SameSite=None`, which is right for a cross-origin API, but Safari's Intelligent Tracking Prevention drops third-party cookies regardless. Proxying `/api` through Vercel (and Vite's dev server locally) makes them first-party everywhere. See [Deployment](#deployment).
+- **No token ever reaches JavaScript.** The axios instance sends cookies and nothing else, so an XSS can't read a session. The price is the refresh dance in the interceptor, kept in one file.
+- **The client never prices anything.** The API computes the amount from the database and the client shows it. For Stripe, the Payment Element is confirmed only if the amount it displayed equals the one the API created, so a price change between opening the sheet and pressing Pay is refused, not charged.
+- **Optimistic updates where a round trip would feel slow, reconciled from the server.** Split quantities change on tap, sync in the background and roll back on failure. Everything else waits for the API, and a late answer for a shop or table the user has since left is dropped by request order.
+- **Honest states, everywhere.** Every page has loading, failed, empty, no-match and not-found states, payment messages stay until closed, and the API's reason codes (`CART_GONE`, `STILL_CONFIRMING`, `superseded`) drive the wording so a diner is never told nothing was charged when something was.
+- **Layout is tested, not eyeballed.** A headless-Chrome audit renders the main screens from 320px to 1440px and at 200% text against a mocked API and fails on sideways overflow, content spilling out of its card or sheet, controls under 24px, and content hidden under a fixed bar.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- SETUP -->
+
+## Setup
+
+### Prerequisites
+
+- Node.js ≥ 22.12 (required by Vite 8 and Vitest 5)
+- A running instance of [UnQ's Back-End](https://github.com/Nando-C/UnQ-BE) (anything behind auth needs it — see its own README for setup)
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in:
+
+| Variable | Description |
+|---|---|
+| `VITE_BE_URL` | Path the app calls the back-end on. Keep it as `/api` so the API is served from this app's own origin and the back-end's auth cookies stay first-party (see [Deployment](#deployment)) |
+| `DEV_PROXY_TARGET` | Where the dev server forwards `/api`. Defaults to `http://localhost:3001`. Deliberately un-prefixed so it never reaches the client bundle |
+| `VITE_PAYPAL_CLIENT_ID` | PayPal client ID for the checkout button (falls back to PayPal's shared `"sb"` sandbox ID if unset) |
+| `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_test_…` or `pk_live_…`) of the account the back-end's secret key belongs to. Unset, the checkout offers PayPal only. For Apple Pay, the site's domain is registered in Stripe's dashboard (Payment method domains) |
+
+### Scripts
+
+| Script | Description |
+|---|---|
+| `npm run dev` / `npm start` | Start the Vite dev server on `:3000` |
+| `npm run build` | Type-check, then build the production bundle to `dist/` |
+| `npm run preview` | Preview the production build locally |
+| `npm run lint` | Run ESLint over `src` |
+| `npm test` | Run the Vitest suite once |
+
+### Deployment
+
+The front-end deploys to [Vercel](https://vercel.com/); the back-end runs separately.
+
+- **The build output directory is `dist/`** (Vite), not CRA's `build/` — set it in the Vercel project settings or the first deploy serves nothing.
+- **The API is proxied through this app's own origin.** `vercel.json` rewrites `/api/:path*` to the back-end, and `VITE_BE_URL` must be set to the relative path `/api` (in the Vercel project's environment variables, not the back-end's URL). This is not cosmetic. The back-end sets its JWT cookies `Secure; SameSite=None`, which is correct for cross-origin — but when the two apps sit on different registrable domains, Safari's Intelligent Tracking Prevention blocks those cookies as third-party regardless of `SameSite`. Served through this origin they are first-party, and Safari accepts them with no user intervention.
+- **Google OAuth has to point at the proxied path too.** The back-end builds its Google callback URL from its own `PUBLIC_API_URL`, so that variable must be the proxied prefix — `https://un-q.vercel.app/api` in production, `http://localhost:3000/api` in development — and the same URL with `/auth/googleRedirect` appended must be registered as an authorized redirect URI in the Google Cloud Console. Leave `PUBLIC_API_URL` pointing straight at the back-end and Google returns the browser to the back-end's own domain, where the cookies get set out of reach of this origin: Google sign-in then fails silently in *every* browser, not just Safari.
+- **Wallets need the domain registered.** Apple Pay and Google Pay appear in the card form only on an HTTPS page whose exact domain is registered under Stripe's Payment method domains.
+
+Local development reproduces the same shape through Vite's dev-server proxy (`vite.config.ts`), which forwards `/api` to `DEV_PROXY_TARGET`.
+
+### Versioning and releases
+
+UnQ ships as two repositories that release together, each with its own [Semantic Versioning](https://semver.org/) number and a [changelog](./CHANGELOG.md).
+
+- This front end at `x.y.*` needs the API at `x.y.0` or later. The shared MINOR says which pair belong together; patches are independent.
+- The MAJOR changes only when a release needs a change on the deployment host or a new API major. 2.0.0 is one: see the changelog's deploy notes.
+- Within a pair, the API deploys first.
+
+```bash
+npm version minor --no-git-tag-version   # or patch / major; then write the CHANGELOG entry
+git tag -a v2.1.0 -m "UnQ front end 2.1.0"
+git push --follow-tags
+```
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- TESTING -->
+
+## Testing
+
+The suite is written with Vitest, React Testing Library, and msw (mocking the back end at the network layer; an unhandled request fails its test). Its 422 tests cover the auth forms and the silent-refresh interceptor, the cart's split selection and totals, both checkouts with every outcome the API can answer (paid, pending, declined, refunded after a lost race, cart gone, still confirming), the manager's table sheet with its releases, refunds, payment checks and pay-backs, the paged shop search, sold-out handling, every page's loading and failure states, and the ordering of overlapping requests.
+
+Layout is checked separately: `npm run audit:responsive` renders the main customer and manager screens at seven sizes from 320px phones to 1440px desktops, plus a phone with text at 200%, in headless Chrome against a mocked API, and writes a report with screenshots to `responsive-report/` (needs Google Chrome installed; `--screens=` and `--viewports=` narrow the run).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -84,19 +265,17 @@ You can find the Back-End repo of this project in the following link: [UnQ's Bac
 
 ## App Use
 
-The main idea behind this application is to provide the venue with a unique QR-code per table or Point Of Service/POS (which is generated automagically by the app), so when the customer wants to place an order, simply scan the QR code select the items and pay.
-
-So for this purpose, the app has two user interfaces:
+The venue gets a QR code per table or point of service, generated by the app. A diner scans it, picks items and pays. The app has two interfaces:
 
 - Customer
 
-  Used by the customers to order and pay for Food & Drinks and designed to be only mobile.
+  For diners to order and pay for food and drinks. Designed for phones; on wider screens it keeps a phone-width column.
 
   <img src="public/UnQ-Customer.png" alt="UnQ-customer" height="400">
 
 - Venue / Shop
 
-  Used by the venue's/shop's staff to create and edit the place profile, i.e contact details, modify the menu, create table/POS QR-codes (and in the next version, get some sales analysis).
+  For the venue's staff to edit the place's profile and contact details, keep the menu current, create the tables' QR codes, and follow each table's carts, payments and refunds.
 
   <img src="public/UnQ-Venue.png" alt="UnQ-venue">
 
@@ -104,13 +283,13 @@ So for this purpose, the app has two user interfaces:
 
 ### Customer Interface
 
-- Ideally you will land here by having scaned a venue's QR-code on your mobile, which places you right in the specific table/POS your are sitting within the venue/shop.
+- Scanning a venue's QR code lands you at the specific table you are sitting at.
 
-- You will see the venue's availble menu and will be able to add items to the cart right away.
+- You see the venue's menu, with sold-out items greyed out, and can add items to the table's cart right away.
 
     <img src="public/UnQ-Customer.png" alt="UnQ-customer" height="400">
 
-- In case you land here following different route, you will have a list of venues to choose from. Then you'll have to first select the table/POS you are sitting, before being able to add items to the cart.
+- Arriving another way, you get a searchable list of venues. Pick one, then the table you are at, before adding items to the cart.
 
     <img src="public/customer-no-qrcode.gif" alt="customer-no-qrcode" height="400">
 
@@ -118,7 +297,7 @@ So for this purpose, the app has two user interfaces:
 
 #### Cart
 
-- On the cart, you have the option to select all items and pay for the full bill or select the quantities of the ones you want to pay for, to share the bill with your friends. In the second case, your friends can scan the QRcode with their phones to select the remaining items, or use the same phone to do so and pay with their own card.
+- On the cart, select everything to pay the whole bill, or pick the quantities you are paying for and leave the rest to your friends. They scan the same QR code on their own phones and select what remains, or use your phone and pay with their own card. A unit someone else has selected can't be selected twice.
 
     <img src="public/cart-selection.gif" alt="cart-items-selection" height="400">
 
@@ -126,7 +305,7 @@ So for this purpose, the app has two user interfaces:
 
 #### Payment
 
-- As for payment options, you can use your paypal account or your prefered Debit or Credit Card.
+- Pay by debit or credit card, by Apple Pay or Google Pay where your device offers them, or with your PayPal account. The card is only authorised until the API has re-checked the cart; a payment the API can't confirm at once is finished in the background, and the cart tells you how it ended.
 
     <img src="public/payment.gif" alt="payment-options" height="400">
 
@@ -134,38 +313,26 @@ So for this purpose, the app has two user interfaces:
 
 #### Try Customer Interface
 
-- As mentioned before, this interface has been designed to be mobile only.
-
-- The best way is to access the app through the following QR-code, by scaning it with your mobile's phone camera. (Or tap it, if you are viewing this on a phone). This simulates that you are scanning a QR-code on the Fire Place 🔥 table of the Rocketlit venue (fictional place).
+- This interface is designed for phones. Scan the QR code below with your phone's camera (or tap it, if you are reading this on a phone). It puts you at the Fire Place 🔥 table of Rocketlit, a fictional venue.
 
   <a href="https://un-q.vercel.app/shops/6158a19282eaef10787cd6f3/tables/61702525cc1ec6af70a92f35" target="_blank"><img src="public/test-QRcode.png" alt="test-qrcode" height="200"></a>
 
-- When you try to add an item to the cart, you will be prompted to login/sign up. You can create an account if you wish, or you can use the following details.
+- Adding an item to the cart asks you to sign in. Create an account, sign in with Google, or use the demo diner:
 
         Email address: frank@mail.com
         Password: 1234
 
-  ### Note:
-
-  If your are using Safari, you will have to disable cross site tracking while trying this app. Unfortunately this is an issue with authentication that I still yet to solve, but I assure you there is nothing dodgy behind.
-  On Chrome it works perfectly fine. 😉
-
-        Settings -> Safari -> Prevent Cross-Site Tracking
-
-- You can test payments using the following paypal demo account details:
-
-        user: test@unq.com
-        password: 12345678
+- Payments run in test mode, so nothing is charged. Pay by card with Stripe's test card `4242 4242 4242 4242`, any future expiry date and any CVC (`4000 0025 0000 3155` asks for a bank check first, `4000 0000 0000 0002` is declined). PayPal runs against its sandbox and needs a sandbox buyer account.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ### Venue Interface
 
-- When a user login with a venue's manager account, a list of your venues/shops will be displayed (in case you have many branches) and a button to create a new one if you are expanding or participating on a pop-up market.
+- Signing in with a manager's account shows your venues (one per branch) and a button to create another, say for a pop-up market.
 
     <img src="public/venue.gif" alt="venue-list">
 
-- Once a particular venue has been selected, you have access its details, menu and available tables sections.
+- Open a venue to reach its details, menu and tables.
 
     <img src="public/venue-sections.gif" alt="venue-sections">
 
@@ -173,7 +340,7 @@ So for this purpose, the app has two user interfaces:
 
 #### Details
 
-- On the details section, you will be able to update the venue's information and/or delete the venue (i.e: if the pop-up market has finished)
+- Details is where you update the venue's information or delete the venue once a pop-up has finished (refused while money is still moving on one of its tables).
 
     <img src="public/venue-details.gif" alt="venue-details">
 
@@ -181,9 +348,9 @@ So for this purpose, the app has two user interfaces:
 
 #### Menu
 
-- On the Menu section, you have a search bar to quickly fin a specif item, a button to add a new item and the list of items on your menu.
+- Menu has a search bar, a button to add an item, and the list of items.
 
-- Also, on each item you have a toggle button to quickly change the availability of that item in case you run out of stock.
+- Each item has a switch to mark it sold out when you run out; diners see it greyed out at once.
 
     <img src="public/venue-menu.gif" alt="venue-menu">
 
@@ -191,41 +358,28 @@ So for this purpose, the app has two user interfaces:
 
 #### Tables
 
-- On the tables section, you can create a new table by giving it a name, and the app will automatically generate a unique QR-code, customised with the image/ of the venue. This QR-code then can be saved and printed to place it in the respective location.
+- Tables is where you create a table by name. The app generates its QR code, styled with the venue's cover, to save or print, one at a time or all of them as a grid.
+
+- Each table card shows its state (free, ordering, waiting to pay, partly paid) and anything needing attention. Opening a table shows its carts, selections, payments and the log of what staff and the app did, and lets you release a selection, remove an item, close or merge carts, refund paid items with a reason, check a payment the provider holds, and mark a pay-back done.
 
     <img src="public/venue-tables.gif" alt="venue-tables">
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-#### Sales Analysis
+#### Sales reports
 
-An insight into product sales performance of the venue will be availble in the next release.
-
-🛠 Watch this space! 👀
+Next on the roadmap: a per-shop sales report by day, week or item, with CSV export. The API already records one order per payment for it.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 #### Try Venue Interface
 
-- To try the venue interface, you can open the app on the following link
+- Open [UnQ](https://un-q.vercel.app/) on a laptop or tablet.
 
-  [UnQ](https://un-q.vercel.app/)
-
-- Login with the the following details:
+- Sign in with the demo manager:
 
         Email address: manager@mail.com
         Password: test
-
-  ### Note:
-
-  If your are using Safari, you will have to disable cross site tracking while trying this app. Unfortunately this is an issue with authentication that I still yet to solve, but I assure you there is nothing dodgy behind.
-  On Chrome it works perfectly fine. 😉
-
-        On a laptop:
-        Safari -> Preferences -> Privacy -> Website Tracking: Un-Check Prevent cross-site tracking
-
-        On an iPhone:
-        Settings -> Safari -> Prevent Cross-Site Tracking
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -233,6 +387,6 @@ An insight into product sales performance of the venue will be availble in the n
 
 ## Contact
 
-[@Nando](https://hernando-crespo.vercel.app/) - I think this is amazing but I might be biased! So get in touch and let me know what do you think of this project! 😉
+[@Nando](https://hernando-crespo.vercel.app/) — get in touch and tell me what you think of this project.
 
 <p align="right">(<a href="#top">back to top</a>)</p>

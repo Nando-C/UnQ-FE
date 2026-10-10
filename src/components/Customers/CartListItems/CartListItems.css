@@ -1,3 +1,38 @@
-/* .row>.card-body {
-    font-size: 1.5rem;
-} */
+.cart-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0.5rem 0 0.5rem 0.75rem;
+}
+
+/* Right-aligned, and still on the right after wrapping under Select All. */
+.cart-totals {
+  margin-left: auto;
+  text-align: right;
+}
+
+/* The checkout button, under the list, with room below it to scroll clear of
+ * the fixed tab bar. */
+.checkout-bar {
+  padding-top: 3rem;
+  padding-bottom: 4rem;
+}
+
+/* On phones it stays in view: pinned just above the tab bar (whose height is
+ * --unq-footer-h), full width, on white like the bar. Its bottom margin keeps
+ * room below it when scrolled to the end, so it never covers the last row. */
+@media (max-width: 767.98px) {
+  .checkout-bar {
+    position: sticky;
+    bottom: var(--unq-footer-h, 0px);
+    z-index: 2;
+    margin-top: 1.5rem;
+    margin-bottom: var(--unq-footer-h, 0px);
+    margin-inline: calc(var(--bs-gutter-x) * -0.5);
+    padding: 0.75rem calc(var(--bs-gutter-x) * 0.5);
+    background-color: var(--bs-body-bg);
+    border-top: 1px solid var(--bs-border-color);
+  }
+}

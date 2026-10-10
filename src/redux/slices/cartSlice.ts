@@ -1,8 +1,15 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
-import { ICart, ICartStore, IItem } from "../../typings/cart"
+import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit"
+import { ICart, ICartNotice, ICartStore, IItem } from "../../typings/cart"
 import backend from "../../backend/backend"
-import { AxiosResponse } from "axios"
-import { RootState } from "../app/store"
+import axios, { AxiosResponse } from "axios"
+import { apiErrorBody, type ApiErrorBody } from "../../lib/errors"
+import type { AppThunk, RootState } from "../app/store"
+import { menuIdOf, myOpenSplit } from "../../lib/cart"
+import { logOut } from "./userSlice"
+
+// The cart of the table the diner is at: the BE's cart, plus the selections
+// ("splits") the diner has asked for that the BE hasn't confirmed yet. See the
+// BE's cart model for how items and splits work.
 
 const initialState: ICartStore = {
     data: {
@@ -31,90 +38,299 @@ interface AddToSplitProps {
     cartId: string
     item: IItem
 }
-export const getMyOpenCart = createAsyncThunk("cart/getMyOpenCart", async () => {
-    const { data }: AxiosResponse<ICart> = await backend.get(`carts/`)
-    return data
-})
-export const addToCart = createAsyncThunk("cart/addToCart", async ({shopId, tableId, item}: AddToCartProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/addItem`, item)
-    return data
-})
-export const addToSplit = createAsyncThunk("cart/addToSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/addSplitItem`, item)
-    return data
-})
-export const decreaseSplit = createAsyncThunk("cart/ decreaseSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/decreaseSplitItem`, item)
-    return data
+const toCartPayload = (item: IItem) => ({ menuId: menuIdOf(item), qty: item.qty })
+
+// A refused cart request: the BE's status and message (e.g. 409 "Someone at
+// the table is paying for those"), for the UI to tell refusals apart, and its
+// machine-readable `reason` when it gives one (lib/errors.ts).
+export type CartRejection = ApiErrorBody & { status?: number }
+
+const reasonOf = (err: unknown): CartRejection => {
+    if (axios.isAxiosError(err)) return { status: err.response?.status, ...apiErrorBody(err) }
+    throw err
+}
+
+// A cart request's thunk: `call` makes it, and a refusal is rejected with the
+// BE's answer (reasonOf) for the UI to tell apart; anything else still throws.
+const cartThunk = <Arg, Ret>(type: string, call: (arg: Arg) => Promise<Ret>) =>
+    createAsyncThunk<Ret, Arg, { rejectValue: CartRejection }>(type, async (arg, { rejectWithValue }) => {
+        try {
+            return await call(arg)
+        } catch (err) {
+            return rejectWithValue(reasonOf(err))
+        }
+    })
+// A cart action's answer: the cart (or "" for a 204: the emptied cart was deleted).
+const postCart = async <T = ICart>(url: string, body?: object) => (await backend.post<T>(url, body)).data
+
+// The menu card tells a sold-out 409 apart from any other failure.
+export const addToCart = cartThunk("cart/addToCart", ({shopId, tableId, item}: AddToCartProps) =>
+    postCart(`carts/${shopId}/tables/${tableId}/addItem`, toCartPayload(item)))
+// A 409 means the units were claimed first (or it sold out).
+export const addToSplit = cartThunk("cart/addToSplit", ({shopId, tableId, cartId, item}: AddToSplitProps) =>
+    postCart(`carts/${shopId}/tables/${tableId}/${cartId}/addSplitItem`, toCartPayload(item)))
+export const decreaseSplit = cartThunk("cart/ decreaseSplit", ({shopId, tableId, cartId, item}: AddToSplitProps) =>
+    postCart(`carts/${shopId}/tables/${tableId}/${cartId}/decreaseSplitItem`, toCartPayload(item)))
+export const removeFromSplit = cartThunk("cart/removeFromSplit", ({shopId, tableId, cartId, item}: AddToSplitProps) =>
+    postCart(`carts/${shopId}/tables/${tableId}/${cartId}/removeSplitItem`, toCartPayload(item)))
+
+// Orders `item.qty` fewer of an item for the table. Answers 204 when that
+// empties the cart, which the BE then deletes.
+export const removeFromCart = cartThunk("cart/removeFromCart", ({shopId, tableId, item}: AddToCartProps) =>
+    postCart<ICart | "">(`carts/${shopId}/tables/${tableId}/removeItem`, toCartPayload(item)))
+// Removes the item's unpaid units that no one else is paying for. Answers 204
+// when that empties the cart, which the BE then deletes.
+export const deleteFromCart = cartThunk("cart/deleteFromCart", ({shopId, tableId, item}: AddToCartProps) =>
+    postCart<ICart | "">(`carts/${shopId}/tables/${tableId}/deleteItem`, toCartPayload(item)))
+
+export const getTableCart = createAsyncThunk(
+    "cart/getTableCart",
+    async (tableId: string, { rejectWithValue }) => {
+        try {
+            const { data }: AxiosResponse<ICart> = await backend.get(`carts/tables/${tableId}`)
+            return data
+        } catch (err) {
+            // A 404 means the table has no open cart (none yet, or it was paid
+            // off); the reducer tells that apart from a failed request.
+            // Its body may carry notices from a cart closed lately that this
+            // diner took part in ("The staff closed this table").
+            if (axios.isAxiosError(err)) {
+                const notices = (err.response?.data as { notices?: ICartNotice[] } | undefined)?.notices
+                return rejectWithValue({ status: err.response?.status, notices })
+            }
+            throw err
+        }
+    }
+)
+interface CheckOutProps {
+    tableId: string
+    cartId: string
+}
+export const createCheckoutOrder = cartThunk("cart/createCheckoutOrder", async ({tableId, cartId}: CheckOutProps) =>
+    (await postCart<{ paypalOrderId: string }>(`carts/tables/${tableId}/${cartId}/createCheckoutOrder`)).paypalOrderId)
+
+interface CaptureCheckoutProps extends CheckOutProps {
+    paypalOrderId: string
+}
+// `pending`: the BE answered 202, PayPal took the money but is still reviewing
+// it. The diner's items are held for them until staff confirm it.
+export const captureCheckout = cartThunk("cart/captureCheckout", async ({tableId, cartId, paypalOrderId}: CaptureCheckoutProps) => {
+    const { data, status } = await backend.post<ICart>(`carts/tables/${tableId}/${cartId}/captureCheckout`, { paypalOrderId })
+    return { cart: data, pending: status === 202 }
 })
 
-export const removeFromCart = createAsyncThunk("cart/removeFromCart", async ({shopId, tableId, item}: AddToCartProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/removeItem`, item)
-    return data
-})
-export const deleteFromCart = createAsyncThunk("cart/deleteFromCart", async ({shopId, tableId, item}: AddToCartProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/deleteItem`, item)
-    return data
+// Card checkout (Stripe), step 1, when the diner presses Pay: a payment for the
+// caller's selection at the BE's prices, which the diner then confirms in
+// Stripe's Payment Element. That only authorises it. `amount`: the payment's,
+// in pence, confirmed only if it's the amount the diner saw.
+export const createStripeCheckout = cartThunk("cart/createStripeCheckout", ({tableId, cartId}: CheckOutProps) =>
+    postCart<{ clientSecret: string; paymentIntentId: string; amount?: number }>(`carts/tables/${tableId}/${cartId}/createStripeCheckout`))
+
+interface CaptureStripeCheckoutProps extends CheckOutProps {
+    paymentIntentId: string
+}
+// Step 2: the BE re-checks the cart, then takes the money, or cancels the
+// authorisation. Its answer comes from the payment as Stripe has it, so it's
+// asked whatever confirming it in the sheet said. `pending` as captureCheckout's
+// (a 202: Stripe is still processing it, the items are held).
+export const captureStripeCheckout = cartThunk("cart/captureStripeCheckout", async ({tableId, cartId, paymentIntentId}: CaptureStripeCheckoutProps) => {
+    const { data, status } = await backend.post<ICart>(`carts/tables/${tableId}/${cartId}/captureStripeCheckout`, { paymentIntentId })
+    return { cart: data, pending: status === 202 }
 })
 
-export const removeFromSplit = createAsyncThunk("cart/removeFromSplit", async ({shopId, tableId, cartId, item}: AddToSplitProps) => {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/${shopId}/tables/${tableId}/${cartId}/removeSplitItem`, item)
-    return data
-})
+// A capture's cart taken as the cart, and any table fetch sent before it dropped.
+const takeCapturedCart = (state: ICartStore, cart: ICart) => {
+    state.data = cart
+    delete state.cartRequestId
+}
 
-export const getTableCart = createAsyncThunk("cart/getTableCart", async (tableId: string)=> {
-    const { data }: AxiosResponse<ICart> = await backend.get(`carts/tables/${tableId}`)
-    return data
-})
-export const checkOutItem = createAsyncThunk("cart/checkOutItem", async ({shopId, tableId, cartId, item}: AddToSplitProps)=> {
-    const { data }: AxiosResponse<ICart> = await backend.post(`carts/tables/${tableId}/${cartId}/checkOutSplitItem`, item)
-    return data
-})
+// Back to no cart: also drops selections still on their way (their sync loops
+// see nothing wanted and stop) and the notes about failed ones.
+const clearCart = (state: ICartStore) => {
+    state.data = initialState.data
+    delete state.pending
+    delete state.splitErrors
+}
 
 export const cartsSlice = createSlice({
     name: "carts",
     initialState,
     reducers: {
+        // Remembers the table the diner is at (see ICartStore.pointers).
         storeCartPointers(state, action) {
             const { shopId, tableId } = action.payload
             state.pointers.shopId = shopId
             state.pointers.tableId = tableId
-        }
+        },
+        wantSplit(state, action: PayloadAction<{ menuId: string; qty: number }>) {
+            const { menuId, qty } = action.payload
+            state.pending = { ...state.pending, [menuId]: qty }
+            if (state.splitErrors) delete state.splitErrors[menuId]
+        },
+        splitSettled(state, action: PayloadAction<string>) {
+            if (state.pending) delete state.pending[action.payload]
+        },
+        splitFailed(state, action: PayloadAction<{ menuId: string; message: string }>) {
+            const { menuId, message } = action.payload
+            if (state.pending) delete state.pending[menuId]
+            state.splitErrors = { ...state.splitErrors, [menuId]: message }
+        },
     },
     extraReducers: (builder) => {
-        builder.addCase(getMyOpenCart.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
-        builder.addCase(addToCart.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
-        builder.addCase(addToSplit.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
-        builder.addCase(removeFromCart.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
-        builder.addCase(deleteFromCart.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
-        builder.addCase(decreaseSplit.fulfilled, (state, action) => {
-            state.data = action.payload
-        })
-        builder.addCase(removeFromSplit.fulfilled, (state, action) => {
-            state.data = action.payload
+        // A cart action's answer is the cart as it is now; a 204 (no body) means
+        // the BE deleted the emptied cart.
+        const cartOrGone = (state: ICartStore, action: PayloadAction<ICart | "">) => {
+            if (action.payload) state.data = action.payload
+            else clearCart(state)
+        }
+        for (const thunk of [addToCart, addToSplit, decreaseSplit, removeFromSplit, removeFromCart, deleteFromCart]) {
+            builder.addCase(thunk.fulfilled, cartOrGone)
+        }
+        // The cart shown must be the one for the table asked about, as the BE
+        // has it now. Moving to another table clears the old cart at once, so it
+        // is never shown (or acted on) under the new one. Only the latest fetch
+        // counts; an older answer arriving late is dropped. A 404 (no open cart:
+        // none yet, or everything was paid) empties the cart; any other failure
+        // keeps the last good one, as the cart is probably still there.
+        builder.addCase(getTableCart.pending, (state, action) => {
+            state.cartRequestId = action.meta.requestId
+            if (state.data.tableId && state.data.tableId !== action.meta.arg) {
+                clearCart(state)
+                // The answer it was loaded from no longer shows, so no table
+                // counts as answered until its own fetch lands.
+                delete state.loaded
+            }
         })
         builder.addCase(getTableCart.fulfilled, (state, action) => {
+            if (action.meta.requestId !== state.cartRequestId) return
             state.data = action.payload
+            state.loaded = { tableId: action.meta.arg, failed: false }
         })
-        builder.addCase(checkOutItem.fulfilled, (state, action) => {
-            state.data = action.payload
+        builder.addCase(getTableCart.rejected, (state, action) => {
+            if (action.meta.requestId !== state.cartRequestId) return
+            const rejection = action.payload as { status?: number; notices?: ICartNotice[] } | undefined
+            // A failure after a good answer for this table keeps that answer.
+            if (rejection?.status === 404 || state.loaded?.tableId !== action.meta.arg) {
+                state.loaded = { tableId: action.meta.arg, failed: rejection?.status !== 404 }
+            }
+            if (rejection?.status === 404) {
+                clearCart(state)
+                // Shown on the empty cart page, so its diners learn why.
+                // (A new object: the cleared cart is the frozen initial one.) It
+                // keeps the table they're about, so moving to another table
+                // clears them (see pending) even if that table's fetch fails.
+                if (rejection.notices?.length) {
+                    state.data = { ...state.data, tableId: action.meta.arg, notices: rejection.notices }
+                }
+            }
+        })
+        // A capture's answer (PayPal's or a card's) is newer than any table
+        // fetch sent before it (the popup or the card form sends focus back,
+        // which refetches): those are dropped, so the paid cart isn't replaced
+        // by the one from before.
+        builder.addCase(captureCheckout.fulfilled, (state, action) => takeCapturedCart(state, action.payload.cart))
+        // A card capture can take a few seconds (the BE may wait on Stripe's
+        // webhook), and the diner may have moved to another table meanwhile:
+        // its cart only shows on its own table.
+        builder.addCase(captureStripeCheckout.fulfilled, (state, action) => {
+            if (state.pointers.tableId !== action.meta.arg.tableId) return
+            takeCapturedCart(state, action.payload.cart)
+        })
+        // The table and the selections were the person logging out's: whoever
+        // signs in next isn't taken back to that table.
+        builder.addCase(logOut.fulfilled, (state) => {
+            state.pointers = initialState.pointers
+            delete state.pending
+            delete state.splitErrors
         })
     }
 })
 
 export const { storeCartPointers } = cartsSlice.actions
+const { wantSplit, splitSettled, splitFailed } = cartsSlice.actions
 export const selectCartsData = (state: RootState) => state.carts.data
 export const selectCartPointers = (state: RootState) => state.carts.pointers
-// export const selectCartItem = (id: string | undefined, state: RootState) => state.carts.data.items.find(item => item._id === id)
+export const selectCartLoaded = (state: RootState) => state.carts.loaded
+
+const NO_PENDING: Record<string, number> = {}
+const NO_ERRORS: Record<string, string> = {}
+export const selectPendingSplit = (state: RootState) => state.carts.pending ?? NO_PENDING
+export const selectSplitErrors = (state: RootState) => state.carts.splitErrors ?? NO_ERRORS
+
+// ---- Optimistic split quantities ---------------------------------------------
+// A tap on −/+ (or a checkbox, or Select All) sets how many units of an item I
+// want in my open split, and the cart shows that at once. A loop per item then
+// brings the BE round to it, one request at a time: it reads the wanted count
+// afresh after every answer, so taps made meanwhile are folded in and a burst
+// of + becomes one addSplitItem for the difference. Nothing is ever sent past
+// what the row allowed, and a request never races another for the same item.
+// On failure the wanted count is dropped, the cart refetched, and the row says
+// why; the display falls back to what the BE holds.
+
+interface SplitTarget {
+    shopId: string
+    tableId: string
+    cartId: string
+    menuId: string
+}
+
+// Items with a loop running. Module-level because a loop outlives the row that
+// started it (it finishes even if the diner leaves the cart page).
+const syncing = new Set<string>()
+
+const myHeldQty = (state: RootState, menuId: string) =>
+    myOpenSplit(state.carts.data.split, state.user.data._id, menuId)?.qty ?? 0
+
+const syncSplit = ({ shopId, tableId, cartId, menuId }: SplitTarget): AppThunk<Promise<void>> =>
+    async (dispatch, getState) => {
+        if (syncing.has(menuId)) return
+        syncing.add(menuId)
+        let adding = false
+        try {
+            for (;;) {
+                const state = getState()
+                const wanted = state.carts.pending?.[menuId]
+                if (wanted === undefined) return
+                const held = myHeldQty(state, menuId)
+                const item = state.carts.data.items.find((i) => menuIdOf(i) === menuId)
+                if (!item || wanted === held) {
+                    dispatch(splitSettled(menuId))
+                    return
+                }
+                const target = { shopId, tableId, cartId, item }
+                adding = wanted > held
+                if (adding) {
+                    await dispatch(addToSplit({ ...target, item: { ...item, qty: wanted - held } })).unwrap()
+                } else if (wanted === 0) {
+                    await dispatch(removeFromSplit(target)).unwrap()
+                } else {
+                    // The BE only takes one unit off per call.
+                    await dispatch(decreaseSplit(target)).unwrap()
+                }
+                // A request that "worked" but moved nothing would loop forever.
+                if (myHeldQty(getState(), menuId) === held) throw new Error("split unchanged")
+            }
+        } catch (err) {
+            const { status, message } = (err as CartRejection | undefined) ?? {}
+            dispatch(splitFailed({
+                menuId,
+                message: adding && status === 409
+                    ? message === "This item is sold out"
+                        ? "Sorry, that just sold out."
+                        : "Not enough left, someone else just took it."
+                    : "Couldn't update that, please try again.",
+            }))
+            await dispatch(getTableCart(tableId))
+        } finally {
+            syncing.delete(menuId)
+        }
+    }
+
+export const setSplitQty = (target: SplitTarget & { qty: number }): AppThunk =>
+    (dispatch) => {
+        const { qty, ...rest } = target
+        dispatch(wantSplit({ menuId: rest.menuId, qty }))
+        void dispatch(syncSplit(rest))
+    }
 
 export default cartsSlice.reducer

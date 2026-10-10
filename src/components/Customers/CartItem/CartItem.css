@@ -1,58 +1,87 @@
-.CartItem {
-  position: relative;
-  padding: 0.75rem 0.5rem;
-  box-shadow: 0 6px 6px -4px #5c5c5c38;
+/* [checkbox cell] [card: thumb | name, meta, price + controls] */
+.CartRow {
+  display: flex;
+  align-items: center;
+}
+
+.CartRow .cart-check {
+  flex: 0 0 44px;
+  display: flex;
+  justify-content: center;
+}
+
+/* .card.CartItem: Bootstrap's .card (flex-direction: column) loads after this
+ * file, so a single class would lose to it. */
+.card.CartItem {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  box-shadow: var(--unq-card-shadow);
   transition: box-shadow 0.1s ease-out;
 }
 
-.CartItem:hover {
-  box-shadow: 0 5px 20px #5c5c5c44;
+/* Lift on mouse hover only: phones apply :hover on tap and keep it. */
+@media (hover: hover) {
+  .CartItem:hover {
+    box-shadow: var(--unq-card-shadow-hover);
+  }
 }
 
-/* .CartItem > span {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-} */
-
-.CartItem .image-col {
-  position: relative;
-  min-height: 100px;
-  max-height: 100px;
-}
-
-.CartItem .image-col img {
+.CartItem .cart-thumb {
+  flex: 0 0 auto;
+  width: 64px;
+  height: 64px;
   object-fit: cover;
 }
 
-.CartItem .quantity-wrapper .btn.btn-primary {
-  min-width: 31px;
+/* min-width: 0 lets a long name wrap inside the body instead of widening it.
+ * Below 9rem beside the thumb (large text sizes) the body moves under it and
+ * takes the card's full width, so the stepper still fits. */
+.CartItem .cart-body {
+  flex: 1 1 9rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .CartItem .card-subtitle {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.125rem;
+}
+
+.CartItem .cart-meta,
+.CartItem .sold-out-note {
+  color: var(--bs-secondary-color);
+}
+
+.CartItem .cart-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+}
+
+/* Controls that wrap under the price stay on the right. */
+.CartItem .cart-line > :last-child {
+  margin-left: auto;
 }
 
 .CartItem .price {
   font-weight: 600;
-  font-size: 1.5rem;
-  letter-spacing: -1.5px;
+  font-size: 1.25rem;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
 }
 
-/* .CartItem .image-col>.image-overlayer::after {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    color: tomato;
-    z-index: 2;
-} */
-
-/* .CartItem .image-col > .add-button {
-  position: absolute;
-  left: 50%;
-  bottom: 8px;
-  transform: translate(-50%);
-  box-shadow: 0px 0px 20px #000000;
-} */
+/* Sold out after it was added: the photo is dimmed and desaturated, like the
+ * menu card's. */
+.CartItem.sold-out .cart-thumb {
+  filter: grayscale(1);
+  opacity: 0.7;
+}

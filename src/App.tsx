@@ -1,72 +1,70 @@
 import React, { useEffect } from "react";
-// import logo from "./logo.svg";
 import "./App.css";
-import { BrowserRouter as Router, Route } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Register from "./components/Register/Register";
 import Login from "./components/Login/Login";
-// import Item from './components/Shop/Item/Item';
-// import ItemList from './components/Shop/ItemList/ItemList';
 import Dashboard from "./components/Dashboard/Dashboard";
 import ShopDetails from "./components/Shops/ShopDetails/ShopDetails";
 import { useAppDispatch, useAppSelector } from "./redux/app/hooks";
 import { fetchUserData, selectUserData } from "./redux/slices/userSlice";
-import { fetchShopList } from "./redux/slices/shopSlice";
 import Cart from "./components/Customers/Cart/Cart";
 import NavigationBar from "./components/Customers/NavigationBar/NavigationBar";
 import TableMenu from "./components/Customers/TableMenu/TableMenu";
 import Account from "./components/Customers/Account/Account";
 import ShopNavbar from "./components/Shops/ShopNavbar/ShopNavbar";
+import NotFound from "./components/NotFound/NotFound";
+import { ManagerOnly } from "./components/Common/ManagerOnly";
 
 function App() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
     dispatch(fetchUserData());
-    dispatch(fetchShopList());
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
+  // Shop managers get the manager header, everyone else (diners, guests) the
+  // bottom tab bar.
   const userDataStore = useAppSelector(selectUserData);
   const isManager = userDataStore.role === "shopMg" ? true : false;
 
   return (
-    <div className="App bg-light">
+    <div className={isManager ? "App bg-light is-manager" : "App bg-light"}>
       <Router>
-        {isManager ? <ShopNavbar /> : <NavigationBar />}
-        {/* <ShopNavbar /> */}
-        <Route exact path="/login" component={Login} />
-        <Route exact path="/register" component={Register} />
-        <Route exact path="/" component={Dashboard} />
-        <Route exact path="/customer/shop/:shopId" component={TableMenu} />
-        <Route exact path="/shop/:shopId" component={ShopDetails} />
-        <Route
-          exact
-          path="/shops/:shopId/tables/:tableId"
-          component={TableMenu}
-        />
-        <Route
-          exact
-          path="/shops/:shopId/tables/:tableId/cart"
-          component={Cart}
-        />
-        <Route exact path="/shops//tables//cart" component={Cart} />
-        <Route exact path="/myAccount" component={Account} />
-        {/* <NavigationBar /> */}
-      </Router>
-
-      {/* <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
+        {/* Hidden until focused: the first Tab stop skips the header. */}
+        <a className="visually-hidden-focusable skip-link" href="#main">
+          Skip to content
         </a>
-      </header> */}
+        {isManager ? <ShopNavbar /> : <NavigationBar />}
+        <main id="main" tabIndex={-1}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<Dashboard />} />
+            {/* A shop's menu opened from the shop list, before picking a table. */}
+            <Route path="/customer/shop/:shopId" element={<TableMenu />} />
+            {/* The manager's page for one of their shops. */}
+            <Route
+              path="/shop/:shopId"
+              element={
+                <ManagerOnly>
+                  <ShopDetails />
+                </ManagerOnly>
+              }
+            />
+            {/* A table's menu: where a table's QR code leads. */}
+            <Route
+              path="/shops/:shopId/tables/:tableId"
+              element={<TableMenu />}
+            />
+            <Route
+              path="/shops/:shopId/tables/:tableId/cart"
+              element={<Cart />}
+            />
+            <Route path="/myAccount" element={<Account />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+      </Router>
     </div>
   );
 }

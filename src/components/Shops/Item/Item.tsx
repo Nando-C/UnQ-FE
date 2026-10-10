@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Card, Row, Col, Form, Image, Button } from "react-bootstrap";
+import { Button, Card, Collapse, Form, Image } from "react-bootstrap";
 import { GrEdit } from "react-icons/gr";
 import backend from "../../../backend/backend";
+import placeholder from "../../../assets/placeholder.svg";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { fetchShopList } from "../../../redux/slices/shopSlice";
+import { setMenuItemAvailability } from "../../../redux/slices/shopSlice";
 import ItemModal from "../ItemModal/ItemModal";
+import { formatPrice } from "../../../lib/price";
 import "./Item.css";
 
 interface ItemProps {
@@ -18,86 +20,143 @@ const Item = ({ itemId, shopId }: ItemProps) => {
   );
   const menuItem = shop?.menu.find((item) => item._id === itemId);
 
-  const [available, setAvailable] = useState(menuItem!.available);
-
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
 
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [failed, setFailed] = useState(false);
+
   const dispatch = useAppDispatch();
 
   const updateAvailable = async () => {
-    const updatedItem = { ...menuItem, available: !available };
-    const data = await backend.put(
-      `/shops/${shopId}/menu/${itemId}`,
-      updatedItem
-    );
-    console.log("updatedAvailable: ", data); //<=========================================== LOG
-    dispatch(fetchShopList());
+    if (!menuItem || saving) return;
+    const available = !menuItem.available;
+    setSaving(true);
+    setFailed(false);
+    // Move the switch now rather than after the round trip, and put it back
+    // (with a message) if the save fails.
+    dispatch(setMenuItemAvailability({ shopId, itemId, available }));
+    try {
+      await backend.put(`/shops/${shopId}/menu/${itemId}`, { available });
+    } catch {
+      dispatch(
+        setMenuItemAvailability({ shopId, itemId, available: !available })
+      );
+      setFailed(true);
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (!menuItem) return null;
+
+  const detailsId = `item-details-${menuItem._id}`;
 
   return (
     <>
-      <div className="Item text-center">
+      {/* text-start: ShopDetails wraps the whole page in a text-center
+          Container, and a menu row is a left-aligned list row, not a poster. */}
+      <div className="Item text-start">
         <Card className="p-3">
-          <Card.Title>{menuItem?.name}</Card.Title>
-          <Row className="align-items-start">
-            <Col className="image-col" xs={12} md={3}>
-              <Image
-                src={menuItem?.image}
-                rounded
-                fluid
-                className="w-100 h-100"
-              />
-            </Col>
-            <Col xs={12} md={3}>
-              <Card.Subtitle>Short Description</Card.Subtitle>
-              <Card.Body className="px-0">
-                {menuItem?.short_description}
-              </Card.Body>
-            </Col>
-            <Col xs={12} md={3}>
-              <Card.Subtitle>Full Description</Card.Subtitle>
-              <Card.Body className="px-0">{menuItem?.description}</Card.Body>
-            </Col>
-            <Col className="d-flex flex-column" xs={12} md={3}>
-              <Row className="">
-                <Col xs={12} md={6}>
-                  <Card.Subtitle>Price</Card.Subtitle>
-                  <Card.Body>
-                    <span className="price text-primary">
-                      £ {menuItem?.price}
-                    </span>
-                  </Card.Body>
-                </Col>
-                <Col xs={12} md={6}>
-                  <Card.Subtitle>Available</Card.Subtitle>
-                  <Form className="py-4">
-                    <Form.Check
-                      type="switch"
-                      id="custom-switch"
-                      checked={available}
-                      onChange={(e) => {
-                        setAvailable(e.target.checked ? true : false);
-                        updateAvailable();
-                      }}
-                      // label="Available"
-                    />
-                  </Form>
-                </Col>
-              </Row>
-            </Col>
-            {/* <Button className="" onClick={handleShow} >Edit Item</Button> */}
-          </Row>
-          <Button size={"lg"} onClick={handleShow}>
-            <GrEdit />
-          </Button>
+          <div className="item-row">
+            {/* Decorative: the name sits immediately beside it, so alt text
+                here would only make a screen reader announce the dish twice. */}
+            <Image
+              className="item-thumb"
+              src={menuItem.image || placeholder}
+              alt=""
+              rounded
+            />
+            {/* Two rows beside the thumbnail. Splitting the name onto its own
+                line lets a long one wrap against the full text column, and
+                keeps the edit button — which opens a form — away from the
+                availability switch, which commits the moment it is touched. */}
+            <div className="item-main">
+              <div className="item-head">
+                <Card.Title as="h3" className="item-name">
+                  {menuItem.name}
+                </Card.Title>
+                <Button
+                  variant="link"
+                  className="item-edit"
+                  onClick={handleShow}
+                  aria-label={`Edit ${menuItem.name}`}
+                >
+                  <GrEdit size={18} />
+                </Button>
+              </div>
+              <div className="item-sub">
+                <div className="item-body">
+                  {/* Only when there is one. title= shows the text cut off by
+                      the truncation. */}
+                  {menuItem.short_description && (
+                    <div
+                      className="item-short text-truncate"
+                      title={menuItem.short_description}
+                    >
+                      {menuItem.short_description}
+                    </div>
+                  )}
+                </div>
+                <div className="item-meta">
+                  <span className="price text-primary">
+                    {formatPrice(menuItem.price)}
+                  </span>
+                  <Form.Check
+                    type="switch"
+                    // Unique per item: a menu renders many of these.
+                    id={`available-${menuItem._id}`}
+                    // There's no visible label, so aria-label names it;
+                    // role="switch" gets it announced as on/off rather than
+                    // checked.
+                    role="switch"
+                    aria-label={`${menuItem.name} available`}
+                    checked={menuItem.available}
+                    disabled={saving}
+                    onChange={() => updateAvailable()}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {failed && (
+            <div className="item-error text-danger small" role="alert">
+              Couldn’t update availability — the switch has been put back.
+            </div>
+          )}
+
+          {/* The full description is the one field long enough to set the row's
+              height, and a manager scanning a menu rarely needs it. Behind a
+              disclosure the list stays one row per item; rendered only when
+              there is a description, so no empty panel. */}
+          {menuItem.description && (
+            <>
+              <Button
+                variant="link"
+                size="sm"
+                className="item-details-toggle"
+                onClick={() => setOpen(!open)}
+                aria-expanded={open}
+                aria-controls={detailsId}
+              >
+                {open ? "Hide details" : "Details"}
+              </Button>
+              <Collapse in={open}>
+                <div id={detailsId}>
+                  <p className="item-description">{menuItem.description}</p>
+                </div>
+              </Collapse>
+            </>
+          )}
         </Card>
         <ItemModal
           shopId={shopId}
           show={show}
           handleClose={handleClose}
-          itemId={menuItem!._id}
+          itemId={menuItem._id}
         />
       </div>
     </>
