@@ -91,7 +91,7 @@ const TableList = ({ shopId }: ShopMenuProps) => {
 
       <Row>
         {shop.tables.map((table) => (
-          <Col key={table._id} className="mb-4" sm={12} md={6} lg={4} xl={3}>
+          <Col key={table._id} className="mb-4" sm={12} md={6} lg={4}>
             <SingleTable
               shopId={shopId}
               tableId={table._id}

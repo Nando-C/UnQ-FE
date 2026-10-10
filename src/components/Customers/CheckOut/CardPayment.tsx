@@ -42,6 +42,10 @@ const ELEMENT_OPTIONS: StripePaymentElementOptions = {
   layout: { type: "accordion", defaultCollapsed: false, radios: "never", spacedAccordionItems: true },
   paymentMethodOrder: ["card"],
   wallets: { link: "never" },
+  // The venues are in the UK and charge in pounds, so the form starts on
+  // United Kingdom (Stripe would otherwise guess from the diner's address);
+  // a diner with a card from elsewhere changes it.
+  defaultValues: { billingDetails: { address: { country: "GB" } } },
 };
 
 // The card form in the checkout sheet: Stripe's Payment Element (Apple Pay and

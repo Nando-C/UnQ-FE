@@ -262,10 +262,12 @@ describe("the checkout sheet", () => {
     // Stripe's rows: Card first and open as the sheet opens, with or without
     // a wallet row (Apple Pay, Google Pay) below it; spaced, no radios. No
     // Link (Stripe's own saved-card wallet, which asks for an email to sign up).
+    // The form starts on the United Kingdom, where the venues are.
     expect(element.options).toEqual({
       layout: { type: "accordion", defaultCollapsed: false, radios: "never", spacedAccordionItems: true },
       paymentMethodOrder: ["card"],
       wallets: { link: "never" },
+      defaultValues: { billingDetails: { address: { country: "GB" } } },
     })
     expect(created).toBe(0)
   })

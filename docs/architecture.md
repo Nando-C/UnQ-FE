@@ -43,7 +43,8 @@ src/
 └── tests/                    the Vitest suite, its msw server and helpers
 scripts/                      repository checks and tools, outside the app's type check: the responsive audit
                               (+ fixtures), the API contract fixture (openapi.json) with its test and refresh
-                              script, the docs test, the Sass import test
+                              script, the docs test, the Sass import test, the screenshot tool (shots.mjs)
+docs/images/                  the screenshots, from the live demo
 ```
 
 Every component keeps its stylesheet beside it (`Cart.css` next to `Cart.tsx`). Anything two components share moves up: to `index.css` for styles, to `lib/` for code.
