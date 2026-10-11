@@ -47,6 +47,13 @@ const headingsOf = (markdown) => {
   return ids
 }
 
+describe("the README's version badge", () => {
+  it("says the version in package.json", () => {
+    const badge = read("README.md").match(/badge\/version-([\d.]+)-/)?.[1]
+    expect(badge).toBe(JSON.parse(read("package.json")).version)
+  })
+})
+
 describe("the Markdown files", () => {
   it("link only to files and headings that exist", () => {
     const broken = []

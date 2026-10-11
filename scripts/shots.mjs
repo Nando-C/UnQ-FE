@@ -204,12 +204,19 @@ if (wanted("my-shops")) {
   await goto(d, "/")
   await save("my-shops", "browser", d, "un-q.vercel.app")
 }
-if (wanted("tables") || wanted("table-sheet") || wanted("refund") || wanted("item-editor") || wanted("qr-print")) {
+if (wanted("tables") || wanted("qr") || wanted("table-sheet") || wanted("refund") || wanted("item-editor") || wanted("qr-print")) {
   await goto(d, `/shop/${DEMO_SHOP}`, 1500)
   await d.locator("#tableList").scrollIntoViewIfNeeded()
   await d.evaluate(() => document.getElementById("tableList").scrollIntoView({ block: "start" }))
   await sleep(1200)
   if (wanted("tables")) await save("tables", "browser", d, `un-q.vercel.app/shop/${DEMO_SHOP}`)
+  if (wanted("qr")) {
+    // The demo table's QR code as the app draws it (the README's Try it), unframed.
+    const card = d.locator(".SingleTable", { has: d.getByRole("button", { name: "View table Fire Place 🔥" }) })
+    await card.locator("canvas").screenshot({ path: path.join(OUT, "qr-fire-place.png"), omitBackground: true })
+    taken.push("qr")
+    console.log("✓ qr")
+  }
   if (wanted("table-sheet") || wanted("refund")) {
     await d.getByRole("button", { name: "View table Window" }).click()
     await d.locator(".modal.show").waitFor()

@@ -8,6 +8,7 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ### Added
 
+- `LICENSE`: MIT, with the licence badge.
 - Screenshots of the current build in `docs/images/`, taken from the live demo by `npm run shots` (`scripts/shots.mjs`) and framed in a phone or a browser window; the README and the docs pages use them. The 2021 images are gone.
 - `docs/`: the client's design knowledge, read from the code: architecture, checkout (with the table of every outcome a diner can see), manager tools, UX and engineering decisions, responsive layout and accessibility, deployment, testing, known gaps. Linked from the README.
 - A contract test: every URL the client calls is an operation in the API's OpenAPI document, kept as a fixture (`scripts/openapi.json`) and refreshed each release with `npm run contract:refresh`.
@@ -15,6 +16,7 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ### Changed
 
+- The README is a front page: what it does, Try it with the demo's sign-ins and test cards, what it has to get right, the decisions with their reasons, one diagram, the quick start with where each credential comes from, testing and CI, the docs index, the roadmap. The App Use tour is gone; the docs pages hold the detail. The demo table's QR code in Try it is the one the app draws (`npm run shots -- --shots=qr`), in place of the 2021 image.
 - The card form starts on the United Kingdom instead of a country guessed from the diner's address.
 - Table cards: three to a row on wide screens instead of four, with side padding for the title and status lines.
 
