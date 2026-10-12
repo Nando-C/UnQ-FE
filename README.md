@@ -141,7 +141,7 @@ CI runs the lint, the suite and the build, which type-checks first, on Node 24 f
 
 ## Roadmap
 
-Next is the sales report page over the orders the API already records, by day, week or item with a CSV export, then a sales dashboard, staff roles, kitchen screens with live updates, and several devices per account; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
+Next is the sales report page over the orders the API already records, by day, week or item with a CSV export, then a sales dashboard, staff on a shop and then staff roles, and kitchen screens with live updates; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
 
 ## About
 

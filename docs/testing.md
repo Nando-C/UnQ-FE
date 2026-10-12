@@ -32,9 +32,9 @@ Habits that caught real slips: work out the expected test total before running (
 
 ## What it covers
 
-Forty-one files, grouped by what they prove:
+Forty-three files, grouped by what they prove:
 
-- **Sessions**: the refresh interceptor (refresh and replay, single flight, the `superseded` resend, a read asked again as a guest, `sessionUnknown`); log in, sign up and the account editor with the API's errors; returning to the table after signing in; the manager route guard.
+- **Sessions**: the refresh interceptor (refresh and replay, single flight, the `superseded` resend, a read asked again as a guest, `sessionUnknown`); log in, sign up and the account editor with the API's errors; the account's devices list (naming a device from its User-Agent, signing one out, the failures); returning to the table after signing in; the manager route guard.
 - **Ordering and the cart**: adding from the menu (a sold-out 409, a changed cart, a closed table); split selection, Select All, −/+ bursts, the optimistic loop's failures and rollbacks; the counters; totals at paid prices; the bin and − with units others hold; sold-out rows and the blocked checkout; notices shown and dismissed.
 - **Checkout**: the thunks' answers and rejections; the outcome mapping for every answer in [checkout.md](./checkout.md); the sheet with and without a Stripe key; the card flow with `@stripe/react-stripe-js` mocked (submit before create, the pence rounding, a refetch mid-press, the amount mismatch, a decline in the sheet, a connection error going to capture, the return from a bank check handled once, the rechecks and their cancellation).
 - **The manager**: table cards and statuses, the polling stopping when hidden; the sheet's every action's question and request, the 409 reload, the refund picker (amounts, reasons, "Other", the API's field errors), pending payments and checks, pay-backs' wording and marking, the log and "Needs staff"; deleted tables; the editors' save-then-upload and partial failures, the create-once guard, the in-dialog deletes and focus return; the availability switch's rollback.

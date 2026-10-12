@@ -4,7 +4,7 @@
     "title": "UnQ API",
     "version": "2.1.0",
     "summary": "Order and pay at the table, split the bill, run the shop.",
-    "description": "The API behind UnQ, a food and drinks ordering app: diners at a venue scan their table's QR code, order from their phones, pick what each of them pays for, and pay by PayPal or card (Stripe); managers run their shops, menus and tables from the same app.\n\n## Conventions\n\n- **Sign-in** is two HttpOnly cookies, `accessToken` (15 minutes) and `refreshToken` (4 weeks), set by the auth routes. A 401 means refresh (`POST /auth/refreshToken`) and retry; a refresh that fails ends the session. Operations marked with the lock need the cookie; the rest are public, and some show more to a signed-in caller.\n- **Roles.** Every account is a `customer`; a `shopMg` (shop manager, set in the database) can create shops. Manager routes check that the caller manages the shop in the URL (403 otherwise).\n- **Ids** are MongoDB ObjectIds (24 hex characters). A table's id is its `_id` in the shop's `tables`.\n- **Money** is in pounds (GBP) to the penny everywhere a cart, a payment or a refund says an amount, and the `price` a manager sets is the same. The one exception is `createStripeCheckout`'s `amount`, in pence, as Stripe counts. The client never names an amount to pay: every total comes from database prices.\n- **Errors** are `{ message, details?, reason? }`. `400 Validation failed` carries `details`, one `{ path, message }` per problem; a few errors carry a machine-readable `reason`. A 5xx says only \"Generic Server Error\" unless its message was written for the user.\n- **Rate limits**, per account, not per IP: wrong passwords (10 in 15 minutes, wherever tried) and a diner's cart changes (120 a minute, starting a card payment included; capturing a payment is never limited). Both configurable (`PASSWORD_FAILS_PER_ACCOUNT`, `CART_EDITS_PER_MINUTE`).\n- **Soft deletes.** A deleted menu item stays, unavailable, for the carts that hold it; a deleted table stays under the shop's `deletedTables` so its carts and money stay reachable; a shop is deleted for good, with everything in it, once no money is moving.\n- **Concurrency.** A cart is saved under optimistic concurrency: a write that meets a newer version retries or answers 409 \"The cart changed, please retry\".\n\n## Checkout\n\nA diner selects units to pay for (`addSplitItem`), then pays in two calls around the provider's UI: PayPal `createCheckoutOrder` → popup → `captureCheckout`; card `createStripeCheckout` → Payment Element → `captureStripeCheckout`. The second call re-checks everything before money moves, and a payment that can't be recorded afterwards is refunded automatically. A card payment the diner abandons after authorising is still finished by Stripe's webhook or the server's 2-minute sweep, and the diner is told the outcome in their cart's `notices` on their next visit.",
+    "description": "The API behind UnQ, a food and drinks ordering app: diners at a venue scan their table's QR code, order from their phones, pick what each of them pays for, and pay by PayPal or card (Stripe); managers run their shops, menus and tables from the same app.\n\n## Conventions\n\n- **Sign-in** is two HttpOnly cookies, `accessToken` (15 minutes) and `refreshToken` (4 weeks), set by the auth routes. Each sign-in is a session of its own, so an account can be signed in on several devices (up to 10) and sign one out (`DELETE /auth/sessions/{sessionId}`). A 401 means refresh (`POST /auth/refreshToken`) and retry; a refresh that fails ends the session. Operations marked with the lock need the cookie; the rest are public, and some show more to a signed-in caller.\n- **Roles.** Every account is a `customer`; a `shopMg` (shop manager, set in the database) can create shops. Manager routes check that the caller manages the shop in the URL (403 otherwise).\n- **Ids** are MongoDB ObjectIds (24 hex characters). A table's id is its `_id` in the shop's `tables`.\n- **Money** is in pounds (GBP) to the penny everywhere a cart, a payment or a refund says an amount, and the `price` a manager sets is the same. The one exception is `createStripeCheckout`'s `amount`, in pence, as Stripe counts. The client never names an amount to pay: every total comes from database prices.\n- **Errors** are `{ message, details?, reason? }`. `400 Validation failed` carries `details`, one `{ path, message }` per problem; a few errors carry a machine-readable `reason`. A 5xx says only \"Generic Server Error\" unless its message was written for the user.\n- **Rate limits**, per account, not per IP: wrong passwords (10 in 15 minutes, wherever tried) and a diner's cart changes (120 a minute, starting a card payment included; capturing a payment is never limited). Both configurable (`PASSWORD_FAILS_PER_ACCOUNT`, `CART_EDITS_PER_MINUTE`).\n- **Soft deletes.** A deleted menu item stays, unavailable, for the carts that hold it; a deleted table stays under the shop's `deletedTables` so its carts and money stay reachable; a shop is deleted for good, with everything in it, once no money is moving.\n- **Concurrency.** A cart is saved under optimistic concurrency: a write that meets a newer version retries or answers 409 \"The cart changed, please retry\".\n\n## Checkout\n\nA diner selects units to pay for (`addSplitItem`), then pays in two calls around the provider's UI: PayPal `createCheckoutOrder` → popup → `captureCheckout`; card `createStripeCheckout` → Payment Element → `captureStripeCheckout`. The second call re-checks everything before money moves, and a payment that can't be recorded afterwards is refunded automatically. A card payment the diner abandons after authorising is still finished by Stripe's webhook or the server's 2-minute sweep, and the diner is told the outcome in their cart's `notices` on their next visit.",
     "contact": {
       "name": "Hernando Crespo",
       "url": "https://github.com/Nando-C"
@@ -27,7 +27,7 @@
   "tags": [
     {
       "name": "Auth",
-      "description": "Sign up, sign in, tokens, Google"
+      "description": "Sign up, sign in, tokens, devices, Google"
     },
     {
       "name": "Users",
@@ -88,7 +88,7 @@
         ],
         "security": [],
         "summary": "Create an account and sign in",
-        "description": "A new account with the customer role (the manager role is set in the database). Sets the `accessToken` (15 minutes) and `refreshToken` (4 weeks) cookies: HttpOnly, Secure, SameSite=None. The avatar is a generated initials image.",
+        "description": "A new account with the customer role (the manager role is set in the database). Sets the `accessToken` (15 minutes) and `refreshToken` (4 weeks) cookies: HttpOnly, Secure, SameSite=None. The sign-in is a session of its own on the account (a device), beside the ones other devices hold: at most 10, the oldest sign-in going beyond that. The avatar is a generated initials image.",
         "requestBody": {
           "required": true,
           "content": {
@@ -169,7 +169,7 @@
         ],
         "security": [],
         "summary": "Sign in with email and password",
-        "description": "Sets the `accessToken` (15 minutes) and `refreshToken` (4 weeks) cookies: HttpOnly, Secure, SameSite=None. The refresh token stored on the account is replaced, so any other session's refresh fails from now on. Wrong passwords count towards the account's limit (lib/passwordLimit.ts); an email with no account, or a Google-only account, doesn't.",
+        "description": "Sets the `accessToken` (15 minutes) and `refreshToken` (4 weeks) cookies: HttpOnly, Secure, SameSite=None. The sign-in is a session of its own on the account (a device), beside the ones other devices hold: at most 10, the oldest sign-in going beyond that. Wrong passwords count towards the account's limit (lib/passwordLimit.ts); an email with no account, or a Google-only account, doesn't.",
         "requestBody": {
           "required": true,
           "content": {
@@ -234,7 +234,7 @@
         ],
         "security": [],
         "summary": "Rotate the session's tokens",
-        "description": "Reads the `refreshToken` cookie. A valid, current one is swapped atomically for a new pair (both cookies set again). One replaced in the last minute by another tab answers 401 with `reason: \"superseded\"` and leaves the cookies alone, so the request can be resent with the cookies that tab got. Any other invalid one (expired, replaced earlier, signed with another key, account gone) answers 401 and clears both cookies: the session is over.",
+        "description": "Reads the `refreshToken` cookie. A valid one that is its session's current token is swapped atomically for a new pair (both cookies set again). One its session replaced in the last minute answers 401 with `reason: \"superseded\"` and leaves the cookies alone: another tab of the same device just refreshed, and the request can be resent with the cookies that tab got. Any other invalid one (expired, replaced earlier, signed with another key, account gone, session gone: a logout, a revocation, a password change, a sign-in on too many devices) answers 401 and clears both cookies: the session is over.",
         "parameters": [
           {
             "name": "refreshToken",
@@ -282,7 +282,7 @@
           "Auth"
         ],
         "summary": "Sign out",
-        "description": "Clears the stored refresh token (every session of the account loses its refresh) and both cookies.",
+        "description": "Ends this device's session and clears both cookies. The account's other devices stay signed in.",
         "responses": {
           "204": {
             "description": "Signed out"
@@ -292,6 +292,73 @@
           },
           "404": {
             "$ref": "#/components/responses/UserGone"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/auth/sessions": {
+      "get": {
+        "operationId": "listSessions",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "The devices signed in",
+        "description": "The account's sessions in sign-in order, the caller's marked `current`. A device that hasn't refreshed in four weeks holds an expired token and isn't listed. Never the tokens or their ids.",
+        "responses": {
+          "200": {
+            "description": "The sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Session"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          }
+        }
+      }
+    },
+    "/auth/sessions/{sessionId}": {
+      "delete": {
+        "operationId": "revokeSession",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign one device out",
+        "description": "Ends that session: its next refresh fails, so the device is a guest's within 15 minutes (the access token's life). Revoking the caller's own session also clears the cookies, like a logout.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/sessionId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Signed out; cookies cleared when it was this device's"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "\"Session not found\": not one of the account's sessions (or \"User not found!\")",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
@@ -3658,6 +3725,17 @@
           "pattern": "^[0-9a-f]{24}$",
           "description": "A MongoDB ObjectId"
         }
+      },
+      "sessionId": {
+        "name": "sessionId",
+        "in": "path",
+        "required": true,
+        "description": "The session (a user's sessions[]._id, from GET /auth/sessions)",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}$",
+          "description": "A MongoDB ObjectId"
+        }
       }
     },
     "responses": {
@@ -3789,7 +3867,7 @@
     "schemas": {
       "User": {
         "type": "object",
-        "description": "An account, as users/model.ts's toJSON sends it: never the password hash or the refresh token",
+        "description": "An account, as users/model.ts's toJSON sends it: never the password hash or the sessions",
         "properties": {
           "_id": {
             "type": "string",
@@ -3844,6 +3922,41 @@
           "hasPassword",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "Session": {
+        "type": "object",
+        "description": "A device signed in on the account (auth/controllers.ts listSessions); never the refresh token or its id",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the device signed in"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it last refreshed its tokens (or signed in)"
+          },
+          "userAgent": {
+            "type": "string",
+            "description": "The browser's User-Agent at sign-in, up to 200 characters; absent when it sent none"
+          },
+          "current": {
+            "type": "boolean",
+            "description": "Whether this is the caller's own session"
+          }
+        },
+        "required": [
+          "_id",
+          "createdAt",
+          "lastUsedAt",
+          "current"
         ]
       },
       "Table": {

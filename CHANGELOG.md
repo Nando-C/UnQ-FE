@@ -6,6 +6,14 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ## [Unreleased]
 
+### Added
+
+- The account page lists the devices the account is signed in on (the API keeps a session per sign-in now, so signing in on a second device no longer signs the first out), each named from its browser and device ("Safari on iPhone"), with its sign-in and last-used dates, this device marked, and a Sign out button for the others. A device signed out there is a guest's within fifteen minutes.
+
+### Changed
+
+- The API contract fixture refreshed to the API's current document, with `GET /auth/sessions` and `DELETE /auth/sessions/{sessionId}`.
+
 ## [2.1.0] - 2026-10-11
 
 The documentation release: the design knowledge under `docs/`, screenshots from the live demo, the README as a front page, and the API contract fixture refreshed to the API at 2.1.0. Nothing changes on the host.
