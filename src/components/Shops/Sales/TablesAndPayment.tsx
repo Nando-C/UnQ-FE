@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo } from "react";
 import { Col, Row, Table } from "react-bootstrap";
 import { Area, AreaChart, CartesianGrid, Tooltip, TooltipContentProps, XAxis, YAxis } from "recharts";
 import { bucketLabel, bucketLabelLong, formatAxis, formatCount, formatPercent, formatPrice, formatRange, shareOf } from "../../../lib/sales";
-import { ChartBox, ChartTooltip, HiddenTable, Section } from "./ChartBits";
+import { ChartBox, ChartTooltip, HiddenTable, Section, SortHeader } from "./ChartBits";
+import { useSort } from "../../../lib/useSort";
 import { COLOURS } from "./colours";
 import type { ISalesReport, ISalesTable } from "../../../typings/sales";
 
@@ -14,7 +15,6 @@ interface TableRow extends ISalesTable {
 }
 interface Point {
   bucket: string;
-  label: string;
   paypal: number;
   stripe: number;
 }
@@ -24,29 +24,18 @@ interface Point {
 const TablesAndPayment = ({ report }: { report: ISalesReport }) => {
   const { tables, series, totals, range } = report;
   const { by } = range;
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "net", desc: true });
+  const { sort, sortBy } = useSort<SortKey>({ key: "net", desc: true }, ["name"]);
   const rows = useMemo<TableRow[]>(() => {
     const dir = sort.desc ? -1 : 1;
     return tables
-      .map((t) => ({ ...t, avgVisit: t.visits ? t.gross / t.visits : 0 }))
-      .sort((a, b) => {
-        if (sort.key === "name") return (a.name ?? DELETED).localeCompare(b.name ?? DELETED) * dir;
-        return (a[sort.key] - b[sort.key]) * dir;
-      });
+      .map((t) => ({ ...t, avgVisit: shareOf(t.gross, t.visits) }))
+      .sort((a, b) => (sort.key === "name" ? (a.name ?? DELETED).localeCompare(b.name ?? DELETED) : a[sort.key] - b[sort.key]) * dir);
   }, [tables, sort]);
-  const sortBy = (key: SortKey) => setSort((s) => (s.key === key ? { key, desc: !s.desc } : { key, desc: key !== "name" }));
-  const header = (key: SortKey, label: string, numeric = false) => (
-    <th scope="col" className={numeric ? "text-end" : undefined} aria-sort={sort.key === key ? (sort.desc ? "descending" : "ascending") : undefined}>
-      <button type="button" className="sort" onClick={() => sortBy(key)}>
-        {label}
-        {sort.key === key && <span aria-hidden="true">{sort.desc ? " ▾" : " ▴"}</span>}
-      </button>
-    </th>
-  );
+  const header = (column: SortKey, label: string, numeric = false) => <SortHeader column={column} label={label} numeric={numeric} sort={sort} onSort={sortBy} />;
 
   const points = useMemo<Point[]>(
-    () => series.map((b) => ({ bucket: b.bucket, label: bucketLabel(b.bucket, by), paypal: b.byProvider.paypal, stripe: b.byProvider.stripe })),
-    [series, by]
+    () => series.map((b) => ({ bucket: b.bucket, paypal: b.byProvider.paypal, stripe: b.byProvider.stripe })),
+    [series]
   );
   const paypalShare = shareOf(totals.byProvider.paypal.gross, totals.gross);
   const mixCaption = `Gross sales by payment method by ${by}, ${formatRange(range)}: PayPal ${formatPercent(paypalShare)} (${formatCount(
@@ -115,7 +104,7 @@ const TablesAndPayment = ({ report }: { report: ISalesReport }) => {
               {({ width, height }) => (
                 <AreaChart width={width} height={height} data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                   <CartesianGrid stroke={COLOURS.grid} vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} minTickGap={24} interval="preserveStartEnd" />
+                  <XAxis dataKey="bucket" tickFormatter={(b: string) => bucketLabel(b, by)} tick={{ fontSize: 12 }} tickLine={false} minTickGap={24} interval="preserveStartEnd" />
                   <YAxis tickFormatter={(v: number) => formatAxis("money", v)} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={52} />
                   <Tooltip content={tip} cursor={{ stroke: COLOURS.grid }} />
                   <Area type="monotone" dataKey="paypal" name="PayPal" stackId="mix" stroke={COLOURS.a} fill={COLOURS.a} fillOpacity={0.6} isAnimationActive={false} />
@@ -150,4 +139,4 @@ const TablesAndPayment = ({ report }: { report: ISalesReport }) => {
   );
 };
 
-export default TablesAndPayment;
+export default memo(TablesAndPayment);

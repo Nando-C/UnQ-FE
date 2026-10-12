@@ -39,11 +39,14 @@ const ShopDetails = () => {
   const failed = useAppSelector((state) => selectShopFailed(state, shopId));
 
   // Opened at a section from another page (a tab on the Sales page): the
-  // section exists once the shop has loaded, so the jump waits for it.
+  // section exists once the shop has loaded, so the jump waits for it. Once
+  // only: the store hands out a new shop object on every save, and that is
+  // no reason to jump again.
   const { hash } = useLocation();
+  const loaded = !!shop;
   useEffect(() => {
-    if (shop && hash) document.getElementById(hash.slice(1))?.scrollIntoView();
-  }, [shop, hash]);
+    if (loaded && hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [loaded, hash]);
   // A shop that failed to load still names the page (the retry is below).
   usePageTitle(shop ? `Manage ${shop.name}` : failed ? "Shop" : "");
 

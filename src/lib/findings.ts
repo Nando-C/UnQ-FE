@@ -1,34 +1,34 @@
 import { formatPrice } from "./price";
-import { REFUND_REASON_LABEL } from "./refundReasons";
+import { refundReasonText } from "./refundReasons";
 import {
   MetricKey,
   changeOf,
   daysBetween,
+  formatAxis,
   formatCount,
   formatPercent,
   hourSpan,
   metric,
   metricOf,
   shareOf,
+  weekdayCounts,
   weekdayName,
 } from "./sales";
 import type { ISalesReport } from "../typings/sales";
-import type { RefundReason } from "../typings/tables";
 
 // What the figures say, in sentences: rules over the report's own answer, each
 // silent when it has nothing worth saying (too few days, diners or refunds to
 // draw on, or no movement). Deterministic, so a reader can check every one
 // against the chart it points at. At most six are shown, in this order.
 
-export type FindingSection = "trend" | "when" | "menu" | "refunds" | "diners" | "tables";
 export interface Finding {
   id: string;
   text: string;
   // The chart the sentence came from.
-  section: FindingSection;
+  section: "trend" | "when" | "menu" | "refunds" | "diners" | "tables";
 }
 
-export const MAX_FINDINGS = 6;
+const MAX_FINDINGS = 6;
 // A change smaller than this against the period before is not a mover.
 const MOVER_FROM = 0.1;
 // A dish taking this share of revenue is named on its own.
@@ -39,8 +39,7 @@ const DINERS_FROM = 10;
 // An hour with this share of the refunds is where they cluster.
 const CLUSTER_FROM = 0.4;
 
-const percent = (share: number) => `${Math.round(share * 100)}%`;
-const points = (share: number) => `${(Math.abs(share) * 100).toFixed(1)} points`;
+const percent = (share: number) => formatAxis("percent", share);
 
 // The biggest mover against the period before among the headline metrics.
 const mover = ({ totals, previous }: ISalesReport): Finding | null => {
@@ -49,7 +48,7 @@ const mover = ({ totals, previous }: ISalesReport): Finding | null => {
   let best: { key: MetricKey; ratio: number } | null = null;
   for (const key of keys) {
     const before = metricOf(key, previous.totals);
-    if (!before) continue;
+    if (before <= 0) continue;
     const ratio = (metricOf(key, totals) - before) / before;
     if (Math.abs(ratio) >= MOVER_FROM && (!best || Math.abs(ratio) > Math.abs(best.ratio))) best = { key, ratio };
   }
@@ -62,23 +61,26 @@ const mover = ({ totals, previous }: ISalesReport): Finding | null => {
 };
 
 // The weekday that brings the most sales, and the busiest hour, from a week.
+// A range that isn't whole weeks has one more of some weekdays than others,
+// so each weekday is taken as its average day and the share is of a typical
+// week.
 const busiest = ({ range, heatmap }: ISalesReport): Finding | null => {
   if (daysBetween(range.from, range.to) < 7 || heatmap.length === 0) return null;
+  const counts = weekdayCounts(range);
   const byDay = new Map<number, number>();
   const byHour = new Map<number, number>();
-  let gross = 0;
   for (const cell of heatmap) {
-    byDay.set(cell.dow, (byDay.get(cell.dow) ?? 0) + cell.gross);
+    byDay.set(cell.dow, (byDay.get(cell.dow) ?? 0) + cell.gross / (counts.get(cell.dow) || 1));
     byHour.set(cell.hour, (byHour.get(cell.hour) ?? 0) + cell.orders);
-    gross += cell.gross;
   }
-  if (!gross) return null;
-  const [dow, dayGross] = [...byDay.entries()].sort((a, b) => b[1] - a[1])[0];
+  const week = [...byDay.values()].reduce((sum, v) => sum + v, 0);
+  if (!week) return null;
+  const [dow, average] = [...byDay.entries()].sort((a, b) => b[1] - a[1])[0];
   const [hour] = [...byHour.entries()].sort((a, b) => b[1] - a[1])[0];
   return {
     id: "busiest",
     section: "when",
-    text: `${weekdayName(dow)} brings ${percent(shareOf(dayGross, gross))} of sales; the busiest hour is ${hourSpan(hour)}.`,
+    text: `${weekdayName(dow)} brings ${percent(shareOf(average, week))} of a typical week's sales; the busiest hour is ${hourSpan(hour)}.`,
   };
 };
 
@@ -114,7 +116,7 @@ const refunds = ({ refunds, totals }: ISalesReport): Finding | null => {
       text: `${formatCount(refunds.count)} refunds came to ${formatPrice(totals.refunds)}, ${formatPercent(shareOf(totals.refunds, totals.gross))} of gross sales${cluster}.`,
     };
   }
-  const label = Object.hasOwn(REFUND_REASON_LABEL, top.reason) ? REFUND_REASON_LABEL[top.reason as RefundReason] : top.reason;
+  const label = refundReasonText(top.reason) ?? top.reason;
   return {
     id: "refunds",
     section: "refunds",
@@ -128,9 +130,8 @@ const repeat = ({ totals, previous }: ISalesReport): Finding | null => {
   const share = shareOf(totals.returningDiners, totals.diners);
   let moved = "";
   if (previous && previous.totals.diners >= DINERS_FROM) {
-    const before = shareOf(previous.totals.returningDiners, previous.totals.diners);
-    const diff = share - before;
-    moved = Math.abs(diff) < 0.005 ? ", the same as the period before" : `, ${diff > 0 ? "up" : "down"} ${points(diff)} on the period before`;
+    const change = changeOf(share, shareOf(previous.totals.returningDiners, previous.totals.diners), "percent");
+    moved = change?.direction === "same" ? ", the same as the period before" : change ? `, ${change.direction} ${change.text.replace(/ pt$/, " points")} on the period before` : "";
   }
   return { id: "repeat", section: "diners", text: `${percent(share)} of diners had been before${moved}.` };
 };

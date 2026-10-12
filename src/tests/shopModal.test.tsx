@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
-import { screen, waitFor } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { AxiosError } from "axios"
 import backend from "../backend/backend"
@@ -148,5 +148,26 @@ describe("deleting a shop", () => {
     await user.click(screen.getByRole("button", { name: "Delete shop" }))
     await user.click(screen.getAllByRole("button", { name: "Delete shop" }).at(-1)!)
     await waitFor(() => expect(deletes).toBe(1))
+  })
+})
+
+describe("the shop's time zone", () => {
+  it("starts from the saved zone, the API's default when none, and saves the one picked", async () => {
+    const { user } = openEditor(shopWith())
+    const select = screen.getByRole("combobox", { name: "Time zone" })
+    expect(select).toHaveValue("Europe/London")
+    expect(screen.getByText("Sales are counted in the shop's own days: a day starts and ends on this clock.")).toBeInTheDocument()
+
+    await user.selectOptions(select, "America/New_York")
+    await user.click(screen.getByRole("button", { name: "Save Changes" }))
+
+    expect(sent[0].timeZone).toBe("America/New_York")
+  })
+
+  it("shows a saved zone the browser's list leaves out, with UTC always offered", () => {
+    openEditor(shopWith({ timeZone: "Asia/Calcutta" }))
+    const select = screen.getByRole("combobox", { name: "Time zone" })
+    expect(select).toHaveValue("Asia/Calcutta")
+    expect(within(select).getByRole("option", { name: "UTC" })).toBeInTheDocument()
   })
 })

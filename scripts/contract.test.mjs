@@ -41,6 +41,7 @@ const CLIENT_CALLS = [
   ["PUT", "/shops/{shopId}/tables/{tableId}"],
   ["DELETE", "/shops/{shopId}/tables/{tableId}"],
   ["GET", "/shops/{shopId}/sales"],
+  ["GET", "/shops/{shopId}/sales/export"],
   ["GET", "/shops/{shopId}/tables/status"],
   ["GET", "/shops/{shopId}/tables/{tableId}/carts"],
   ["POST", "/shops/{shopId}/tables/{tableId}/carts/{cartId}/releaseSelection"],

@@ -1,19 +1,10 @@
-import { useMemo, useRef } from "react";
+import { memo, useMemo } from "react";
 import { Form } from "react-bootstrap";
-import {
-  Brush,
-  CartesianGrid,
-  ComposedChart,
-  Line,
-  ReferenceDot,
-  Tooltip,
-  TooltipContentProps,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Brush, CartesianGrid, ComposedChart, Line, ReferenceDot, Tooltip, TooltipContentProps, XAxis, YAxis } from "recharts";
 import {
   METRICS,
   MetricKey,
+  arrowOf,
   averageAllowed,
   bucketLabel,
   bucketLabelLong,
@@ -25,7 +16,8 @@ import {
   metricOf,
   movingAverage,
 } from "../../../lib/sales";
-import { useElementWidth } from "../../../lib/useElementWidth";
+import { ChartBox, ChartTooltip, HiddenTable } from "./ChartBits";
+import { COLOURS } from "./colours";
 import type { ISalesReport } from "../../../typings/sales";
 
 interface TrendChartProps {
@@ -38,7 +30,6 @@ interface TrendChartProps {
 
 interface Point {
   bucket: string;
-  label: string;
   value: number;
   previous?: number;
   previousBucket?: string;
@@ -50,52 +41,54 @@ const DOTS_UP_TO = 31;
 // From how many buckets the brush (a zoom handle under the chart) appears.
 // The right margin leaves room for the peak's label on the last point.
 const BRUSH_FROM = 32;
+// Money and counts start at zero; a bucket whose refunds outweigh its sales
+// takes the axis below it.
+const floor = (min: number) => Math.min(0, min);
 
 // The metric over time, as one line: the chart the page is built around. Its
 // metric switches without a request (the series carries every one), the
 // period before is a dashed ghost line, the 7-day average a lighter one, and
 // the peak is annotated. The same numbers are in a table for screen readers.
+// The ghost line is drawn by day only: a week or month at a range's edge is
+// a partial bucket, so only days line up point for point (the headline
+// figures compare the whole periods, whatever the grouping).
 const TrendChart = ({ report, metricKey, onMetric, average, onAverage }: TrendChartProps) => {
   const m = metric(metricKey);
   const { by, days } = report.range;
-  const previous = report.previous;
+  const previous = by === "day" ? report.previous : undefined;
   const points = useMemo<Point[]>(() => {
     const values = report.series.map((b) => metricOf(metricKey, b));
     const averages = movingAverage(values);
     return report.series.map((b, i) => ({
       bucket: b.bucket,
-      label: bucketLabel(b.bucket, by),
       value: values[i],
       ...(previous?.series[i] && { previous: metricOf(metricKey, previous.series[i]), previousBucket: previous.series[i].bucket }),
       average: averages[i],
     }));
-  }, [report.series, previous, metricKey, by]);
+  }, [report.series, previous, metricKey]);
 
   const peak = points.reduce<Point | null>((best, p) => (p.value > 0 && (!best || p.value > best.value) ? p : best), null);
   const canAverage = averageAllowed(by, days);
   const showAverage = average && canAverage;
-  const colour = m.bad ? "var(--bs-warning-text-emphasis)" : "var(--bs-primary)";
-
-  const box = useRef<HTMLDivElement>(null);
-  const width = useElementWidth(box, 640);
-  const height = Math.round(Math.min(360, Math.max(240, width * 0.42)));
+  const colour = m.bad ? COLOURS.bad : COLOURS.metric;
+  const tick = (bucket: string) => bucketLabel(bucket, by);
 
   const tooltip = ({ active, payload }: TooltipContentProps) => {
     const point = payload?.[0]?.payload as Point | undefined;
     if (!active || !point) return null;
     const change = point.previous !== undefined ? changeOf(point.value, point.previous, m.kind) : null;
     return (
-      <div className="trend-tooltip">
+      <ChartTooltip>
         <div>{bucketLabelLong(point.bucket, by)}</div>
         <div className="value">{formatMetric(m.kind, point.value)}</div>
         {point.previousBucket !== undefined && point.previous !== undefined && (
           <div className="text-body-secondary">
             {bucketLabelLong(point.previousBucket, by)}: {formatMetric(m.kind, point.previous)}
-            {change && change.direction !== "same" && ` (${change.direction === "up" ? "▲" : "▼"} ${change.text})`}
+            {change && change.direction !== "same" && ` (${arrowOf(change.direction)} ${change.text})`}
           </div>
         )}
         {showAverage && point.average !== null && <div className="text-body-secondary">7-day average {formatMetric(m.kind, point.average)}</div>}
-      </div>
+      </ChartTooltip>
     );
   };
 
@@ -112,83 +105,65 @@ const TrendChart = ({ report, metricKey, onMetric, average, onAverage }: TrendCh
           ))}
         </Form.Select>
         {canAverage && (
-          <Form.Check
-            type="switch"
-            id="sales-average"
-            label="7-day average"
-            checked={showAverage}
-            onChange={(e) => onAverage(e.target.checked)}
-          />
+          <Form.Check type="switch" id="sales-average" label="7-day average" checked={showAverage} onChange={(e) => onAverage(e.target.checked)} />
         )}
       </div>
-      <div ref={box} aria-hidden="true">
-        <ComposedChart width={width} height={height} data={points} margin={{ top: 24, right: 40, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="var(--bs-border-color)" vertical={false} />
-          <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} minTickGap={24} interval="preserveStartEnd" />
-          <YAxis
-            domain={[0, "auto"]}
-            tickFormatter={(v: number) => formatAxis(m.kind, v)}
-            tick={{ fontSize: 12 }}
-            tickLine={false}
-            axisLine={false}
-            width={m.kind === "money" ? 60 : 44}
-          />
-          <Tooltip content={tooltip} cursor={{ stroke: "var(--bs-border-color)" }} />
-          {previous && (
-            <Line
-              type="monotone"
-              dataKey="previous"
-              name="Period before"
-              stroke="var(--bs-secondary-color)"
-              strokeDasharray="4 4"
-              dot={false}
-              isAnimationActive={false}
+      <ChartBox height={(w) => Math.min(360, Math.max(240, w * 0.42))}>
+        {({ width, height }) => (
+          <ComposedChart width={width} height={height} data={points} margin={{ top: 24, right: 40, bottom: 0, left: 0 }}>
+            <CartesianGrid stroke={COLOURS.grid} vertical={false} />
+            <XAxis dataKey="bucket" tickFormatter={tick} tick={{ fontSize: 12 }} tickLine={false} minTickGap={24} interval="preserveStartEnd" />
+            <YAxis
+              domain={[floor, "auto"]}
+              tickFormatter={(v: number) => formatAxis(m.kind, v)}
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={false}
+              width={m.kind === "money" ? 60 : 44}
             />
-          )}
-          {showAverage && (
+            <Tooltip content={tooltip} cursor={{ stroke: COLOURS.grid }} />
+            {previous && <Line type="monotone" dataKey="previous" name="Period before" stroke={COLOURS.before} strokeDasharray="4 4" dot={false} isAnimationActive={false} />}
+            {showAverage && (
+              <Line
+                type="monotone"
+                dataKey="average"
+                name="7-day average"
+                stroke={colour}
+                strokeOpacity={0.5}
+                strokeWidth={1.5}
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+            )}
             <Line
               type="monotone"
-              dataKey="average"
-              name="7-day average"
+              dataKey="value"
+              name={m.label}
               stroke={colour}
-              strokeOpacity={0.5}
-              strokeWidth={1.5}
-              dot={false}
-              connectNulls={false}
+              strokeWidth={2}
+              dot={points.length <= DOTS_UP_TO ? { r: 3, strokeWidth: 0, fill: colour } : false}
+              activeDot={{ r: 5 }}
               isAnimationActive={false}
             />
-          )}
-          <Line
-            type="monotone"
-            dataKey="value"
-            name={m.label}
-            stroke={colour}
-            strokeWidth={2}
-            dot={points.length <= DOTS_UP_TO ? { r: 3, strokeWidth: 0, fill: colour } : false}
-            activeDot={{ r: 5 }}
-            isAnimationActive={false}
-          />
-          {peak && (
-            <ReferenceDot
-              x={peak.label}
-              y={peak.value}
-              r={4}
-              fill={colour}
-              stroke="var(--bs-body-bg)"
-              label={{ value: formatMetric(m.kind, peak.value), position: "top", fontSize: 12, fill: "var(--bs-body-color)" }}
-            />
-          )}
-          {points.length >= BRUSH_FROM && (
-            <Brush dataKey="label" height={24} travellerWidth={8} stroke="var(--bs-border-color)" fill="var(--bs-tertiary-bg)" />
-          )}
-        </ComposedChart>
-      </div>
+            {peak && (
+              <ReferenceDot
+                x={peak.bucket}
+                y={peak.value}
+                r={4}
+                fill={colour}
+                stroke="var(--bs-body-bg)"
+                label={{ value: formatMetric(m.kind, peak.value), position: "top", fontSize: 12, fill: COLOURS.text }}
+              />
+            )}
+            {points.length >= BRUSH_FROM && (
+              <Brush dataKey="bucket" tickFormatter={tick} height={24} travellerWidth={8} stroke={COLOURS.grid} fill="var(--bs-tertiary-bg)" />
+            )}
+          </ComposedChart>
+        )}
+      </ChartBox>
       <figcaption>{caption}</figcaption>
-      {/* The chart's numbers, for a screen reader. Hidden as a block around the
-          table: a table itself can't shrink to the hidden box, and would widen
-          the page. */}
-      <div className="visually-hidden">
-      <table>
+      <HiddenTable>
         <caption>{caption}</caption>
         <thead>
           <tr>
@@ -208,10 +183,9 @@ const TrendChart = ({ report, metricKey, onMetric, average, onAverage }: TrendCh
             </tr>
           ))}
         </tbody>
-      </table>
-      </div>
+      </HiddenTable>
     </figure>
   );
 };
 
-export default TrendChart;
+export default memo(TrendChart);

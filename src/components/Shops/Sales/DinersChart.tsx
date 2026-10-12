@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Bar, CartesianGrid, ComposedChart, Line, Tooltip, TooltipContentProps, XAxis, YAxis } from "recharts";
 import { bucketLabel, bucketLabelLong, formatAxis, formatCount, formatPercent, formatRange, shareOf } from "../../../lib/sales";
 import { ChartBox, ChartTooltip, HiddenTable, Section } from "./ChartBits";
@@ -7,7 +7,6 @@ import type { ISalesReport } from "../../../typings/sales";
 
 interface Point {
   bucket: string;
-  label: string;
   newDiners: number;
   returning: number;
   share: number | null;
@@ -24,15 +23,14 @@ const DinersChart = ({ report }: { report: ISalesReport }) => {
     () =>
       series.map((b) => ({
         bucket: b.bucket,
-        label: bucketLabel(b.bucket, by),
         newDiners: b.newDiners,
         returning: b.diners - b.newDiners,
         share: b.diners ? shareOf(b.diners - b.newDiners, b.diners) : null,
         visits: b.visits,
       })),
-    [series, by]
+    [series]
   );
-  const perDiner = totals.diners ? totals.visits / totals.diners : 0;
+  const perDiner = shareOf(totals.visits, totals.diners);
   const caption = `New and returning diners by ${by}, ${formatRange(range)}: ${formatCount(totals.diners)} diners, ${formatCount(
     totals.returningDiners
   )} of them returning (${formatPercent(shareOf(totals.returningDiners, totals.diners))}), ${perDiner.toFixed(1)} visits per diner`;
@@ -64,7 +62,7 @@ const DinersChart = ({ report }: { report: ISalesReport }) => {
           {({ width, height }) => (
             <ComposedChart width={width} height={height} data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
               <CartesianGrid stroke={COLOURS.grid} vertical={false} />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} minTickGap={24} interval="preserveStartEnd" />
+              <XAxis dataKey="bucket" tickFormatter={(b: string) => bucketLabel(b, by)} tick={{ fontSize: 12 }} tickLine={false} minTickGap={24} interval="preserveStartEnd" />
               <YAxis yAxisId="count" allowDecimals={false} tick={{ fontSize: 12 }} tickLine={false} axisLine={false} width={36} />
               <YAxis
                 yAxisId="share"
@@ -119,4 +117,4 @@ const DinersChart = ({ report }: { report: ISalesReport }) => {
   );
 };
 
-export default DinersChart;
+export default memo(DinersChart);

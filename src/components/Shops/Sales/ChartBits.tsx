@@ -1,14 +1,18 @@
 import { ReactNode, useRef } from "react";
+import { Button } from "react-bootstrap";
 import { useElementWidth } from "../../../lib/useElementWidth";
+import type { Sort } from "../../../lib/useSort";
 
 // Pieces every chart on the page shares: the tooltip's box, the section frame
-// with its heading, and the box a chart is drawn into at the width it has.
+// with its heading, the box a chart is drawn into at the width it has, the
+// hidden table behind a chart, a row of chips, and a sortable table's header
+// (its sort is lib/useSort.ts).
 
 export const ChartTooltip = ({ children }: { children: ReactNode }) => <div className="chart-tooltip">{children}</div>;
 
-// A page section: its heading, then its charts.
-export const Section = ({ id, title, children }: { id: string; title: string; children: ReactNode }) => (
-  <section id={id} className="sales-section" aria-labelledby={`${id}-heading`}>
+// A page section: its heading, then its content.
+export const Section = ({ id, title, className = "sales-section", children }: { id: string; title: string; className?: string; children: ReactNode }) => (
+  <section id={id} className={className} aria-labelledby={`${id}-heading`}>
     <h2 id={`${id}-heading`} className="h5">
       {title}
     </h2>
@@ -42,4 +46,53 @@ export const HiddenTable = ({ children }: { children: ReactNode }) => (
   <div className="visually-hidden">
     <table>{children}</table>
   </div>
+);
+
+// A row of chips, one pressed.
+export const Chips = <T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  className = "chips",
+}: {
+  label: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  className?: string;
+}) => (
+  <div role="group" aria-label={label} className={className}>
+    {options.map((option) => (
+      <Button
+        key={option.value}
+        variant={value === option.value ? "primary" : "outline-primary"}
+        aria-pressed={value === option.value}
+        onClick={() => onChange(option.value)}
+      >
+        {option.label}
+      </Button>
+    ))}
+  </div>
+);
+
+export const SortHeader = <K extends string>({
+  column,
+  label,
+  numeric = false,
+  sort,
+  onSort,
+}: {
+  column: K;
+  label: string;
+  numeric?: boolean;
+  sort: Sort<K>;
+  onSort: (key: K) => void;
+}) => (
+  <th scope="col" className={numeric ? "text-end" : undefined} aria-sort={sort.key === column ? (sort.desc ? "descending" : "ascending") : undefined}>
+    <button type="button" className="sort" onClick={() => onSort(column)}>
+      {label}
+      {sort.key === column && <span aria-hidden="true">{sort.desc ? " ▾" : " ▴"}</span>}
+    </button>
+  </th>
 );
