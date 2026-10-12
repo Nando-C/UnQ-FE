@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Button, Table } from "react-bootstrap";
 import {
   Bar,
@@ -17,12 +17,19 @@ import {
   Label,
 } from "recharts";
 import { formatAxis, formatCount, formatPercent, formatPrice, formatRange, shareOf } from "../../../lib/sales";
-import { ChartBox, ChartTooltip, Section } from "./ChartBits";
+import { ChartBox, ChartTooltip, Chips, Section, SortHeader } from "./ChartBits";
+import { compareBy, useSort } from "../../../lib/useSort";
 import { COLOURS } from "./colours";
 import type { ISalesItem, ISalesReport } from "../../../typings/sales";
 
 type Category = "all" | "food" | "drinks";
+const CATEGORIES: { value: Category; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "food", label: "Food" },
+  { value: "drinks", label: "Drinks" },
+];
 type SortKey = "name" | "category" | "unitPrice" | "units" | "refundedUnits" | "revenue";
+const TEXT_KEYS: SortKey[] = ["name", "category"];
 
 // How many dishes the Pareto draws; the rest are in the table.
 const BARS = 12;
@@ -40,7 +47,6 @@ const median = (values: number[]) => {
 };
 
 interface ParetoRow extends ISalesItem {
-  label: string;
   cumulative: number;
 }
 
@@ -51,39 +57,30 @@ interface ParetoRow extends ISalesItem {
 const MenuCharts = ({ report }: { report: ISalesReport }) => {
   const [category, setCategory] = useState<Category>("all");
   const [open, setOpen] = useState(false);
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "revenue", desc: true });
+  const { sort, sortBy } = useSort<SortKey>({ key: "revenue", desc: true }, TEXT_KEYS);
 
-  const items = useMemo(() => {
-    const kept = category === "all" ? report.items : report.items.filter((i) => i.category === category);
-    return [...kept].sort((a, b) => b.revenue - a.revenue);
-  }, [report.items, category]);
-  const revenue = items.reduce((sum, i) => sum + i.revenue, 0);
-  const pareto = useMemo<ParetoRow[]>(() => {
+  // The filter applies while the report has both categories to choose
+  // between; a period with one alone shows it whole, and no chips.
+  const hasCategories = report.items.some((i) => i.category === "food") && report.items.some((i) => i.category === "drinks");
+  const chosen = hasCategories ? category : "all";
+  // The API lists items by revenue; the filter keeps that order.
+  const { items, revenue, pareto, priceMedian, unitsMedian } = useMemo(() => {
+    const items = chosen === "all" ? report.items : report.items.filter((i) => i.category === chosen);
+    const revenue = items.reduce((sum, i) => sum + i.revenue, 0);
     let running = 0;
-    return items.map((item) => {
+    const pareto: ParetoRow[] = items.map((item) => {
       running += item.revenue;
-      return { ...item, label: item.name, cumulative: shareOf(running, revenue) };
+      return { ...item, cumulative: shareOf(running, revenue) };
     });
-  }, [items, revenue]);
+    return { items, revenue, pareto, priceMedian: median(items.map((i) => i.unitPrice)), unitsMedian: median(items.map((i) => i.units)) };
+  }, [report.items, chosen]);
   const bars = pareto.slice(0, BARS);
   const makeEighty = pareto.findIndex((r) => r.cumulative >= PARETO_AT) + 1;
   const marker = makeEighty > 0 && makeEighty <= bars.length ? bars[makeEighty - 1] : null;
 
-  const priceMedian = median(items.map((i) => i.unitPrice));
-  const unitsMedian = median(items.map((i) => i.units));
+  const sorted = useMemo(() => [...items].sort(compareBy(sort)), [items, sort]);
 
-  const sorted = useMemo(() => {
-    const dir = sort.desc ? -1 : 1;
-    return [...items].sort((a, b) => {
-      const x = a[sort.key] ?? "";
-      const y = b[sort.key] ?? "";
-      return (typeof x === "string" && typeof y === "string" ? x.localeCompare(y) : Number(x) - Number(y)) * dir;
-    });
-  }, [items, sort]);
-  const sortBy = (key: SortKey) => setSort((s) => (s.key === key ? { key, desc: !s.desc } : { key, desc: key !== "name" && key !== "category" }));
-
-  const hasCategories = report.items.some((i) => i.category === "food") && report.items.some((i) => i.category === "drinks");
-  const which = category === "all" ? "" : `, ${category}`;
+  const which = chosen === "all" ? "" : `, ${chosen}`;
   const paretoCaption = `Revenue by dish${which}, ${formatRange(report.range)}${
     makeEighty > 0 && items.length > 1 ? `: ${makeEighty} of ${items.length} make ${Math.round(PARETO_AT * 100)}%` : ""
   }`;
@@ -116,31 +113,11 @@ const MenuCharts = ({ report }: { report: ISalesReport }) => {
     );
   };
 
-  const header = (key: SortKey, label: string, numeric = false) => (
-    <th scope="col" className={numeric ? "text-end" : undefined} aria-sort={sort.key === key ? (sort.desc ? "descending" : "ascending") : undefined}>
-      <button type="button" className="sort" onClick={() => sortBy(key)}>
-        {label}
-        {sort.key === key && <span aria-hidden="true">{sort.desc ? " ▾" : " ▴"}</span>}
-      </button>
-    </th>
-  );
+  const header = (column: SortKey, label: string, numeric = false) => <SortHeader column={column} label={label} numeric={numeric} sort={sort} onSort={sortBy} />;
 
   return (
     <Section id="menu" title="Menu">
-      {hasCategories && (
-        <div role="group" aria-label="Category" className="chips mb-3">
-          {(["all", "food", "drinks"] as Category[]).map((key) => (
-            <Button
-              key={key}
-              variant={category === key ? "primary" : "outline-primary"}
-              aria-pressed={category === key}
-              onClick={() => setCategory(key)}
-            >
-              {key === "all" ? "All" : categoryName(key)}
-            </Button>
-          ))}
-        </div>
-      )}
+      {hasCategories && <Chips label="Category" options={CATEGORIES} value={category} onChange={setCategory} className="chips mb-3" />}
       {items.length === 0 ? (
         <figure className="chart">
           <p className="mb-0">Nothing sold{which}.</p>
@@ -169,7 +146,7 @@ const MenuCharts = ({ report }: { report: ISalesReport }) => {
                   <XAxis xAxisId="share" type="number" domain={[0, 1]} orientation="top" tickFormatter={(v: number) => formatAxis("percent", v)} tick={{ fontSize: 12 }} tickLine={false} />
                   <YAxis
                     type="category"
-                    dataKey="label"
+                    dataKey="name"
                     width={Math.min(170, Math.round(width * 0.42))}
                     tick={{ fontSize: 12 }}
                     tickLine={false}
@@ -190,7 +167,7 @@ const MenuCharts = ({ report }: { report: ISalesReport }) => {
                   />
                   <ReferenceLine xAxisId="share" x={PARETO_AT} stroke={COLOURS.before} strokeDasharray="4 4" />
                   {marker && (
-                    <ReferenceLine xAxisId="money" y={marker.label} stroke={COLOURS.text} strokeOpacity={0.5}>
+                    <ReferenceLine xAxisId="money" y={marker.name} stroke={COLOURS.text} strokeOpacity={0.5}>
                       <Label value={`${makeEighty} make 80%`} position="insideTopRight" fontSize={12} fill={COLOURS.text} />
                     </ReferenceLine>
                   )}
@@ -278,4 +255,4 @@ const MenuCharts = ({ report }: { report: ISalesReport }) => {
   );
 };
 
-export default MenuCharts;
+export default memo(MenuCharts);

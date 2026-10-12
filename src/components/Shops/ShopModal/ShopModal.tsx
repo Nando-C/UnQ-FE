@@ -18,16 +18,16 @@ import { DEFAULT_TIME_ZONE } from "../../../lib/sales";
 const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
 // The time zones a shop can count its days in: the browser's list of IANA
-// names, with the API's default always among them. The browser's own zone
-// is the first guess for a new shop.
+// names, with UTC and the API's default always among them; the API accepts
+// any name it can format dates in, so a shop's saved zone is offered too
+// whatever this browser's list says. The browser's own zone is the first
+// guess for a new shop.
 const TIME_ZONES: string[] = (() => {
   const known = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
-  return known.includes(DEFAULT_TIME_ZONE) ? known : [DEFAULT_TIME_ZONE, ...known];
+  return [...new Set([DEFAULT_TIME_ZONE, "UTC", ...known])].sort();
 })();
-const browserTimeZone = () => {
-  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  return TIME_ZONES.includes(zone) ? zone : DEFAULT_TIME_ZONE;
-};
+const zonesWith = (zone: string | undefined) => (zone && !TIME_ZONES.includes(zone) ? [...TIME_ZONES, zone].sort() : TIME_ZONES);
+const browserTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIME_ZONE;
 
 // What deleting a shop takes with it: its menu and its tables, whose printed
 // QR codes then lead nowhere, and its payment records. (The BE refuses while a
@@ -61,6 +61,7 @@ const EMPTY_SHOP: IShop = {
   shopMg: [],
   tables: [],
   menu: [],
+  timeZone: DEFAULT_TIME_ZONE,
 };
 
 const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
@@ -307,10 +308,10 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
             <Form.Group className="mb-3">
               <FloatingLabel controlId={`${formId}-time-zone`} label="Time zone">
                 <Form.Select
-                  value={editShop.timeZone ?? DEFAULT_TIME_ZONE}
+                  value={editShop.timeZone}
                   onChange={(e) => setEditShop({ ...editShop, timeZone: e.target.value })}
                 >
-                  {TIME_ZONES.map((zone) => (
+                  {zonesWith(editShop.timeZone).map((zone) => (
                     <option key={zone} value={zone}>
                       {zone.replaceAll("_", " ")}
                     </option>

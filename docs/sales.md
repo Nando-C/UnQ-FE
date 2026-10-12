@@ -10,7 +10,7 @@ The page makes one request, `GET /shops/:shopId/sales` with a period, a grouping
 
 | A manager asks | The page answers with |
 | --- | --- |
-| How are we doing, and is it getting better? | The headline figures with their change on the period before, and the trend chart: the period before as a dashed line, the 7-day average, the peak annotated. |
+| How are we doing, and is it getting better? | The headline figures with their change on the period before, and the trend chart: the period before as a dashed line (by day, where the buckets line up), the 7-day average, the peak annotated. |
 | When do we sell? | The weekday × hour heatmap, orders or sales, from the first hour with a sale to the last. |
 | What sells, and what carries the revenue? | The Pareto of dishes by revenue with the "n make 80%" marker, and the units-against-price scatter that sorts the menu into stars, workhorses, puzzles and sleepers. |
 | What are we giving back, and why? | Refunds by cause with count and amount, refunds by the hour they were made, and the refund rate as a trend metric. |
@@ -29,7 +29,7 @@ The findings are rules, not a model (`src/lib/findings.ts`): each answers one qu
 | Rule | Says | Silent when |
 | --- | --- | --- |
 | The biggest mover | "Net sales are up 25.0% on the period before." (net sales, orders, average order or diners, whichever moved most) | No comparison, or nothing moved 10% or more |
-| The busiest day | "Saturday brings 30% of sales; the busiest hour is 13:00–14:00." | Under a week, or no sales |
+| The busiest day | "Saturday brings 30% of a typical week's sales; the busiest hour is 13:00–14:00." (each weekday taken as its average day, so a range that isn't whole weeks doesn't favour the weekdays it has one more of) | Under a week, or no sales |
 | The menu | "Sea Bass alone is 54% of revenue." from a fifth of revenue, else "5 of 6 dishes make 80% of revenue." | One dish, or no revenue |
 | Refunds | "“Long wait” is the most common refund cause, 3 of 5 (£36.00), most of them 13:00–14:00." (the hour when it has 40% of them; a sum when no cause was recorded) | Under three refunds |
 | Returning diners | "50% of diners had been before, up 10.0 points on the period before." | Under ten diners |
@@ -42,7 +42,7 @@ Flat data makes flat charts, so the demo seed (`npm run seed:demo` in UnQ-BE) dr
 
 ## The export and the time zone
 
-"Download CSV" offers the period's orders, items and days as files from `GET /shops/:shopId/sales/export`, plain links on the app's own origin so the session cookie goes with them; the API names the file and guards it against formulas, and no diner is named or identified in any of them. The shop's time zone is a select in the shop editor from the browser's list of IANA names, the browser's own zone preselected for a new shop.
+"Download CSV" offers the period's orders, items and days as files from `GET /shops/:shopId/sales/export`, fetched through the app's API client like every request and saved under the name the API gives; the API names the file and guards it against formulas, and no diner is named or identified in any of them. The shop's time zone is a select in the shop editor from the browser's list of IANA names, the browser's own zone preselected for a new shop.
 
 ## What is tested
 

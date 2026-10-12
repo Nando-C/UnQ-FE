@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import {
   DayRange,
+  GROUPS,
   PRESETS,
   Day,
   SalesState,
+  StepUnit,
   compareDefault,
   daysBetween,
   formatRange,
@@ -24,45 +26,35 @@ interface SalesControlsProps {
   onChange: (patch: Partial<SalesState>) => void;
 }
 
-const GROUPS: { value: SalesGroupBy; label: string }[] = [
-  { value: "day", label: "By day" },
-  { value: "week", label: "By week" },
-  { value: "month", label: "By month" },
-];
-
 // The period and how it is read: preset chips with arrows that step the period
-// by its own length, a custom range, the grouping, and the comparison switch.
-// Every change goes into the URL (the page's state), nothing is kept here but
-// whether the custom dates are open.
+// by its own length (This week and This month by whole weeks and months), a
+// custom range, the grouping, and the comparison switch. Every change goes
+// into the URL (the page's state); kept here are only whether the custom
+// dates are open and a typed range the URL can't take yet.
 const SalesControls = ({ state, by, today, timeZone, onChange }: SalesControlsProps) => {
   const range: DayRange = { from: state.from, to: state.to };
   const preset = presetOf(range, today);
   const [customOpen, setCustomOpen] = useState(preset === null);
-  const [draft, setDraft] = useState<DayRange>(range);
+  const [typed, setTyped] = useState<DayRange | null>(null);
+  const draft = typed ?? range;
   const days = daysBetween(range.from, range.to);
   const compare = state.compare ?? compareDefault(range);
+  const unit: StepUnit | undefined = preset === "month" ? "month" : preset === "week" ? "week" : undefined;
 
   // A new range drops a grouping chosen for the old one, so the default fits again.
-  const setRange = (next: DayRange) => {
-    setDraft(next);
-    onChange({ from: next.from, to: next.to, by: undefined });
-  };
+  const setRange = (next: DayRange) => onChange({ from: next.from, to: next.to, by: undefined });
   const editDraft = (patch: Partial<DayRange>) => {
     const next = { ...draft, ...patch };
-    setDraft(next);
-    if (validRange(next)) onChange({ from: next.from, to: next.to, by: undefined });
+    if (validRange(next)) {
+      setTyped(null);
+      setRange(next);
+    } else setTyped(next);
   };
-  const draftValid = validRange(draft);
 
   return (
     <div className="SalesControls">
       <div className="period">
-        <Button
-          variant="outline-secondary"
-          className="step"
-          aria-label="Previous period"
-          onClick={() => setRange(stepRange(range, -1))}
-        >
+        <Button variant="outline-secondary" className="step" aria-label="Previous period" onClick={() => setRange(stepRange(range, -1, { today, unit }))}>
           ‹
         </Button>
         <div className="chips" role="group" aria-label="Period">
@@ -73,6 +65,7 @@ const SalesControls = ({ state, by, today, timeZone, onChange }: SalesControlsPr
               aria-pressed={preset === key}
               onClick={() => {
                 setCustomOpen(false);
+                setTyped(null);
                 setRange(presetRange(key, today));
               }}
             >
@@ -93,7 +86,7 @@ const SalesControls = ({ state, by, today, timeZone, onChange }: SalesControlsPr
           className="step"
           aria-label="Next period"
           disabled={range.to >= today}
-          onClick={() => setRange(stepRange(range, 1))}
+          onClick={() => setRange(stepRange(range, 1, { today, unit }))}
         >
           ›
         </Button>
@@ -108,7 +101,7 @@ const SalesControls = ({ state, by, today, timeZone, onChange }: SalesControlsPr
             <Form.Label className="mb-0">To</Form.Label>
             <Form.Control type="date" value={draft.to} min={draft.from} onChange={(e) => editDraft({ to: e.target.value })} />
           </Form.Group>
-          {!draftValid && (
+          {typed && (
             <span className="text-danger small align-self-center" role="alert">
               Two days in order, at most a year apart
             </span>
@@ -119,11 +112,7 @@ const SalesControls = ({ state, by, today, timeZone, onChange }: SalesControlsPr
         <p className="summary">
           {formatRange(range)} · {days === 1 ? "1 day" : `${days} days`} · days in {timeZone}
         </p>
-        <Form.Select
-          aria-label="Group by"
-          value={by}
-          onChange={(e) => onChange({ by: e.target.value as SalesGroupBy })}
-        >
+        <Form.Select aria-label="Group by" value={by} onChange={(e) => onChange({ by: e.target.value as SalesGroupBy })}>
           {GROUPS.map(({ value, label }) => (
             <option key={value} value={value}>
               {label}

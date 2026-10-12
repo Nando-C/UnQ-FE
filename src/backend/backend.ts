@@ -8,10 +8,6 @@ const backend = axios.create({
     withCredentials: true,
 })
 
-// A route's full URL on the API, for a plain link the browser follows itself
-// (a file to download): the same base as every call, so the cookie goes too.
-export const apiUrl = (path: string) => `${import.meta.env.VITE_BE_URL ?? ""}${path}`
-
 interface RetriableRequestConfig extends AxiosRequestConfig {
     _retry?: boolean
     // Sent again once already because another tab had refreshed the session.

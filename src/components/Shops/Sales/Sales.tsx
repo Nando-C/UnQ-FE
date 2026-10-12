@@ -62,7 +62,8 @@ const Sales = () => {
   const average = state.average ?? averageDefault(by, daysBetween(range.from, range.to));
   const update = (patch: Partial<SalesState>) => setSearchParams(buildSalesSearch({ ...state, ...patch }));
 
-  const [report, setReport] = useState<ISalesReport | null>(null);
+  // The answer last received, with the shop it is for.
+  const [answer, setAnswer] = useState<{ shopId: string; report: ISalesReport } | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "failed">("loading");
   const [error, setError] = useState("");
   // The latest request wins: an older answer arriving late never replaces a
@@ -77,7 +78,8 @@ const Sales = () => {
         params: { from, to, by, ...(compare && { compare: "previous" }) },
       });
       if (request !== requests.current) return;
-      setReport(data);
+      // An answer that says nothing new (most refreshes) redraws nothing.
+      setAnswer((held) => (held?.shopId === shopId && JSON.stringify(held.report) === JSON.stringify(data) ? held : { shopId, report: data }));
       setStatus("ready");
     } catch (err) {
       if (request !== requests.current) return;
@@ -86,38 +88,39 @@ const Sales = () => {
     }
   }, [shopId, from, to, by, compare]);
 
-  // Once the shop is known (its zone decides the days). While the period
-  // includes today, asked again every minute the tab is visible, and as soon
-  // as it becomes visible again.
+  // Asked for once the shop is known (its zone decides the days) and again
+  // whenever the question changes (the range, the grouping, the comparison,
+  // the shop). Whether the shop is known, not which object: the store hands
+  // out a new one on every reload of the same shop, and that is no reason to
+  // ask again.
+  const shopKnown = !!shop;
+  useEffect(() => {
+    if (shopKnown) load();
+  }, [shopKnown, load]);
+  // While the period includes today, asked again every minute the tab is
+  // visible, and as soon as it becomes visible again. Not the shared polling
+  // hook: that asks on starting, which the effect above already did.
   const includesToday = to >= today;
   useEffect(() => {
-    if (!shop) return;
-    load();
-    if (!includesToday) return;
-    let timer: ReturnType<typeof setInterval> | undefined;
-    const start = () => {
-      clearInterval(timer);
-      timer = setInterval(load, REFRESH_MS);
-    };
+    if (!shopKnown || !includesToday) return;
+    let timer = setInterval(load, REFRESH_MS);
     const onVisibility = () => {
+      clearInterval(timer);
       if (document.visibilityState === "visible") {
         load();
-        start();
-      } else clearInterval(timer);
+        timer = setInterval(load, REFRESH_MS);
+      }
     };
-    start();
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [shop, load, includesToday]);
+  }, [shopKnown, includesToday, load]);
 
-  // The figures shown are for the request last answered; a report for another
-  // shop (the store still holds the page's previous one) is never shown.
-  const shown = report && report.range.from === from && report.range.to === to && report.range.by === by ? report : null;
-  const stale = report && !shown ? report : null;
-  const current = shown ?? stale;
+  // The figures shown are this shop's last answer, which stands in while a
+  // newer one loads ("Updating…" says so); another shop's never shows.
+  const current = answer?.shopId === shopId ? answer.report : null;
   const empty = current && current.totals.orders === 0 && current.totals.pendingOrders === 0 && current.refunds.count === 0;
 
   return (

@@ -235,7 +235,6 @@
   outline: none;
 }
 
-.Sales .trend-tooltip,
 .Sales .chart-tooltip {
   padding: 0.5rem 0.75rem;
   background-color: var(--bs-body-bg);
@@ -245,7 +244,6 @@
   font-size: 0.875rem;
 }
 
-.Sales .trend-tooltip .value,
 .Sales .chart-tooltip .value {
   font-weight: 600;
 }

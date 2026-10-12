@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
-import { screen, waitFor } from "@testing-library/react"
+import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import { AxiosError } from "axios"
 import backend from "../backend/backend"
@@ -164,8 +164,10 @@ describe("the shop's time zone", () => {
     expect(sent[0].timeZone).toBe("America/New_York")
   })
 
-  it("shows a saved zone", () => {
-    openEditor(shopWith({ timeZone: "Europe/Lisbon" }))
-    expect(screen.getByRole("combobox", { name: "Time zone" })).toHaveValue("Europe/Lisbon")
+  it("shows a saved zone the browser's list leaves out, with UTC always offered", () => {
+    openEditor(shopWith({ timeZone: "Asia/Calcutta" }))
+    const select = screen.getByRole("combobox", { name: "Time zone" })
+    expect(select).toHaveValue("Asia/Calcutta")
+    expect(within(select).getByRole("option", { name: "UTC" })).toBeInTheDocument()
   })
 })

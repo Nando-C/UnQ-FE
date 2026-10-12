@@ -5,24 +5,12 @@ import Sales from "../components/Shops/Sales/Sales"
 import { renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
 import { findings } from "../lib/findings"
-import { addDays, hourSpan, weekdaysIn } from "../lib/sales"
-import type { IShop } from "../typings/shop"
-import type { ISalesBucket, ISalesReport, ISalesTotals } from "../typings/sales"
+import { addDays, hourSpan, weekdayCounts, weekdaysIn } from "../lib/sales"
+import { bucket, range, shop, totals } from "./salesFixtures"
+import type { ISalesReport } from "../typings/sales"
 
 // The sales page below the trend: the findings' rules, and the heatmap, menu,
 // refunds, diners and tables sections over one report.
-
-const shop = { _id: "s1", name: "Cafe", cover: "", bio: "", open_times: "", web_URL: "", shopMg: [], menu: [], tables: [], timeZone: "Europe/London" } as unknown as IShop
-
-const bucket = (day: string, over: Partial<ISalesBucket> = {}): ISalesBucket => ({
-  bucket: day, gross: 0, refunds: 0, net: 0, orders: 0, visits: 0, diners: 0, newDiners: 0, units: 0,
-  byCategory: { food: 0, drinks: 0, other: 0 }, byProvider: { paypal: 0, stripe: 0 }, ...over,
-})
-const totals = (over: Partial<ISalesTotals> = {}): ISalesTotals => ({
-  gross: 0, refunds: 0, net: 0, orders: 0, pendingOrders: 0, visits: 0, diners: 0, returningDiners: 0, units: 0,
-  byProvider: { paypal: { gross: 0, orders: 0 }, stripe: { gross: 0, orders: 0 } }, ...over,
-})
-const range = (from: string, to: string, days: number) => ({ from, to, timeZone: "Europe/London", by: "day" as const, days })
 
 // A week with everything the sections draw: Saturday's lunch the busiest,
 // one dish carrying most of the revenue, refunds mostly for a long wait at
@@ -76,12 +64,20 @@ describe("the findings' rules", () => {
   it("say what the week's figures say, each pointing at its chart", () => {
     expect(findings(WEEK)).toEqual([
       { id: "mover", section: "trend", text: "Net sales are up 25.0% on the period before." },
-      { id: "busiest", section: "when", text: "Saturday brings 30% of sales; the busiest hour is 13:00–14:00." },
+      { id: "busiest", section: "when", text: "Saturday brings 30% of a typical week's sales; the busiest hour is 13:00–14:00." },
       { id: "menu", section: "menu", text: "Sea Bass alone is 54% of revenue." },
       { id: "refunds", section: "refunds", text: "“Long wait” is the most common refund cause, 3 of 5 (£36.00), most of them 13:00–14:00." },
       { id: "repeat", section: "diners", text: "50% of diners had been before, up 10.0 points on the period before." },
       { id: "tables", section: "tables", text: "Window took 60% of net sales." },
     ])
+  })
+
+  it("take a weekday as its average day when the range isn't whole weeks", () => {
+    // Eight days, Monday to Monday: Monday's sales are spread over two Mondays.
+    const eight = { ...WEEK, range: range("2026-10-05", "2026-10-12", 8) }
+    expect(findings(eight).find((f) => f.id === "busiest")?.text).toBe("Saturday brings 32% of a typical week's sales; the busiest hour is 13:00–14:00.")
+    expect([...weekdayCounts({ from: "2026-10-05", to: "2026-10-12" }).entries()]).toEqual([[1, 2], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [7, 1]])
+    expect([...weekdayCounts({ from: "2026-09-13", to: "2026-10-12" }).values()]).toEqual([5, 4, 4, 4, 4, 4, 5])
   })
 
   it("name the few dishes that make 80% when no dish stands out, and a deleted table", () => {
@@ -139,7 +135,7 @@ describe("the sections of the sales page", () => {
     const panel = await screen.findByRole("region", { name: "Findings" })
     const links = within(panel).getAllByRole("link")
     expect(links).toHaveLength(6)
-    expect(links[1]).toHaveTextContent("Saturday brings 30% of sales; the busiest hour is 13:00–14:00.")
+    expect(links[1]).toHaveTextContent("Saturday brings 30% of a typical week's sales; the busiest hour is 13:00–14:00.")
     expect(links[1]).toHaveAttribute("href", "#when")
     expect(document.getElementById("when")).not.toBeNull()
     expect(document.getElementById("trend")).not.toBeNull()
@@ -192,6 +188,19 @@ describe("the sections of the sales page", () => {
     await user.click(within(menu).getByRole("button", { name: "Drinks" }))
     expect(within(menu).getByText("Revenue by dish, drinks, 5 Oct – 11 Oct 2026: 1 of 2 make 80%", { selector: "figcaption" })).toBeInTheDocument()
     expect(within(table).getAllByRole("row").slice(1).map((r) => r.querySelector("th")?.textContent)).toEqual(["Latte", "Tea"])
+  })
+
+  it("drops a category filter when a period has one category alone", async () => {
+    const { user } = open()
+    const menu = await screen.findByRole("region", { name: "Menu" })
+    await user.click(within(menu).getByRole("button", { name: "Drinks" }))
+    expect(within(menu).getByText(/Revenue by dish, drinks/, { selector: "figcaption" })).toBeInTheDocument()
+
+    report = { ...WEEK, range: range("2026-09-28", "2026-10-04", 7), items: WEEK.items.filter((i) => i.category === "food") }
+    await user.click(screen.getByRole("button", { name: "Previous period" }))
+    const again = await screen.findByText("Revenue by dish, 28 Sept – 4 Oct 2026: 1 of 2 make 80%", { selector: "figcaption" })
+    expect(again).toBeInTheDocument()
+    expect(within(screen.getByRole("region", { name: "Menu" })).queryByRole("group", { name: "Category" })).not.toBeInTheDocument()
   })
 
   it("lists the refunds by cause and by hour, with the amounts", async () => {

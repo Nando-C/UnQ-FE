@@ -17,7 +17,7 @@ export interface DayRange {
 
 // What the API counts in when a shop has no zone of its own.
 export const DEFAULT_TIME_ZONE = "Europe/London";
-export const MAX_REPORT_DAYS = 366;
+const MAX_REPORT_DAYS = 366;
 
 const DAY_MS = 86_400_000;
 const asUtc = (day: Day) => {
@@ -26,7 +26,7 @@ const asUtc = (day: Day) => {
 };
 const dayOfUtc = (ms: number): Day => new Date(ms).toISOString().slice(0, 10);
 
-export const isDay = (text: unknown): text is Day =>
+const isDay = (text: unknown): text is Day =>
   typeof text === "string" && /^\d{4}-\d{2}-\d{2}$/.test(text) && Number.isFinite(asUtc(text)) && dayOfUtc(asUtc(text)) === text;
 export const addDays = (day: Day, n: number): Day => dayOfUtc(asUtc(day) + n * DAY_MS);
 // Both ends counted.
@@ -44,22 +44,41 @@ const addMonths = (day: Day, n: number): Day => {
 };
 
 // Today in a time zone (the shop's), whatever the browser's. An unknown zone
-// name falls back to the default rather than throwing.
+// name falls back to the default rather than throwing. The formatter for a
+// zone is made once: it is asked for on every render.
+const dayFormats = new Map<string, Intl.DateTimeFormat>();
 export const todayIn = (timeZone: string, now: Date = new Date()): Day => {
-  try {
-    return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
-  } catch {
-    return todayIn(DEFAULT_TIME_ZONE, now);
+  let format = dayFormats.get(timeZone);
+  if (!format) {
+    try {
+      format = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
+    } catch {
+      return todayIn(DEFAULT_TIME_ZONE, now);
+    }
+    dayFormats.set(timeZone, format);
   }
+  return format.format(now);
 };
 
 // ---- Weekdays and hours -----------------------------------------------------
 
 // ISO weekdays, 1 Monday … 7 Sunday, as the API's heatmap numbers them.
-export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 export const weekdayName = (dow: number) => WEEKDAYS[dow - 1] ?? "";
 export const weekdayShort = (dow: number) => weekdayName(dow).slice(0, 3);
-export const weekdayOf = (day: Day) => ((new Date(asUtc(day)).getUTCDay() + 6) % 7) + 1;
+const weekdayOf = (day: Day) => ((new Date(asUtc(day)).getUTCDay() + 6) % 7) + 1;
+// How many times each weekday falls in a range (a 30-day range has five of
+// two weekdays and four of the rest), for a fair share per weekday.
+export const weekdayCounts = ({ from, to }: DayRange): Map<number, number> => {
+  const days = daysBetween(from, to);
+  const first = weekdayOf(from);
+  return new Map(
+    [1, 2, 3, 4, 5, 6, 7].map((dow) => {
+      const offset = (dow - first + 7) % 7;
+      return [dow, offset < days ? Math.floor((days - 1 - offset) / 7) + 1 : 0];
+    })
+  );
+};
 // The weekdays a range has, in Monday-first order: all seven from a week, only
 // the days present under one (a single day's heatmap is a single row).
 export const weekdaysIn = ({ from, to }: DayRange): number[] => {
@@ -70,6 +89,14 @@ export const weekdaysIn = ({ from, to }: DayRange): number[] => {
 // "13:00", and an hour's span "13:00–14:00".
 export const hourLabel = (hour: number) => `${String(hour).padStart(2, "0")}:00`;
 export const hourSpan = (hour: number) => `${hourLabel(hour)}–${hourLabel((hour + 1) % 24)}`;
+// Every hour from the first to the last of those given, none when none.
+export const hoursSpanning = (hours: number[]): number[] => {
+  if (hours.length === 0) return [];
+  const first = Math.min(...hours);
+  return Array.from({ length: Math.max(...hours) - first + 1 }, (_, i) => first + i);
+};
+// "09:00 to 17:00": from the first hour's start to the last hour's end.
+export const hoursLabel = (first: number, last: number) => `${hourLabel(first)} to ${hourLabel((last + 1) % 24)}`;
 // A part of a whole, 0 when there is no whole.
 export const shareOf = (part: number, whole: number) => (whole ? part / whole : 0);
 
@@ -85,7 +112,7 @@ export const PRESETS: { key: PresetKey; label: string }[] = [
   { key: "last30", label: "Last 30 days" },
   { key: "last90", label: "Last 90 days" },
 ];
-export const DEFAULT_PRESET: PresetKey = "last30";
+const DEFAULT_PRESET: PresetKey = "last30";
 
 export const presetRange = (key: PresetKey, today: Day): DayRange => {
   switch (key) {
@@ -105,16 +132,29 @@ export const presetOf = (range: DayRange, today: Day): PresetKey | null =>
     return r.from === range.from && r.to === range.to;
   })?.key ?? null;
 
-// The range before or after this one. A range that starts on the 1st steps by
-// whole months (so This month, stepped back, is all of last month); any other
-// steps by its own length.
-export const stepRange = ({ from, to }: DayRange, direction: -1 | 1): DayRange => {
-  if (from === monthStart(from) && (to === monthEnd(to) || daysBetween(from, to) <= 31)) {
-    const start = addMonths(from, direction);
-    return { from: start, to: monthEnd(start) };
+const monthsBetween = (from: Day, to: Day) => (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + Number(to.slice(5, 7)) - Number(from.slice(5, 7)) + 1;
+
+// What a range steps by: whole months or weeks (This month and This week are
+// those units so far, and step to the whole unit before), else its own length.
+export type StepUnit = "month" | "week";
+// The range before or after this one. A range of whole months steps by as
+// many months whether or not asked to; any other steps by its own length, so
+// Today on the 1st steps to yesterday. A step that would reach past `today`
+// stops there, so last month, stepped forward, is this month so far.
+export const stepRange = ({ from, to }: DayRange, direction: -1 | 1, { today, unit }: { today?: Day; unit?: StepUnit } = {}): DayRange => {
+  let next: DayRange;
+  if (unit === "month" || (from === monthStart(from) && to === monthEnd(to))) {
+    const months = monthsBetween(from, to);
+    const start = addMonths(from, direction * months);
+    next = { from: start, to: monthEnd(addMonths(start, months - 1)) };
+  } else if (unit === "week") {
+    const start = addDays(weekStart(from), direction * 7);
+    next = { from: start, to: addDays(start, 6) };
+  } else {
+    const length = daysBetween(from, to);
+    next = { from: addDays(from, direction * length), to: addDays(to, direction * length) };
   }
-  const length = daysBetween(from, to);
-  return { from: addDays(from, direction * length), to: addDays(to, direction * length) };
+  return today && next.to > today && next.from <= today ? { from: next.from, to: today } : next;
 };
 
 // A range the API accepts: real days, in order, at most 366 of them.
@@ -154,7 +194,7 @@ export const METRICS: Metric[] = [
 ];
 export const DEFAULT_METRIC: MetricKey = "net";
 export const metric = (key: MetricKey): Metric => METRICS.find((m) => m.key === key) ?? METRICS[0];
-export const isMetricKey = (text: unknown): text is MetricKey => METRICS.some((m) => m.key === text);
+const isMetricKey = (text: unknown): text is MetricKey => METRICS.some((m) => m.key === text);
 
 // A metric's value for a bucket or the totals. Ratios are made here, never by
 // adding the API's figures up differently; a share of nothing is 0.
@@ -168,12 +208,13 @@ export const metricOf = (key: MetricKey, of: ISalesBucket | ISalesTotals): numbe
 };
 
 // The trailing average over `window` points; null until a full window is in.
-export const movingAverage = (values: number[], window = 7): (number | null)[] =>
-  values.map((_, i) => {
-    if (i < window - 1) return null;
-    const slice = values.slice(i - window + 1, i + 1);
-    return slice.reduce((s, v) => s + v, 0) / window;
+export const movingAverage = (values: number[], window = 7): (number | null)[] => {
+  let sum = 0;
+  return values.map((value, i) => {
+    sum += value - (i >= window ? values[i - window] : 0);
+    return i < window - 1 ? null : sum / window;
   });
+};
 
 // The change from `previous` to `current`: a percentage for money and counts
 // (none when there was nothing before), a difference in points for a rate.
@@ -181,7 +222,10 @@ export interface Change {
   direction: "up" | "down" | "same";
   text: string;
 }
-// A difference too small to show (0.0) is no change.
+export const arrowOf = (direction: Change["direction"]) => (direction === "up" ? "▲" : direction === "down" ? "▼" : "");
+// A difference too small to show (0.0) is no change. Nothing before has no
+// percentage (null: the figure is new); less than nothing before (a period's
+// refunds over its sales) is said as what it was.
 export const changeOf = (current: number, previous: number, kind: MetricKind): Change | null => {
   const same = { direction: "same" as const, text: "no change" };
   if (kind === "percent") {
@@ -190,6 +234,7 @@ export const changeOf = (current: number, previous: number, kind: MetricKind): C
     return { direction: current > previous ? "up" : "down", text: `${points} pt` };
   }
   if (previous === 0) return current === 0 ? same : null;
+  if (previous < 0) return current === previous ? same : { direction: current > previous ? "up" : "down", text: `from ${formatMetric(kind, previous)}` };
   const percent = (Math.abs((current - previous) / previous) * 100).toFixed(1);
   if (percent === "0.0") return same;
   return { direction: current > previous ? "up" : "down", text: `${percent}%` };
@@ -213,8 +258,8 @@ const weekdayDayMonth = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", week
 const monthYear = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", month: "short", year: "numeric" });
 
 // "3 Oct" / "Sat 3 Oct"
-export const formatDay = (day: Day) => dayMonth.format(utcDate(day));
-export const formatDayLong = (day: Day) => weekdayDayMonth.format(utcDate(day));
+const formatDay = (day: Day) => dayMonth.format(utcDate(day));
+const formatDayLong = (day: Day) => weekdayDayMonth.format(utcDate(day));
 // "12 Sep – 11 Oct 2026", "11 Oct 2026" for one day, both years when they differ.
 export const formatRange = ({ from, to }: DayRange) => {
   if (from === to) return dayMonthYear.format(utcDate(to));
@@ -236,7 +281,13 @@ export interface SalesState extends DayRange {
   compare?: boolean;
   average?: boolean;
 }
-const GROUPS: SalesGroupBy[] = ["day", "week", "month"];
+// The groupings, as the select names them.
+export const GROUPS: { value: SalesGroupBy; label: string }[] = [
+  { value: "day", label: "By day" },
+  { value: "week", label: "By week" },
+  { value: "month", label: "By month" },
+];
+const isGroupBy = (text: unknown): text is SalesGroupBy => GROUPS.some((g) => g.value === text);
 const flag = (text: string | null) => (text === "1" ? true : text === "0" ? false : undefined);
 
 export const parseSalesSearch = (params: URLSearchParams, today: Day): SalesState => {
@@ -244,12 +295,14 @@ export const parseSalesSearch = (params: URLSearchParams, today: Day): SalesStat
   const range = validRange(asked) ? asked : presetRange(DEFAULT_PRESET, today);
   const by = params.get("by");
   const metricKey = params.get("metric");
+  const compare = flag(params.get("compare"));
+  const average = flag(params.get("avg"));
   return {
     ...range,
-    ...(GROUPS.includes(by as SalesGroupBy) && { by: by as SalesGroupBy }),
+    ...(isGroupBy(by) && { by }),
     metric: isMetricKey(metricKey) ? metricKey : DEFAULT_METRIC,
-    ...(flag(params.get("compare")) !== undefined && { compare: flag(params.get("compare")) }),
-    ...(flag(params.get("avg")) !== undefined && { average: flag(params.get("avg")) }),
+    ...(compare !== undefined && { compare }),
+    ...(average !== undefined && { average }),
   };
 };
 

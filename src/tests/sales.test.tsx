@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect, beforeEach, vi } from "vitest"
 import { screen, waitFor, within } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import Sales from "../components/Shops/Sales/Sales"
+import TrendChart from "../components/Shops/Sales/TrendChart"
 import { renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
 import {
@@ -12,6 +13,7 @@ import {
   formatRange,
   groupByFor,
   metricOf,
+  monthStart,
   movingAverage,
   parseSalesSearch,
   presetOf,
@@ -20,37 +22,27 @@ import {
   todayIn,
   weekStart,
 } from "../lib/sales"
-import type { IShop } from "../typings/shop"
-import type { ISalesBucket, ISalesReport, ISalesTotals } from "../typings/sales"
+import { bucket, range, shop, totals } from "./salesFixtures"
+import type { ISalesReport } from "../typings/sales"
 
 // The sales page: its arithmetic in the shop's days, and the page over a
 // report msw answers (what the API's GET /shops/:shopId/sales gives).
 
-const shop = { _id: "s1", name: "Cafe", cover: "", bio: "", open_times: "", web_URL: "", shopMg: [], menu: [], tables: [], timeZone: "Europe/London" } as unknown as IShop
-
-const bucket = (day: string, over: Partial<ISalesBucket> = {}): ISalesBucket => ({
-  bucket: day, gross: 0, refunds: 0, net: 0, orders: 0, visits: 0, diners: 0, newDiners: 0, units: 0,
-  byCategory: { food: 0, drinks: 0, other: 0 }, byProvider: { paypal: 0, stripe: 0 }, ...over,
-})
-const totals = (over: Partial<ISalesTotals> = {}): ISalesTotals => ({
-  gross: 0, refunds: 0, net: 0, orders: 0, pendingOrders: 0, visits: 0, diners: 0, returningDiners: 0, units: 0,
-  byProvider: { paypal: { gross: 0, orders: 0 }, stripe: { gross: 0, orders: 0 } }, ...over,
-})
 // A week of sales with the week before for comparison.
 const WEEK: ISalesReport = {
-  range: { from: "2026-10-05", to: "2026-10-11", timeZone: "Europe/London", by: "day", days: 7 },
+  range: range("2026-10-05", "2026-10-11", 7),
   totals: totals({ gross: 700, refunds: 14, net: 686, orders: 50, pendingOrders: 2, visits: 40, diners: 30, returningDiners: 12, units: 120 }),
   series: [100, 90, 110, 0, 130, 150, 120].map((gross, i) =>
     bucket(addDays("2026-10-05", i), { gross, net: gross - (i === 4 ? 14 : 0), refunds: i === 4 ? 14 : 0, orders: gross ? 7 + i : 0, visits: gross ? 6 : 0 })),
   heatmap: [], items: [], refunds: { count: 1, byReason: [], byHour: [] }, tables: [],
   previous: {
-    range: { from: "2026-09-28", to: "2026-10-04", timeZone: "Europe/London", by: "day", days: 7 },
+    range: range("2026-09-28", "2026-10-04", 7),
     totals: totals({ gross: 600, refunds: 6, net: 594, orders: 48, visits: 40, diners: 30, returningDiners: 9, units: 100 }),
     series: [80, 80, 90, 90, 90, 90, 80].map((gross, i) => bucket(addDays("2026-09-28", i), { gross, net: gross, orders: 6 })),
   },
 }
 const EMPTY = (from: string, to: string): ISalesReport => ({
-  range: { from, to, timeZone: "Europe/London", by: "day", days: daysBetween(from, to) },
+  range: range(from, to, daysBetween(from, to)),
   totals: totals(), series: Array.from({ length: daysBetween(from, to) }, (_, i) => bucket(addDays(from, i))),
   heatmap: [], items: [], refunds: { count: 0, byReason: [], byHour: [] }, tables: [],
 })
@@ -77,7 +69,13 @@ describe("days in the shop's zone", () => {
   it("steps a range by its own length, and a month by whole months across the year end", () => {
     expect(stepRange({ from: "2026-10-05", to: "2026-10-11" }, -1)).toEqual({ from: "2026-09-28", to: "2026-10-04" })
     expect(stepRange({ from: "2026-10-05", to: "2026-10-11" }, 1)).toEqual({ from: "2026-10-12", to: "2026-10-18" })
-    expect(stepRange({ from: "2026-01-01", to: "2026-01-11" }, -1)).toEqual({ from: "2025-12-01", to: "2025-12-31" })
+    expect(stepRange({ from: "2026-01-01", to: "2026-01-11" }, -1, { unit: "month" })).toEqual({ from: "2025-12-01", to: "2025-12-31" })
+    expect(stepRange({ from: "2026-10-05", to: "2026-10-07" }, -1, { unit: "week" })).toEqual({ from: "2026-09-28", to: "2026-10-04" })
+    expect(stepRange({ from: "2025-09-01", to: "2025-09-30" }, 1, { today: "2025-10-12" })).toEqual({ from: "2025-10-01", to: "2025-10-12" })
+    expect(stepRange({ from: "2026-01-01", to: "2026-01-11" }, -1)).toEqual({ from: "2025-12-21", to: "2025-12-31" })
+    expect(stepRange({ from: "2026-10-01", to: "2026-10-01" }, -1)).toEqual({ from: "2026-09-30", to: "2026-09-30" })
+    expect(stepRange({ from: "2026-01-01", to: "2026-03-31" }, -1)).toEqual({ from: "2025-10-01", to: "2025-12-31" })
+    expect(stepRange({ from: "2026-01-01", to: "2026-03-31" }, 1)).toEqual({ from: "2026-04-01", to: "2026-06-30" })
     expect(stepRange({ from: "2026-02-01", to: "2026-02-28" }, 1)).toEqual({ from: "2026-03-01", to: "2026-03-31" })
     expect(stepRange({ from: "2026-01-30", to: "2026-01-31" }, 1)).toEqual({ from: "2026-02-01", to: "2026-02-02" })
   })
@@ -122,6 +120,8 @@ describe("metrics", () => {
     expect(changeOf(100, 100, "money")).toEqual({ direction: "same", text: "no change" })
     expect(changeOf(100.01, 100, "money")).toEqual({ direction: "same", text: "no change" })
     expect(changeOf(5, 0, "count")).toBeNull()
+    expect(changeOf(120, -30, "money")).toEqual({ direction: "up", text: "from -£30.00" })
+    expect(changeOf(0, 0, "money")).toEqual({ direction: "same", text: "no change" })
     expect(changeOf(0.023, 0.019, "percent")).toEqual({ direction: "up", text: "0.4 pt" })
   })
 })
@@ -187,6 +187,18 @@ describe("the sales page", () => {
     expect(requests).toHaveLength(1)
   })
 
+  it("draws the period before by day only, the headline changes whatever the grouping", () => {
+    const weekly: ISalesReport = {
+      ...WEEK,
+      range: { ...WEEK.range, by: "week", days: 7 },
+      series: [bucket("2026-10-05", { gross: 700, net: 686, orders: 50 })],
+      previous: { ...WEEK.previous!, range: { ...WEEK.previous!.range, by: "week" }, series: [bucket("2026-09-28", { gross: 600, net: 594, orders: 48 })] },
+    }
+    renderWithProviders(<TrendChart report={weekly} metricKey="net" onMetric={() => {}} average={false} onAverage={() => {}} />)
+    expect(screen.getByText("Net sales by week, 5 Oct – 11 Oct 2026", { selector: "figcaption" })).toBeInTheDocument()
+    expect(screen.queryByRole("columnheader", { name: "Period before" })).not.toBeInTheDocument()
+  })
+
   it("offers the 7-day average only from a week of days, off under two weeks", async () => {
     open()
     await screen.findByRole("list", { name: "Headline figures" })
@@ -232,6 +244,69 @@ describe("the sales page", () => {
     expect(screen.getByRole("button", { name: "Next period" })).toBeDisabled()
   })
 
+  it("asks again when the range changes while the period includes today", async () => {
+    const today = todayIn("Europe/London")
+    const { user } = open(`?from=${addDays(today, -6)}&to=${today}`)
+    await screen.findByText(/No sales between/)
+    expect(requests).toHaveLength(1)
+
+    await user.click(screen.getByRole("button", { name: "Last 30 days" }))
+    await waitFor(() => expect(requests).toHaveLength(2))
+    expect(requests[1].searchParams.get("from")).toBe(addDays(today, -29))
+  })
+
+  it("says why a download failed, in the API's words", async () => {
+    server.use(http.get(`${BASE}/shops/s1/sales/export`, () => HttpResponse.json({ message: "Validation failed", details: [{ path: "to", message: "Before `from`" }] }, { status: 400 })))
+    const { user } = open()
+    await screen.findByRole("list", { name: "Headline figures" })
+
+    await user.click(screen.getByRole("button", { name: "Download CSV" }))
+    await user.click(screen.getByRole("button", { name: "Days · one row per day" }))
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't download the file: Before `from`")
+  })
+
+  it("steps forward from last month to this month so far", async () => {
+    const today = todayIn("Europe/London")
+    const lastMonth = stepRange({ from: monthStart(today), to: today }, -1, { unit: "month" })
+    const { user } = open(`?from=${lastMonth.from}&to=${lastMonth.to}`)
+    await screen.findByText(/No sales between/)
+
+    await user.click(screen.getByRole("button", { name: "Next period" }))
+    await waitFor(() => expect(requests).toHaveLength(2))
+    expect(requests[1].searchParams.get("from")).toBe(monthStart(today))
+    expect(requests[1].searchParams.get("to")).toBe(today)
+    expect(screen.getByRole("button", { name: "This month" })).toHaveAttribute("aria-pressed", "true")
+  })
+
+  it("downloads a CSV through the API client and saves it under the API's file name", async () => {
+    server.use(
+      http.get(`${BASE}/shops/s1/sales/export`, ({ request }) => {
+        const url = new URL(request.url)
+        return new HttpResponse("\uFEFFItem,Units\r\n", {
+          headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename=cafe-sales-${url.searchParams.get("from")}-${url.searchParams.get("to")}-${url.searchParams.get("table")}.csv` },
+        })
+      })
+    )
+    const saved: { href: string; download: string }[] = []
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      saved.push({ href: this.href, download: this.download })
+    })
+    const createObjectURL = vi.fn(() => "blob:csv")
+    const revokeObjectURL = vi.fn()
+    Object.assign(URL, { createObjectURL, revokeObjectURL })
+    const { user } = open()
+    await screen.findByRole("list", { name: "Headline figures" })
+
+    await user.click(screen.getByRole("button", { name: "Download CSV" }))
+    await user.click(screen.getByRole("button", { name: "Items · one row per dish" }))
+
+    await waitFor(() => expect(saved).toHaveLength(1))
+    expect(saved[0]).toEqual({ href: "blob:csv", download: "cafe-sales-2026-10-05-2026-10-11-items.csv" })
+    await waitFor(() => expect(revokeObjectURL).toHaveBeenCalledWith("blob:csv"), { timeout: 15_000 })
+    click.mockRestore()
+  })
+
   it("shows the API's message with a way to try again when the report can't be loaded", async () => {
     server.use(http.get(`${BASE}/shops/s1/sales`, () => HttpResponse.json({ message: "Generic Server Error" }, { status: 500 }), { once: true }))
     const { user } = open()
@@ -241,7 +316,7 @@ describe("the sales page", () => {
     expect(await screen.findByRole("list", { name: "Headline figures" })).toBeInTheDocument()
   })
 
-  it("says how the figures are counted, and links the period's tables as CSV files", async () => {
+  it("says how the figures are counted, and offers the period's tables as CSV files", async () => {
     const { user } = open()
     await screen.findByRole("list", { name: "Headline figures" })
 
@@ -251,13 +326,11 @@ describe("the sales page", () => {
     expect(note).toHaveTextContent("Refunds count on the day they were made")
 
     await user.click(screen.getByRole("button", { name: "Download CSV" }))
-    const links = screen.getAllByRole("link", { name: /· one row per/ })
-    expect(links.map((a) => a.getAttribute("href"))).toEqual([
-      `${BASE}/shops/s1/sales/export?from=2026-10-05&to=2026-10-11&table=orders`,
-      `${BASE}/shops/s1/sales/export?from=2026-10-05&to=2026-10-11&table=items`,
-      `${BASE}/shops/s1/sales/export?from=2026-10-05&to=2026-10-11&table=days`,
+    expect(screen.getAllByRole("button", { name: /· one row per/ }).map((b) => b.textContent)).toEqual([
+      "Orders · one row per payment",
+      "Items · one row per dish",
+      "Days · one row per day",
     ])
-    expect(links[0]).toHaveTextContent("Orders · one row per payment")
   })
 
   it("shows the page's shape while the shop and the report load", () => {
