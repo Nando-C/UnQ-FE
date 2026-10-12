@@ -63,6 +63,9 @@ const SCREENS = [
   ["m-refund", "shopMg", "/shop/s1", "refundPicker"],
   ["m-refund-other", "shopMg", "/shop/s1", "refundOther"],
   ["m-account", "shopMg", "/myAccount", null],
+  // The sales page: a month of figures with the month before, and a shop with none.
+  ["m-sales", "shopMg", "/shop/s1/sales?from=2026-09-12&to=2026-10-11", null],
+  ["m-sales-empty", "shopMg", "/shop/s2/sales?from=2026-09-12&to=2026-10-11", null],
 ]
 
 const VIEWPORTS = [
@@ -370,6 +373,16 @@ const mockApi = async (route, role) => {
   if (p === "/auth/sessions") return json(fixtures.sessions)
   if (p === "/shops/s1") return json(s1)
   if (p === "/shops/s2") return json(s2)
+  // The sales report for the fixture's range; the second shop has sold nothing.
+  if (p === "/shops/s1/sales") return json(fixtures.sales)
+  if (p === "/shops/s2/sales") {
+    const { from, to } = Object.fromEntries(new URL(route.request().url()).searchParams)
+    const days = Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000) + 1
+    const zero = (bucket) => ({ bucket, gross: 0, refunds: 0, net: 0, orders: 0, visits: 0, diners: 0, newDiners: 0, units: 0, byCategory: { food: 0, drinks: 0, other: 0 }, byProvider: { paypal: 0, stripe: 0 } })
+    const series = Array.from({ length: days }, (_, i) => zero(new Date(Date.parse(from) + i * 86_400_000).toISOString().slice(0, 10)))
+    const totals = { gross: 0, refunds: 0, net: 0, orders: 0, pendingOrders: 0, visits: 0, diners: 0, returningDiners: 0, units: 0, byProvider: { paypal: { gross: 0, orders: 0 }, stripe: { gross: 0, orders: 0 } } }
+    return json({ range: { from, to, timeZone: "Europe/London", by: "day", days }, totals, series, heatmap: [], items: [], refunds: { count: 0, byReason: [], byHour: [] }, tables: [] })
+  }
   if (p === "/shops/s1/tables/status") return json(fixtures.tableStatus)
   if (/^\/shops\/s1\/tables\/[^/]+\/carts$/.test(p)) return json(fixtures.tableCarts)
   // The manager's own shops carry the tables they deleted; one deleted an hour

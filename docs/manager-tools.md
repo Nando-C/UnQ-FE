@@ -26,6 +26,17 @@ The API's zod `400` is shown as its `details`, joined. The item editor checks th
 
 Each menu row's switch flips `available` in the store before the `PUT` (`setMenuItemAvailability`), so it moves on the tap; a failed save puts it back with "Couldn't update availability — the switch has been put back." Diners see the item greyed out on their next load or focus.
 
+## Sales
+
+The **Sales** tab, a page of its own at `/shop/:shopId/sales`, reads the API's sales report (`GET /shops/:shopId/sales`) for a period of the shop's days: everything on the page comes from one answer, so a new period costs one request and a new metric none. The counting rules are the API's, in [UnQ-BE's api.md](https://github.com/Nando-C/UnQ-BE/blob/main/docs/api.md#sales-report): gross by the day paid, refunds by the day made, net the difference, all in the shop's time zone, which the page names.
+
+- **The period**: chips for Today, Yesterday, This week, Last 7 days, This month, Last 30 days (the default), Last 90 days and Custom (two date fields), with ‹ › arrows that step the period by its own length (a month from the 1st steps by whole months). "Today" is the shop's today, in its zone. The next-period arrow stops at today.
+- **Group by** day, week (from Monday) or month, picked from the range's length as the API does (days up to 92 days, weeks beyond) and changeable. **Compare with the period before** is on from a week; it adds each figure's change and the trend's ghost line.
+- **Headline figures**: net sales, orders (with how many still await their provider), average order, refund rate, and the share of returning diners, each with its change on the period before: a percentage for money and counts, points for a rate, green when it is good news and red when it isn't (more refunds is bad news), grey for no change. Two cards per row on a phone, five from 768px.
+- **The trend**: one line chart whose metric switches between net, gross, refunds, orders, average order, average visit, diners, units and refund rate without a request; the period before as a dashed grey line; a 7-day average (offered from a week of days, on from two weeks) as a lighter line; the peak annotated with its value; a brush to zoom from 32 buckets. Money and counts start at zero. The same numbers are in a visually hidden table under the chart.
+- **The URL holds the view** (`from`, `to`, and `by`, `metric`, `compare`, `avg` when they differ from the defaults), so a refresh, the back button and a shared link keep it.
+- **States**: placeholders shaped like the cards and chart while the first answer loads; the figures that stand stay on screen with "Updating…" while a newer one loads; "No sales between …" for an empty period, the controls kept; the API's message with Try again when nothing could be loaded. While the period includes today the page asks again every minute it is visible, and when its tab becomes visible again.
+
 ## Tables
 
 <img src="./images/tables.png" alt="Five table cards: Ordering, Waiting to pay with a selection held over 15 min, Partly paid with a sold-out item, Free with a diner to pay back, and a payment awaiting confirmation; each with its QR code" width="720">

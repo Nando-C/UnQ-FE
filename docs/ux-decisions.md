@@ -122,3 +122,11 @@ A full layout and UX review on 2026-09-29 (26 findings at 375, 768 and 1280px, w
 **Decision.** Every fetch that can overlap is numbered and its answer applied only if nothing newer was asked for since, with a failure counting only from the latest request. Each slice states its rule in its reducers.
 
 **Consequences.** Five slightly different implementations of one idea (`shops`, `user`, `browse`, `carts`, and `Cart.tsx`'s table ref), each with its own ordering tests. A shared helper is deferred work in [known-gaps.md](./known-gaps.md). `shopSlice.ts`, `userSlice.ts`, `browseSlice.ts`, `cartSlice.ts`.
+
+## 2026-10-12: the sales page is its own route, drawn with Recharts
+
+**Context.** The manager's shop page is three sections under one scroll. A sales report with a period to choose, a metric to switch and several charts is a page, not a fourth section, and a trend chart with a ghost line, a moving average, an annotated peak and a zoom handle is where hand-drawn SVG stops being cheap. The client had a rule against new UI libraries, amended once for the payment providers' own forms.
+
+**Decision.** A fourth header tab, Sales, at `/shop/:shopId/sales`, loaded as a chunk of its own so diners never download it. The chart is drawn with Recharts: React components rendering SVG, so it takes the theme's colours through CSS variables, renders in the test environment, prints, and has a keyboard-reachable tooltip layer. The rule is amended for charting as it was for payments: a kind of UI react-bootstrap doesn't have. Every number on the page comes from the API's one answer; the page derives only ratios (an average order, a refund rate) and the 7-day average, a reading aid that is never a reported figure. The view lives in the URL.
+
+**Consequences.** One palette on every chart: teal for the metric, amber for refunds, grey dashed for the period before; no pies, no 3D, zero baselines for money and counts, a visually hidden data table behind each chart. A new metric is a client change, not a request. `components/Shops/Sales/`, `lib/sales.ts`.

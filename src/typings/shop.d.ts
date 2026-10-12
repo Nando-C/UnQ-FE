@@ -8,6 +8,9 @@ export interface IShop {
     open_times: string
     phone?: string
     web_URL: string
+    // The zone the shop's days are counted in (an IANA name); absent on shops
+    // from before it existed, which the API counts in Europe/London.
+    timeZone?: string
     shopMg: string[]
     tables: ITable[]
     // Tables the manager deleted (only in GET /shops/me; absent on shops from

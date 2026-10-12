@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import "./App.css";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Register from "./components/Register/Register";
@@ -14,6 +14,11 @@ import Account from "./components/Customers/Account/Account";
 import ShopNavbar from "./components/Shops/ShopNavbar/ShopNavbar";
 import NotFound from "./components/NotFound/NotFound";
 import { ManagerOnly } from "./components/Common/ManagerOnly";
+import SalesFallback from "./components/Shops/Sales/SalesFallback";
+
+// The sales page brings the charting library, which only managers who open
+// it need: a chunk of its own, loaded then.
+const Sales = lazy(() => import("./components/Shops/Sales/Sales"));
 
 function App() {
   const dispatch = useAppDispatch();
@@ -48,6 +53,17 @@ function App() {
               element={
                 <ManagerOnly>
                   <ShopDetails />
+                </ManagerOnly>
+              }
+            />
+            {/* The shop's sales report (the Sales tab). */}
+            <Route
+              path="/shop/:shopId/sales"
+              element={
+                <ManagerOnly>
+                  <Suspense fallback={<SalesFallback />}>
+                    <Sales />
+                  </Suspense>
                 </ManagerOnly>
               }
             />

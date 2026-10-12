@@ -10,9 +10,11 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 - The account page lists the devices the account is signed in on (the API keeps a session per sign-in now, so signing in on a second device no longer signs the first out), each named from its browser and device ("Safari on iPhone"), with its sign-in and last-used dates, this device marked, and a Sign out button for the others. A device signed out there is a guest's within fifteen minutes.
 
+- The Sales tab on a shop's pages, a page of its own at `/shop/:shopId/sales` over the API's sales report: a period picked from chips (Today to Last 90 days, or two dates) and stepped with arrows, grouped by day, week or month, compared with the period before; headline figures (net sales, orders, average order, refund rate, returning diners) with their change; and a trend chart whose metric switches between nine measures without a request, with the period before as a dashed line, a 7-day average, the peak annotated and a brush to zoom a long range. The view lives in the URL. Days are the shop's own, in its time zone. Charts are drawn with Recharts, in a chunk loaded only when the tab is opened.
+
 ### Changed
 
-- The API contract fixture refreshed to the API's current document, with `GET /auth/sessions` and `DELETE /auth/sessions/{sessionId}`.
+- The API contract fixture refreshed to the API's current document, with `GET /auth/sessions`, `DELETE /auth/sessions/{sessionId}` and `GET /shops/{shopId}/sales`.
 
 ## [2.1.0] - 2026-10-11
 

@@ -1,5 +1,5 @@
 import "./ShopDetails.css";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import {
   Card,
@@ -37,6 +37,13 @@ const ShopDetails = () => {
   // one's arrives, its details card shows placeholders.
   const shop = useAppSelector((state) => selectShopFor(state, shopId));
   const failed = useAppSelector((state) => selectShopFailed(state, shopId));
+
+  // Opened at a section from another page (a tab on the Sales page): the
+  // section exists once the shop has loaded, so the jump waits for it.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (shop && hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [shop, hash]);
   // A shop that failed to load still names the page (the retry is below).
   usePageTitle(shop ? `Manage ${shop.name}` : failed ? "Shop" : "");
 
