@@ -6,6 +6,10 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-10-11
+
+The documentation release: the design knowledge under `docs/`, screenshots from the live demo, the README as a front page, and the API contract fixture refreshed to the API at 2.1.0. Nothing changes on the host.
+
 ### Added
 
 - `LICENSE`: MIT, with the licence badge.
@@ -16,6 +20,7 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ### Changed
 
+- CI runs on pushes to `main` and on pull requests, not on every branch.
 - The README is a front page: what it does, Try it with the demo's sign-ins and test cards, what it has to get right, the decisions with their reasons, one diagram, the quick start with where each credential comes from, testing and CI, the docs index, the roadmap. The App Use tour is gone; the docs pages hold the detail. The demo table's QR code in Try it is the one the app draws (`npm run shots -- --shots=qr`), in place of the 2021 image.
 - The card form starts on the United Kingdom instead of a country guessed from the diner's address.
 - Table cards: three to a row on wide screens instead of four, with side padding for the title and status lines.
@@ -66,6 +71,7 @@ The rebuild of the 2021 client. Deploying it needs the API at 2.0.0 first, `VITE
 
 The client as built for the 2021 capstone: the diner's menu and cart with per-item splitting, PayPal checkout, and the manager's shops, menus and tables with QR codes.
 
-[Unreleased]: https://github.com/Nando-C/UnQ-FE/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/Nando-C/UnQ-FE/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/Nando-C/UnQ-FE/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/Nando-C/UnQ-FE/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/Nando-C/UnQ-FE/releases/tag/v1.0.0
