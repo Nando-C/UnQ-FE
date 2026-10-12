@@ -241,6 +241,25 @@ describe("the sales page", () => {
     expect(await screen.findByRole("list", { name: "Headline figures" })).toBeInTheDocument()
   })
 
+  it("says how the figures are counted, and links the period's tables as CSV files", async () => {
+    const { user } = open()
+    await screen.findByRole("list", { name: "Headline figures" })
+
+    await user.click(screen.getByRole("button", { name: "How these are counted" }))
+    const note = await screen.findByRole("tooltip")
+    expect(note).toHaveTextContent("Days are the shop's, in Europe/London; weeks start on Monday.")
+    expect(note).toHaveTextContent("Refunds count on the day they were made")
+
+    await user.click(screen.getByRole("button", { name: "Download CSV" }))
+    const links = screen.getAllByRole("link", { name: /· one row per/ })
+    expect(links.map((a) => a.getAttribute("href"))).toEqual([
+      `${BASE}/shops/s1/sales/export?from=2026-10-05&to=2026-10-11&table=orders`,
+      `${BASE}/shops/s1/sales/export?from=2026-10-05&to=2026-10-11&table=items`,
+      `${BASE}/shops/s1/sales/export?from=2026-10-05&to=2026-10-11&table=days`,
+    ])
+    expect(links[0]).toHaveTextContent("Orders · one row per payment")
+  })
+
   it("shows the page's shape while the shop and the report load", () => {
     open()
     expect(screen.getByRole("status")).toHaveTextContent("Loading the sales report")

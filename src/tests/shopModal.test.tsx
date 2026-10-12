@@ -150,3 +150,22 @@ describe("deleting a shop", () => {
     await waitFor(() => expect(deletes).toBe(1))
   })
 })
+
+describe("the shop's time zone", () => {
+  it("starts from the saved zone, the API's default when none, and saves the one picked", async () => {
+    const { user } = openEditor(shopWith())
+    const select = screen.getByRole("combobox", { name: "Time zone" })
+    expect(select).toHaveValue("Europe/London")
+    expect(screen.getByText("Sales are counted in the shop's own days: a day starts and ends on this clock.")).toBeInTheDocument()
+
+    await user.selectOptions(select, "America/New_York")
+    await user.click(screen.getByRole("button", { name: "Save Changes" }))
+
+    expect(sent[0].timeZone).toBe("America/New_York")
+  })
+
+  it("shows a saved zone", () => {
+    openEditor(shopWith({ timeZone: "Europe/Lisbon" }))
+    expect(screen.getByRole("combobox", { name: "Time zone" })).toHaveValue("Europe/Lisbon")
+  })
+})

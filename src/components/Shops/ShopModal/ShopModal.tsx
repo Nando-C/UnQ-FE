@@ -13,8 +13,21 @@ import { uploadImage } from "../../../lib/upload";
 import { useObjectURL } from "../../../lib/useObjectURL";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
 import { useConfirmDelete } from "../../../lib/useConfirmDelete";
+import { DEFAULT_TIME_ZONE } from "../../../lib/sales";
 
 const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+// The time zones a shop can count its days in: the browser's list of IANA
+// names, with the API's default always among them. The browser's own zone
+// is the first guess for a new shop.
+const TIME_ZONES: string[] = (() => {
+  const known = typeof Intl.supportedValuesOf === "function" ? Intl.supportedValuesOf("timeZone") : [];
+  return known.includes(DEFAULT_TIME_ZONE) ? known : [DEFAULT_TIME_ZONE, ...known];
+})();
+const browserTimeZone = () => {
+  const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return TIME_ZONES.includes(zone) ? zone : DEFAULT_TIME_ZONE;
+};
 
 // What deleting a shop takes with it: its menu and its tables, whose printed
 // QR codes then lead nowhere, and its payment records. (The BE refuses while a
@@ -92,7 +105,9 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   // saved shop when that reloads.
   useEffect(() => {
     if (!show) return;
-    setEditShop({ ...EMPTY_SHOP, ...shop, phone: shop?.phone ?? "" });
+    // A shop saved without a zone counts in the API's default; a new one
+    // starts from the browser's.
+    setEditShop({ ...EMPTY_SHOP, ...shop, phone: shop?.phone ?? "", timeZone: shop ? (shop.timeZone ?? DEFAULT_TIME_ZONE) : browserTimeZone() });
   }, [shop, show]);
 
   // What the saved shop is shown from: the list, and for an existing shop its
@@ -118,6 +133,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       // As typed; the BE checks it. Empty clears it.
       phone: (editShop.phone ?? "").trim(),
       web_URL: editShop.web_URL,
+      timeZone: editShop.timeZone,
     };
     let uploading = false;
     try {
@@ -287,6 +303,21 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                   }
                 />
               </FloatingLabel>
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <FloatingLabel controlId={`${formId}-time-zone`} label="Time zone">
+                <Form.Select
+                  value={editShop.timeZone ?? DEFAULT_TIME_ZONE}
+                  onChange={(e) => setEditShop({ ...editShop, timeZone: e.target.value })}
+                >
+                  {TIME_ZONES.map((zone) => (
+                    <option key={zone} value={zone}>
+                      {zone.replaceAll("_", " ")}
+                    </option>
+                  ))}
+                </Form.Select>
+              </FloatingLabel>
+              <Form.Text>Sales are counted in the shop's own days: a day starts and ends on this clock.</Form.Text>
             </Form.Group>
             {error && (
               <Alert className="my-2" variant="danger">

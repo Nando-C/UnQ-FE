@@ -36,8 +36,8 @@ src/
 │   ├── Customers/            TableMenu, MenuItem, Cart, CartListItems, CartItem, CheckOut, CardPayment,
 │   │                         PaymentFeedback, CartNotices, NavigationBar, AllShopsList, Account…
 │   ├── Shops/                ShopDetails, ShopMenu, Item, ItemModal, ShopModal, ShopNavbar, ShopSectionNav, ShopList,
-│   │                         Sales/ (the sales page: Sales, SalesControls, KpiCards, TrendChart, Findings,
-│   │                         Heatmap, MenuCharts, RefundCharts, DinersChart, TablesAndPayment)
+│   │                         Sales/ (the sales page: Sales, SalesControls, SalesTools, KpiCards, TrendChart,
+│   │                         Findings, Heatmap, MenuCharts, RefundCharts, DinersChart, TablesAndPayment)
 │   ├── Tables/               TableList, SingleTable, TableStatus, TableSheet, TableModal
 │   ├── Dashboard/  Login/  Register/  NotFound/
 ├── styles/theme.scss         Bootstrap recompiled with the UnQ palette

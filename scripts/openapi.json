@@ -1536,6 +1536,90 @@
         }
       }
     },
+    "/shops/{shopId}/sales/export": {
+      "get": {
+        "operationId": "exportSales",
+        "tags": [
+          "Manager: sales"
+        ],
+        "summary": "One of the report's tables as a CSV file",
+        "description": "Counted as the report counts, in the shop's time zone, as a download. `orders`: a row per payment made in the range, completed or still pending (paid at, table, provider, status, amount, refunded to date, net, items as \"2× Latte, 1× Sea Bass\"); `items`: a row per menu item sold, by revenue; `days`: a row per day of the range, zero-filled, with the category and provider splits. No diner is named or identified in any of them. UTF-8 with a byte-order mark, CRLF line ends; a cell that would start with `=`, `+`, `-`, `@` or a tab gets a leading apostrophe so a spreadsheet can't run it as a formula.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "The first day, YYYY-MM-DD, in the shop's time zone",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "The last day, included; from `from` to at most 366 days after it",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "table",
+            "in": "query",
+            "required": true,
+            "description": "Which table",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "orders",
+                "items",
+                "days"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "Content-Disposition": {
+                "description": "attachment; filename=<shop>-sales-<from>-<to>-<table>.csv (the shop's name as letters, digits and dashes)",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "$ref": "#/components/responses/ShopNotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
     "/shops/{shopId}/tables/status": {
       "get": {
         "operationId": "getTablesStatus",

@@ -20,6 +20,7 @@ import {
 } from "../../../lib/sales";
 import { HeadingPlaceholder, LoadFailed } from "../../Common/ScreenStates";
 import SalesControls from "./SalesControls";
+import SalesTools from "./SalesTools";
 import KpiCards from "./KpiCards";
 import TrendChart from "./TrendChart";
 import Findings from "./Findings";
@@ -135,6 +136,7 @@ const Sales = () => {
       ) : (
         <>
           <SalesControls state={state} by={by} today={today} timeZone={timeZone} onChange={update} />
+          {shop && <SalesTools shopId={shopId} range={range} timeZone={timeZone} />}
           {status === "failed" && !current && <div className="mt-3"><LoadFailed message={`Couldn't load the sales report: ${error}`} onRetry={load} /></div>}
           {status === "failed" && current && (
             <p className="updating mt-2" role="status">

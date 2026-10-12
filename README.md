@@ -131,6 +131,7 @@ CI runs the lint, the suite and the build, which type-checks first, on Node 24 f
 - [docs/architecture.md](./docs/architecture.md): the routes, the tree, the four slices and the "latest request wins" rule, data flow, the styling layers, the build.
 - [docs/checkout.md](./docs/checkout.md): selecting what to pay, the card and PayPal flows, and the table of every outcome a diner can see.
 - [docs/manager-tools.md](./docs/manager-tools.md): the shop page, the editors, the tables and the table sheet's actions, word for word.
+- [docs/sales.md](./docs/sales.md): the sales page as a case study: the questions, the chart that answers each, the counting rules, the findings' rules, the demo's patterns.
 - [docs/ux-decisions.md](./docs/ux-decisions.md): why it is the way it is, dated.
 - [docs/responsive-and-a11y.md](./docs/responsive-and-a11y.md): what holds at every size, touch, focus, colour, and the audit.
 - [docs/deployment.md](./docs/deployment.md): hosts, configuration, the settings on the API's host, the release order.
@@ -141,7 +142,7 @@ CI runs the lint, the suite and the build, which type-checks first, on Node 24 f
 
 ## Roadmap
 
-Next is the rest of the sales report page (the charts and findings are in; the CSV download, the shop's time-zone setting and a note on how the figures are counted follow), then a sales dashboard, staff on a shop and then staff roles, and kitchen screens with live updates; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
+Next is a sales dashboard on My Shops, then staff on a shop and then staff roles, and kitchen screens with live updates; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
 
 ## About
 

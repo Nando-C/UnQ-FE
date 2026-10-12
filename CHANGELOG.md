@@ -12,10 +12,11 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 - The Sales tab on a shop's pages, a page of its own at `/shop/:shopId/sales` over the API's sales report: a period picked from chips (Today to Last 90 days, or two dates) and stepped with arrows, grouped by day, week or month, compared with the period before; headline figures (net sales, orders, average order, refund rate, returning diners) with their change; and a trend chart whose metric switches between nine measures without a request, with the period before as a dashed line, a 7-day average, the peak annotated and a brush to zoom a long range. The view lives in the URL. Days are the shop's own, in its time zone. Charts are drawn with Recharts, in a chunk loaded only when the tab is opened.
 - Below the trend, the rest of the report: findings, up to six sentences computed from the same answer (the biggest mover, the busiest day and hour, the dish or dishes that carry the revenue, the leading refund cause and when refunds cluster, the share of returning diners, the top table, payments still pending), each a link to its chart; a weekday × hour heatmap of orders or sales; the menu as a Pareto with the "n dishes make 80%" marker, a units-against-price scatter sorting dishes into stars, workhorses, puzzles and sleepers, and a sortable table of all items, with a category filter; refunds by cause and by hour; new against returning diners with the returning share and visits per diner; the tables' orders, visits, net and takings per visit; PayPal against card over time. Four more headline figures (gross, refunds, visits, units) behind "More figures".
+- Under the sales page's controls, "How these are counted", a note with the counting rules, and "Download CSV", the period's orders, items or days as a file from the API's export route. The shop editor gains the shop's time zone, the one its sales days are counted in, from the browser's list of zones.
 
 ### Changed
 
-- The API contract fixture refreshed to the API's current document, with `GET /auth/sessions`, `DELETE /auth/sessions/{sessionId}` and `GET /shops/{shopId}/sales`.
+- The API contract fixture refreshed to the API's current document, with `GET /auth/sessions`, `DELETE /auth/sessions/{sessionId}`, `GET /shops/{shopId}/sales` and `GET /shops/{shopId}/sales/export`.
 
 ## [2.1.0] - 2026-10-11
 

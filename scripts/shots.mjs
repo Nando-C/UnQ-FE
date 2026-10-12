@@ -204,6 +204,17 @@ if (wanted("my-shops")) {
   await goto(d, "/")
   await save("my-shops", "browser", d, "un-q.vercel.app")
 }
+if (wanted("sales") || wanted("sales-when")) {
+  // The demo café's last 30 days: the trend at the top, then the findings
+  // and the heatmap.
+  await goto(d, `/shop/${DEMO_SHOP}/sales`, 2500)
+  if (wanted("sales")) await save("sales", "browser", d, `un-q.vercel.app/shop/${DEMO_SHOP}/sales`)
+  if (wanted("sales-when")) {
+    await d.evaluate(() => document.querySelector(".findings").scrollIntoView({ block: "start" }))
+    await sleep(800)
+    await save("sales-when", "browser", d, `un-q.vercel.app/shop/${DEMO_SHOP}/sales`)
+  }
+}
 if (wanted("tables") || wanted("qr") || wanted("table-sheet") || wanted("refund") || wanted("item-editor") || wanted("qr-print")) {
   await goto(d, `/shop/${DEMO_SHOP}`, 1500)
   await d.locator("#tableList").scrollIntoViewIfNeeded()
