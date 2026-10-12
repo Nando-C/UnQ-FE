@@ -1,4 +1,5 @@
 import { formatPrice } from "./price";
+export { formatPrice };
 import type { ISalesBucket, ISalesTotals, SalesGroupBy } from "../typings/sales";
 
 // The sales page's arithmetic, all pure: days in the shop's time zone, the
@@ -51,6 +52,26 @@ export const todayIn = (timeZone: string, now: Date = new Date()): Day => {
     return todayIn(DEFAULT_TIME_ZONE, now);
   }
 };
+
+// ---- Weekdays and hours -----------------------------------------------------
+
+// ISO weekdays, 1 Monday … 7 Sunday, as the API's heatmap numbers them.
+export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+export const weekdayName = (dow: number) => WEEKDAYS[dow - 1] ?? "";
+export const weekdayShort = (dow: number) => weekdayName(dow).slice(0, 3);
+export const weekdayOf = (day: Day) => ((new Date(asUtc(day)).getUTCDay() + 6) % 7) + 1;
+// The weekdays a range has, in Monday-first order: all seven from a week, only
+// the days present under one (a single day's heatmap is a single row).
+export const weekdaysIn = ({ from, to }: DayRange): number[] => {
+  const days = Math.min(daysBetween(from, to), 7);
+  const present = new Set(Array.from({ length: days }, (_, i) => weekdayOf(addDays(from, i))));
+  return [1, 2, 3, 4, 5, 6, 7].filter((dow) => present.has(dow));
+};
+// "13:00", and an hour's span "13:00–14:00".
+export const hourLabel = (hour: number) => `${String(hour).padStart(2, "0")}:00`;
+export const hourSpan = (hour: number) => `${hourLabel(hour)}–${hourLabel((hour + 1) % 24)}`;
+// A part of a whole, 0 when there is no whole.
+export const shareOf = (part: number, whole: number) => (whole ? part / whole : 0);
 
 // ---- Ranges ---------------------------------------------------------------
 

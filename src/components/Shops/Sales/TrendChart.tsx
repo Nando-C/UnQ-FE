@@ -102,7 +102,7 @@ const TrendChart = ({ report, metricKey, onMetric, average, onAverage }: TrendCh
   const caption = `${m.label} by ${by}, ${formatRange(report.range)}${previous ? `, against ${formatRange(previous.range)}` : ""}`;
 
   return (
-    <figure className="chart trend" aria-label="Trend">
+    <figure id="trend" className="chart trend" aria-label="Trend">
       <div className="chart-head">
         <Form.Select aria-label="Metric" value={metricKey} onChange={(e) => onMetric(e.target.value as MetricKey)}>
           {METRICS.map(({ key, label }) => (
