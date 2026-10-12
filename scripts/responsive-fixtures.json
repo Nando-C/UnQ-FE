@@ -711,5 +711,1832 @@
       "lastUsedAt": "2026-10-08T12:00:00.000Z",
       "current": false
     }
-  ]
+  ],
+  "sales": {
+    "range": {
+      "from": "2026-09-12",
+      "to": "2026-10-11",
+      "timeZone": "Europe/London",
+      "by": "day",
+      "days": 30
+    },
+    "totals": {
+      "gross": 3827.47,
+      "refunds": 36.44,
+      "net": 3791.03,
+      "orders": 285,
+      "pendingOrders": 1,
+      "visits": 229,
+      "diners": 90,
+      "returningDiners": 34,
+      "units": 855,
+      "byProvider": {
+        "paypal": {
+          "gross": 1530.99,
+          "orders": 114
+        },
+        "stripe": {
+          "gross": 2296.48,
+          "orders": 171
+        }
+      }
+    },
+    "series": [
+      {
+        "bucket": "2026-09-12",
+        "gross": 170.49,
+        "refunds": 2.05,
+        "net": 168.44,
+        "orders": 13,
+        "visits": 10,
+        "diners": 9,
+        "newDiners": 3,
+        "units": 39,
+        "byCategory": {
+          "food": 105.7,
+          "drinks": 64.79,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 68.2,
+          "stripe": 102.29
+        }
+      },
+      {
+        "bucket": "2026-09-13",
+        "gross": 189.72,
+        "refunds": 2.28,
+        "net": 187.44,
+        "orders": 14,
+        "visits": 11,
+        "diners": 10,
+        "newDiners": 3,
+        "units": 42,
+        "byCategory": {
+          "food": 117.63,
+          "drinks": 72.09,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 75.89,
+          "stripe": 113.83
+        }
+      },
+      {
+        "bucket": "2026-09-14",
+        "gross": 82.21,
+        "refunds": 0.99,
+        "net": 81.22,
+        "orders": 6,
+        "visits": 5,
+        "diners": 4,
+        "newDiners": 1,
+        "units": 18,
+        "byCategory": {
+          "food": 50.97,
+          "drinks": 31.24,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 32.88,
+          "stripe": 49.33
+        }
+      },
+      {
+        "bucket": "2026-09-15",
+        "gross": 71.13,
+        "refunds": 0.85,
+        "net": 70.28,
+        "orders": 5,
+        "visits": 4,
+        "diners": 4,
+        "newDiners": 1,
+        "units": 15,
+        "byCategory": {
+          "food": 44.1,
+          "drinks": 27.03,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 28.45,
+          "stripe": 42.68
+        }
+      },
+      {
+        "bucket": "2026-09-16",
+        "gross": 71.2,
+        "refunds": 0.85,
+        "net": 70.35,
+        "orders": 5,
+        "visits": 4,
+        "diners": 4,
+        "newDiners": 1,
+        "units": 15,
+        "byCategory": {
+          "food": 44.14,
+          "drinks": 27.06,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 28.48,
+          "stripe": 42.72
+        }
+      },
+      {
+        "bucket": "2026-09-17",
+        "gross": 72.58,
+        "refunds": 0.87,
+        "net": 71.71,
+        "orders": 5,
+        "visits": 4,
+        "diners": 4,
+        "newDiners": 1,
+        "units": 15,
+        "byCategory": {
+          "food": 45.0,
+          "drinks": 27.58,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 29.03,
+          "stripe": 43.55
+        }
+      },
+      {
+        "bucket": "2026-09-18",
+        "gross": 112.88,
+        "refunds": 0.0,
+        "net": 112.88,
+        "orders": 8,
+        "visits": 6,
+        "diners": 6,
+        "newDiners": 2,
+        "units": 24,
+        "byCategory": {
+          "food": 69.99,
+          "drinks": 42.89,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 45.15,
+          "stripe": 67.73
+        }
+      },
+      {
+        "bucket": "2026-09-19",
+        "gross": 169.0,
+        "refunds": 2.03,
+        "net": 166.97,
+        "orders": 13,
+        "visits": 10,
+        "diners": 9,
+        "newDiners": 3,
+        "units": 39,
+        "byCategory": {
+          "food": 104.78,
+          "drinks": 64.22,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 67.6,
+          "stripe": 101.4
+        }
+      },
+      {
+        "bucket": "2026-09-20",
+        "gross": 199.34,
+        "refunds": 0.0,
+        "net": 199.34,
+        "orders": 15,
+        "visits": 12,
+        "diners": 10,
+        "newDiners": 3,
+        "units": 45,
+        "byCategory": {
+          "food": 123.59,
+          "drinks": 75.75,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 79.74,
+          "stripe": 119.6
+        }
+      },
+      {
+        "bucket": "2026-09-21",
+        "gross": 87.99,
+        "refunds": 1.06,
+        "net": 86.93,
+        "orders": 7,
+        "visits": 6,
+        "diners": 5,
+        "newDiners": 2,
+        "units": 21,
+        "byCategory": {
+          "food": 54.55,
+          "drinks": 33.44,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 35.2,
+          "stripe": 52.79
+        }
+      },
+      {
+        "bucket": "2026-09-22",
+        "gross": 99.05,
+        "refunds": 1.19,
+        "net": 97.86,
+        "orders": 7,
+        "visits": 6,
+        "diners": 5,
+        "newDiners": 2,
+        "units": 21,
+        "byCategory": {
+          "food": 61.41,
+          "drinks": 37.64,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 39.62,
+          "stripe": 59.43
+        }
+      },
+      {
+        "bucket": "2026-09-23",
+        "gross": 96.73,
+        "refunds": 1.16,
+        "net": 95.57,
+        "orders": 7,
+        "visits": 6,
+        "diners": 5,
+        "newDiners": 2,
+        "units": 21,
+        "byCategory": {
+          "food": 59.97,
+          "drinks": 36.76,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 38.69,
+          "stripe": 58.04
+        }
+      },
+      {
+        "bucket": "2026-09-24",
+        "gross": 78.61,
+        "refunds": 3.93,
+        "net": 74.68,
+        "orders": 6,
+        "visits": 5,
+        "diners": 4,
+        "newDiners": 1,
+        "units": 18,
+        "byCategory": {
+          "food": 48.74,
+          "drinks": 29.87,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 31.44,
+          "stripe": 47.17
+        }
+      },
+      {
+        "bucket": "2026-09-25",
+        "gross": 114.91,
+        "refunds": 0.0,
+        "net": 114.91,
+        "orders": 9,
+        "visits": 7,
+        "diners": 6,
+        "newDiners": 2,
+        "units": 27,
+        "byCategory": {
+          "food": 71.24,
+          "drinks": 43.67,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 45.96,
+          "stripe": 68.95
+        }
+      },
+      {
+        "bucket": "2026-09-26",
+        "gross": 181.75,
+        "refunds": 2.18,
+        "net": 179.57,
+        "orders": 14,
+        "visits": 11,
+        "diners": 10,
+        "newDiners": 3,
+        "units": 42,
+        "byCategory": {
+          "food": 112.69,
+          "drinks": 69.06,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 72.7,
+          "stripe": 109.05
+        }
+      },
+      {
+        "bucket": "2026-09-27",
+        "gross": 210.94,
+        "refunds": 2.53,
+        "net": 208.41,
+        "orders": 16,
+        "visits": 13,
+        "diners": 11,
+        "newDiners": 3,
+        "units": 48,
+        "byCategory": {
+          "food": 130.78,
+          "drinks": 80.16,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 84.38,
+          "stripe": 126.56
+        }
+      },
+      {
+        "bucket": "2026-09-28",
+        "gross": 91.97,
+        "refunds": 1.1,
+        "net": 90.87,
+        "orders": 7,
+        "visits": 6,
+        "diners": 5,
+        "newDiners": 2,
+        "units": 21,
+        "byCategory": {
+          "food": 57.02,
+          "drinks": 34.95,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 36.79,
+          "stripe": 55.18
+        }
+      },
+      {
+        "bucket": "2026-09-29",
+        "gross": 31.71,
+        "refunds": 0.38,
+        "net": 31.33,
+        "orders": 2,
+        "visits": 2,
+        "diners": 1,
+        "newDiners": 0,
+        "units": 6,
+        "byCategory": {
+          "food": 19.66,
+          "drinks": 12.05,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 12.68,
+          "stripe": 19.03
+        }
+      },
+      {
+        "bucket": "2026-09-30",
+        "gross": 96.98,
+        "refunds": 1.16,
+        "net": 95.82,
+        "orders": 7,
+        "visits": 6,
+        "diners": 5,
+        "newDiners": 2,
+        "units": 21,
+        "byCategory": {
+          "food": 60.13,
+          "drinks": 36.85,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 38.79,
+          "stripe": 58.19
+        }
+      },
+      {
+        "bucket": "2026-10-01",
+        "gross": 87.5,
+        "refunds": 1.05,
+        "net": 86.45,
+        "orders": 7,
+        "visits": 6,
+        "diners": 5,
+        "newDiners": 2,
+        "units": 21,
+        "byCategory": {
+          "food": 54.25,
+          "drinks": 33.25,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 35.0,
+          "stripe": 52.5
+        }
+      },
+      {
+        "bucket": "2026-10-02",
+        "gross": 126.53,
+        "refunds": 1.52,
+        "net": 125.01,
+        "orders": 9,
+        "visits": 7,
+        "diners": 6,
+        "newDiners": 2,
+        "units": 27,
+        "byCategory": {
+          "food": 78.45,
+          "drinks": 48.08,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 50.61,
+          "stripe": 75.92
+        }
+      },
+      {
+        "bucket": "2026-10-03",
+        "gross": 230.18,
+        "refunds": 0.0,
+        "net": 230.18,
+        "orders": 17,
+        "visits": 14,
+        "diners": 12,
+        "newDiners": 4,
+        "units": 51,
+        "byCategory": {
+          "food": 142.71,
+          "drinks": 87.47,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 92.07,
+          "stripe": 138.11
+        }
+      },
+      {
+        "bucket": "2026-10-04",
+        "gross": 196.65,
+        "refunds": 2.36,
+        "net": 194.29,
+        "orders": 15,
+        "visits": 12,
+        "diners": 10,
+        "newDiners": 3,
+        "units": 45,
+        "byCategory": {
+          "food": 121.92,
+          "drinks": 74.73,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 78.66,
+          "stripe": 117.99
+        }
+      },
+      {
+        "bucket": "2026-10-05",
+        "gross": 96.05,
+        "refunds": 0.0,
+        "net": 96.05,
+        "orders": 7,
+        "visits": 6,
+        "diners": 5,
+        "newDiners": 2,
+        "units": 21,
+        "byCategory": {
+          "food": 59.55,
+          "drinks": 36.5,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 38.42,
+          "stripe": 57.63
+        }
+      },
+      {
+        "bucket": "2026-10-06",
+        "gross": 102.61,
+        "refunds": 1.23,
+        "net": 101.38,
+        "orders": 8,
+        "visits": 6,
+        "diners": 6,
+        "newDiners": 2,
+        "units": 24,
+        "byCategory": {
+          "food": 63.62,
+          "drinks": 38.99,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 41.04,
+          "stripe": 61.57
+        }
+      },
+      {
+        "bucket": "2026-10-07",
+        "gross": 110.59,
+        "refunds": 1.33,
+        "net": 109.26,
+        "orders": 8,
+        "visits": 6,
+        "diners": 6,
+        "newDiners": 2,
+        "units": 24,
+        "byCategory": {
+          "food": 68.57,
+          "drinks": 42.02,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 44.24,
+          "stripe": 66.35
+        }
+      },
+      {
+        "bucket": "2026-10-08",
+        "gross": 94.94,
+        "refunds": 0.0,
+        "net": 94.94,
+        "orders": 7,
+        "visits": 6,
+        "diners": 5,
+        "newDiners": 2,
+        "units": 21,
+        "byCategory": {
+          "food": 58.86,
+          "drinks": 36.08,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 37.98,
+          "stripe": 56.96
+        }
+      },
+      {
+        "bucket": "2026-10-09",
+        "gross": 120.68,
+        "refunds": 1.45,
+        "net": 119.23,
+        "orders": 9,
+        "visits": 7,
+        "diners": 6,
+        "newDiners": 2,
+        "units": 27,
+        "byCategory": {
+          "food": 74.82,
+          "drinks": 45.86,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 48.27,
+          "stripe": 72.41
+        }
+      },
+      {
+        "bucket": "2026-10-10",
+        "gross": 191.31,
+        "refunds": 0.0,
+        "net": 191.31,
+        "orders": 14,
+        "visits": 11,
+        "diners": 10,
+        "newDiners": 3,
+        "units": 42,
+        "byCategory": {
+          "food": 118.61,
+          "drinks": 72.7,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 76.52,
+          "stripe": 114.79
+        }
+      },
+      {
+        "bucket": "2026-10-11",
+        "gross": 241.24,
+        "refunds": 2.89,
+        "net": 238.35,
+        "orders": 18,
+        "visits": 14,
+        "diners": 13,
+        "newDiners": 4,
+        "units": 54,
+        "byCategory": {
+          "food": 149.57,
+          "drinks": 91.67,
+          "other": 0
+        },
+        "byProvider": {
+          "paypal": 96.5,
+          "stripe": 144.74
+        }
+      }
+    ],
+    "heatmap": [
+      {
+        "dow": 1,
+        "hour": 8,
+        "orders": 8,
+        "gross": 87.67
+      },
+      {
+        "dow": 1,
+        "hour": 9,
+        "orders": 8,
+        "gross": 37.6
+      },
+      {
+        "dow": 1,
+        "hour": 10,
+        "orders": 12,
+        "gross": 88.08
+      },
+      {
+        "dow": 1,
+        "hour": 11,
+        "orders": 5,
+        "gross": 31.45
+      },
+      {
+        "dow": 1,
+        "hour": 12,
+        "orders": 5,
+        "gross": 94.91
+      },
+      {
+        "dow": 1,
+        "hour": 13,
+        "orders": 3,
+        "gross": 77.81
+      },
+      {
+        "dow": 1,
+        "hour": 14,
+        "orders": 2,
+        "gross": 37.4
+      },
+      {
+        "dow": 1,
+        "hour": 15,
+        "orders": 11,
+        "gross": 45.72
+      },
+      {
+        "dow": 1,
+        "hour": 16,
+        "orders": 3,
+        "gross": 181.32
+      },
+      {
+        "dow": 2,
+        "hour": 8,
+        "orders": 11,
+        "gross": 24.34
+      },
+      {
+        "dow": 2,
+        "hour": 9,
+        "orders": 5,
+        "gross": 124.39
+      },
+      {
+        "dow": 2,
+        "hour": 10,
+        "orders": 4,
+        "gross": 127.85
+      },
+      {
+        "dow": 2,
+        "hour": 11,
+        "orders": 7,
+        "gross": 122.39
+      },
+      {
+        "dow": 2,
+        "hour": 12,
+        "orders": 9,
+        "gross": 40.88
+      },
+      {
+        "dow": 2,
+        "hour": 13,
+        "orders": 9,
+        "gross": 188.83
+      },
+      {
+        "dow": 2,
+        "hour": 14,
+        "orders": 9,
+        "gross": 101.67
+      },
+      {
+        "dow": 2,
+        "hour": 15,
+        "orders": 6,
+        "gross": 34.6
+      },
+      {
+        "dow": 2,
+        "hour": 16,
+        "orders": 3,
+        "gross": 147.44
+      },
+      {
+        "dow": 3,
+        "hour": 8,
+        "orders": 13,
+        "gross": 65.01
+      },
+      {
+        "dow": 3,
+        "hour": 9,
+        "orders": 13,
+        "gross": 47.44
+      },
+      {
+        "dow": 3,
+        "hour": 10,
+        "orders": 2,
+        "gross": 54.89
+      },
+      {
+        "dow": 3,
+        "hour": 11,
+        "orders": 10,
+        "gross": 81.5
+      },
+      {
+        "dow": 3,
+        "hour": 12,
+        "orders": 13,
+        "gross": 112.34
+      },
+      {
+        "dow": 3,
+        "hour": 13,
+        "orders": 2,
+        "gross": 148.88
+      },
+      {
+        "dow": 3,
+        "hour": 14,
+        "orders": 6,
+        "gross": 186.35
+      },
+      {
+        "dow": 3,
+        "hour": 15,
+        "orders": 3,
+        "gross": 138.35
+      },
+      {
+        "dow": 3,
+        "hour": 16,
+        "orders": 6,
+        "gross": 108.13
+      },
+      {
+        "dow": 4,
+        "hour": 8,
+        "orders": 4,
+        "gross": 80.47
+      },
+      {
+        "dow": 4,
+        "hour": 9,
+        "orders": 5,
+        "gross": 110.54
+      },
+      {
+        "dow": 4,
+        "hour": 10,
+        "orders": 14,
+        "gross": 105.46
+      },
+      {
+        "dow": 4,
+        "hour": 11,
+        "orders": 12,
+        "gross": 57.92
+      },
+      {
+        "dow": 4,
+        "hour": 12,
+        "orders": 14,
+        "gross": 154.03
+      },
+      {
+        "dow": 4,
+        "hour": 13,
+        "orders": 14,
+        "gross": 164.95
+      },
+      {
+        "dow": 4,
+        "hour": 14,
+        "orders": 14,
+        "gross": 60.7
+      },
+      {
+        "dow": 4,
+        "hour": 15,
+        "orders": 8,
+        "gross": 145.78
+      },
+      {
+        "dow": 4,
+        "hour": 16,
+        "orders": 5,
+        "gross": 53.99
+      },
+      {
+        "dow": 5,
+        "hour": 8,
+        "orders": 9,
+        "gross": 80.45
+      },
+      {
+        "dow": 5,
+        "hour": 9,
+        "orders": 2,
+        "gross": 188.23
+      },
+      {
+        "dow": 5,
+        "hour": 10,
+        "orders": 14,
+        "gross": 67.5
+      },
+      {
+        "dow": 5,
+        "hour": 11,
+        "orders": 6,
+        "gross": 52.92
+      },
+      {
+        "dow": 5,
+        "hour": 12,
+        "orders": 11,
+        "gross": 182.61
+      },
+      {
+        "dow": 5,
+        "hour": 13,
+        "orders": 9,
+        "gross": 157.46
+      },
+      {
+        "dow": 5,
+        "hour": 14,
+        "orders": 13,
+        "gross": 187.97
+      },
+      {
+        "dow": 5,
+        "hour": 15,
+        "orders": 7,
+        "gross": 33.69
+      },
+      {
+        "dow": 5,
+        "hour": 16,
+        "orders": 3,
+        "gross": 58.56
+      },
+      {
+        "dow": 6,
+        "hour": 8,
+        "orders": 5,
+        "gross": 77.42
+      },
+      {
+        "dow": 6,
+        "hour": 9,
+        "orders": 9,
+        "gross": 126.09
+      },
+      {
+        "dow": 6,
+        "hour": 10,
+        "orders": 11,
+        "gross": 162.87
+      },
+      {
+        "dow": 6,
+        "hour": 11,
+        "orders": 9,
+        "gross": 174.56
+      },
+      {
+        "dow": 6,
+        "hour": 12,
+        "orders": 7,
+        "gross": 155.94
+      },
+      {
+        "dow": 6,
+        "hour": 13,
+        "orders": 3,
+        "gross": 161.89
+      },
+      {
+        "dow": 6,
+        "hour": 14,
+        "orders": 3,
+        "gross": 174.66
+      },
+      {
+        "dow": 6,
+        "hour": 15,
+        "orders": 14,
+        "gross": 140.95
+      },
+      {
+        "dow": 6,
+        "hour": 16,
+        "orders": 5,
+        "gross": 101.27
+      },
+      {
+        "dow": 7,
+        "hour": 8,
+        "orders": 4,
+        "gross": 93.77
+      },
+      {
+        "dow": 7,
+        "hour": 9,
+        "orders": 12,
+        "gross": 76.53
+      },
+      {
+        "dow": 7,
+        "hour": 10,
+        "orders": 14,
+        "gross": 180.85
+      },
+      {
+        "dow": 7,
+        "hour": 11,
+        "orders": 13,
+        "gross": 87.29
+      },
+      {
+        "dow": 7,
+        "hour": 12,
+        "orders": 8,
+        "gross": 146.37
+      },
+      {
+        "dow": 7,
+        "hour": 13,
+        "orders": 3,
+        "gross": 143.22
+      },
+      {
+        "dow": 7,
+        "hour": 14,
+        "orders": 4,
+        "gross": 188.83
+      },
+      {
+        "dow": 7,
+        "hour": 15,
+        "orders": 2,
+        "gross": 45.7
+      },
+      {
+        "dow": 7,
+        "hour": 16,
+        "orders": 9,
+        "gross": 157.11
+      }
+    ],
+    "items": [
+      {
+        "menuId": "i0",
+        "name": "Smashed avocado on toast with a poached egg and chilli",
+        "category": "food",
+        "unitPrice": 9.5,
+        "units": 212,
+        "refundedUnits": 3,
+        "revenue": 2014.0
+      },
+      {
+        "menuId": "i1",
+        "name": "Flat White",
+        "category": "drinks",
+        "unitPrice": 3.2,
+        "units": 540,
+        "refundedUnits": 0,
+        "revenue": 1728.0
+      },
+      {
+        "menuId": "i2",
+        "name": "Shakshuka",
+        "category": "food",
+        "unitPrice": 10.5,
+        "units": 130,
+        "refundedUnits": 2,
+        "revenue": 1365.0
+      },
+      {
+        "menuId": "i3",
+        "name": "Latte",
+        "category": "drinks",
+        "unitPrice": 3.4,
+        "units": 380,
+        "refundedUnits": 1,
+        "revenue": 1292.0
+      },
+      {
+        "menuId": "i4",
+        "name": "Carrot Cake",
+        "category": "food",
+        "unitPrice": 4.2,
+        "units": 160,
+        "refundedUnits": 0,
+        "revenue": 672.0
+      },
+      {
+        "menuId": "i5",
+        "name": "Granola Bowl",
+        "category": "food",
+        "unitPrice": 6.8,
+        "units": 90,
+        "refundedUnits": 0,
+        "revenue": 612.0
+      },
+      {
+        "menuId": "i6",
+        "name": "Espresso",
+        "category": "drinks",
+        "unitPrice": 2.6,
+        "units": 210,
+        "refundedUnits": 0,
+        "revenue": 546.0
+      },
+      {
+        "menuId": "i7",
+        "name": "Pastel de Nata",
+        "category": "food",
+        "unitPrice": 2.8,
+        "units": 300,
+        "refundedUnits": 4,
+        "revenue": 840.0
+      }
+    ],
+    "refunds": {
+      "count": 31,
+      "byReason": [
+        {
+          "reason": "long_wait",
+          "count": 12,
+          "amount": 84.6
+        },
+        {
+          "reason": "quality",
+          "count": 8,
+          "amount": 61.2
+        },
+        {
+          "reason": "wrong_item",
+          "count": 6,
+          "amount": 37.8
+        },
+        {
+          "reason": "unavailable",
+          "count": 3,
+          "amount": 12.6
+        },
+        {
+          "reason": null,
+          "count": 2,
+          "amount": 9.4
+        }
+      ],
+      "byHour": [
+        {
+          "hour": 9,
+          "count": 2,
+          "amount": 13.4
+        },
+        {
+          "hour": 10,
+          "count": 3,
+          "amount": 20.1
+        },
+        {
+          "hour": 12,
+          "count": 8,
+          "amount": 53.6
+        },
+        {
+          "hour": 13,
+          "count": 10,
+          "amount": 67.0
+        },
+        {
+          "hour": 14,
+          "count": 5,
+          "amount": 33.5
+        },
+        {
+          "hour": 15,
+          "count": 3,
+          "amount": 20.1
+        }
+      ]
+    },
+    "tables": [
+      {
+        "tableId": "t0",
+        "name": "Window seat by the door with the long bench",
+        "orders": 96,
+        "visits": 70,
+        "gross": 1290.5,
+        "refunds": 24.1,
+        "net": 1266.4
+      },
+      {
+        "tableId": "t1",
+        "name": "Garden 1",
+        "orders": 80,
+        "visits": 61,
+        "gross": 1032.0,
+        "refunds": 12.0,
+        "net": 1020.0
+      },
+      {
+        "tableId": "t2",
+        "name": "Fire Place",
+        "orders": 74,
+        "visits": 58,
+        "gross": 988.4,
+        "refunds": 0,
+        "net": 988.4
+      },
+      {
+        "tableId": "t3",
+        "name": "Bar",
+        "orders": 52,
+        "visits": 49,
+        "gross": 610.2,
+        "refunds": 18.6,
+        "net": 591.6
+      },
+      {
+        "tableId": "t4",
+        "name": "Garden terrace by the fountain",
+        "orders": 0,
+        "visits": 0,
+        "gross": 0,
+        "refunds": 14.5,
+        "net": -14.5
+      }
+    ],
+    "previous": {
+      "range": {
+        "from": "2026-08-13",
+        "to": "2026-09-11",
+        "timeZone": "Europe/London",
+        "by": "day",
+        "days": 30
+      },
+      "totals": {
+        "gross": 3304.32,
+        "refunds": 24.43,
+        "net": 3279.89,
+        "orders": 246,
+        "pendingOrders": 1,
+        "visits": 197,
+        "diners": 78,
+        "returningDiners": 27,
+        "units": 738,
+        "byProvider": {
+          "paypal": {
+            "gross": 1321.73,
+            "orders": 98
+          },
+          "stripe": {
+            "gross": 1982.59,
+            "orders": 148
+          }
+        }
+      },
+      "series": [
+        {
+          "bucket": "2026-08-13",
+          "gross": 81.89,
+          "refunds": 0.98,
+          "net": 80.91,
+          "orders": 6,
+          "visits": 5,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 18,
+          "byCategory": {
+            "food": 50.77,
+            "drinks": 31.12,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 32.76,
+            "stripe": 49.13
+          }
+        },
+        {
+          "bucket": "2026-08-14",
+          "gross": 108.02,
+          "refunds": 1.3,
+          "net": 106.72,
+          "orders": 8,
+          "visits": 6,
+          "diners": 6,
+          "newDiners": 2,
+          "units": 24,
+          "byCategory": {
+            "food": 66.97,
+            "drinks": 41.05,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 43.21,
+            "stripe": 64.81
+          }
+        },
+        {
+          "bucket": "2026-08-15",
+          "gross": 172.4,
+          "refunds": 2.07,
+          "net": 170.33,
+          "orders": 13,
+          "visits": 10,
+          "diners": 9,
+          "newDiners": 3,
+          "units": 39,
+          "byCategory": {
+            "food": 106.89,
+            "drinks": 65.51,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 68.96,
+            "stripe": 103.44
+          }
+        },
+        {
+          "bucket": "2026-08-16",
+          "gross": 187.05,
+          "refunds": 0.0,
+          "net": 187.05,
+          "orders": 14,
+          "visits": 11,
+          "diners": 10,
+          "newDiners": 3,
+          "units": 42,
+          "byCategory": {
+            "food": 115.97,
+            "drinks": 71.08,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 74.82,
+            "stripe": 112.23
+          }
+        },
+        {
+          "bucket": "2026-08-17",
+          "gross": 75.46,
+          "refunds": 0.0,
+          "net": 75.46,
+          "orders": 6,
+          "visits": 5,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 18,
+          "byCategory": {
+            "food": 46.79,
+            "drinks": 28.67,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 30.18,
+            "stripe": 45.28
+          }
+        },
+        {
+          "bucket": "2026-08-18",
+          "gross": 66.56,
+          "refunds": 0.0,
+          "net": 66.56,
+          "orders": 5,
+          "visits": 4,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 15,
+          "byCategory": {
+            "food": 41.27,
+            "drinks": 25.29,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 26.62,
+            "stripe": 39.94
+          }
+        },
+        {
+          "bucket": "2026-08-19",
+          "gross": 80.69,
+          "refunds": 0.0,
+          "net": 80.69,
+          "orders": 6,
+          "visits": 5,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 18,
+          "byCategory": {
+            "food": 50.03,
+            "drinks": 30.66,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 32.28,
+            "stripe": 48.41
+          }
+        },
+        {
+          "bucket": "2026-08-20",
+          "gross": 85.42,
+          "refunds": 1.03,
+          "net": 84.39,
+          "orders": 6,
+          "visits": 5,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 18,
+          "byCategory": {
+            "food": 52.96,
+            "drinks": 32.46,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 34.17,
+            "stripe": 51.25
+          }
+        },
+        {
+          "bucket": "2026-08-21",
+          "gross": 104.25,
+          "refunds": 0.0,
+          "net": 104.25,
+          "orders": 8,
+          "visits": 6,
+          "diners": 6,
+          "newDiners": 2,
+          "units": 24,
+          "byCategory": {
+            "food": 64.64,
+            "drinks": 39.62,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 41.7,
+            "stripe": 62.55
+          }
+        },
+        {
+          "bucket": "2026-08-22",
+          "gross": 152.52,
+          "refunds": 1.83,
+          "net": 150.69,
+          "orders": 11,
+          "visits": 9,
+          "diners": 8,
+          "newDiners": 2,
+          "units": 33,
+          "byCategory": {
+            "food": 94.56,
+            "drinks": 57.96,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 61.01,
+            "stripe": 91.51
+          }
+        },
+        {
+          "bucket": "2026-08-23",
+          "gross": 161.53,
+          "refunds": 1.94,
+          "net": 159.59,
+          "orders": 12,
+          "visits": 10,
+          "diners": 8,
+          "newDiners": 2,
+          "units": 36,
+          "byCategory": {
+            "food": 100.15,
+            "drinks": 61.38,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 64.61,
+            "stripe": 96.92
+          }
+        },
+        {
+          "bucket": "2026-08-24",
+          "gross": 69.72,
+          "refunds": 0.0,
+          "net": 69.72,
+          "orders": 5,
+          "visits": 4,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 15,
+          "byCategory": {
+            "food": 43.23,
+            "drinks": 26.49,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 27.89,
+            "stripe": 41.83
+          }
+        },
+        {
+          "bucket": "2026-08-25",
+          "gross": 71.96,
+          "refunds": 3.6,
+          "net": 68.36,
+          "orders": 5,
+          "visits": 4,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 15,
+          "byCategory": {
+            "food": 44.62,
+            "drinks": 27.34,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 28.78,
+            "stripe": 43.18
+          }
+        },
+        {
+          "bucket": "2026-08-26",
+          "gross": 78.9,
+          "refunds": 0.0,
+          "net": 78.9,
+          "orders": 6,
+          "visits": 5,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 18,
+          "byCategory": {
+            "food": 48.92,
+            "drinks": 29.98,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 31.56,
+            "stripe": 47.34
+          }
+        },
+        {
+          "bucket": "2026-08-27",
+          "gross": 71.85,
+          "refunds": 0.86,
+          "net": 70.99,
+          "orders": 5,
+          "visits": 4,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 15,
+          "byCategory": {
+            "food": 44.55,
+            "drinks": 27.3,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 28.74,
+            "stripe": 43.11
+          }
+        },
+        {
+          "bucket": "2026-08-28",
+          "gross": 115.54,
+          "refunds": 0.0,
+          "net": 115.54,
+          "orders": 9,
+          "visits": 7,
+          "diners": 6,
+          "newDiners": 2,
+          "units": 27,
+          "byCategory": {
+            "food": 71.63,
+            "drinks": 43.91,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 46.22,
+            "stripe": 69.32
+          }
+        },
+        {
+          "bucket": "2026-08-29",
+          "gross": 205.66,
+          "refunds": 0.0,
+          "net": 205.66,
+          "orders": 15,
+          "visits": 12,
+          "diners": 10,
+          "newDiners": 3,
+          "units": 45,
+          "byCategory": {
+            "food": 127.51,
+            "drinks": 78.15,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 82.26,
+            "stripe": 123.4
+          }
+        },
+        {
+          "bucket": "2026-08-30",
+          "gross": 70.6,
+          "refunds": 0.85,
+          "net": 69.75,
+          "orders": 5,
+          "visits": 4,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 15,
+          "byCategory": {
+            "food": 43.77,
+            "drinks": 26.83,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 28.24,
+            "stripe": 42.36
+          }
+        },
+        {
+          "bucket": "2026-08-31",
+          "gross": 81.05,
+          "refunds": 0.0,
+          "net": 81.05,
+          "orders": 6,
+          "visits": 5,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 18,
+          "byCategory": {
+            "food": 50.25,
+            "drinks": 30.8,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 32.42,
+            "stripe": 48.63
+          }
+        },
+        {
+          "bucket": "2026-09-01",
+          "gross": 96.96,
+          "refunds": 1.16,
+          "net": 95.8,
+          "orders": 7,
+          "visits": 6,
+          "diners": 5,
+          "newDiners": 2,
+          "units": 21,
+          "byCategory": {
+            "food": 60.12,
+            "drinks": 36.84,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 38.78,
+            "stripe": 58.18
+          }
+        },
+        {
+          "bucket": "2026-09-02",
+          "gross": 77.53,
+          "refunds": 0.93,
+          "net": 76.6,
+          "orders": 6,
+          "visits": 5,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 18,
+          "byCategory": {
+            "food": 48.07,
+            "drinks": 29.46,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 31.01,
+            "stripe": 46.52
+          }
+        },
+        {
+          "bucket": "2026-09-03",
+          "gross": 79.56,
+          "refunds": 0.95,
+          "net": 78.61,
+          "orders": 6,
+          "visits": 5,
+          "diners": 4,
+          "newDiners": 1,
+          "units": 18,
+          "byCategory": {
+            "food": 49.33,
+            "drinks": 30.23,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 31.82,
+            "stripe": 47.74
+          }
+        },
+        {
+          "bucket": "2026-09-04",
+          "gross": 122.96,
+          "refunds": 1.48,
+          "net": 121.48,
+          "orders": 9,
+          "visits": 7,
+          "diners": 6,
+          "newDiners": 2,
+          "units": 27,
+          "byCategory": {
+            "food": 76.24,
+            "drinks": 46.72,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 49.18,
+            "stripe": 73.78
+          }
+        },
+        {
+          "bucket": "2026-09-05",
+          "gross": 167.98,
+          "refunds": 2.02,
+          "net": 165.96,
+          "orders": 13,
+          "visits": 10,
+          "diners": 9,
+          "newDiners": 3,
+          "units": 39,
+          "byCategory": {
+            "food": 104.15,
+            "drinks": 63.83,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 67.19,
+            "stripe": 100.79
+          }
+        },
+        {
+          "bucket": "2026-09-06",
+          "gross": 190.93,
+          "refunds": 2.29,
+          "net": 188.64,
+          "orders": 14,
+          "visits": 11,
+          "diners": 10,
+          "newDiners": 3,
+          "units": 42,
+          "byCategory": {
+            "food": 118.38,
+            "drinks": 72.55,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 76.37,
+            "stripe": 114.56
+          }
+        },
+        {
+          "bucket": "2026-09-07",
+          "gross": 101.02,
+          "refunds": 0.0,
+          "net": 101.02,
+          "orders": 8,
+          "visits": 6,
+          "diners": 6,
+          "newDiners": 2,
+          "units": 24,
+          "byCategory": {
+            "food": 62.63,
+            "drinks": 38.39,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 40.41,
+            "stripe": 60.61
+          }
+        },
+        {
+          "bucket": "2026-09-08",
+          "gross": 89.96,
+          "refunds": 0.0,
+          "net": 89.96,
+          "orders": 7,
+          "visits": 6,
+          "diners": 5,
+          "newDiners": 2,
+          "units": 21,
+          "byCategory": {
+            "food": 55.78,
+            "drinks": 34.18,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 35.98,
+            "stripe": 53.98
+          }
+        },
+        {
+          "bucket": "2026-09-09",
+          "gross": 94.93,
+          "refunds": 1.14,
+          "net": 93.79,
+          "orders": 7,
+          "visits": 6,
+          "diners": 5,
+          "newDiners": 2,
+          "units": 21,
+          "byCategory": {
+            "food": 58.86,
+            "drinks": 36.07,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 37.97,
+            "stripe": 56.96
+          }
+        },
+        {
+          "bucket": "2026-09-10",
+          "gross": 101.65,
+          "refunds": 0.0,
+          "net": 101.65,
+          "orders": 8,
+          "visits": 6,
+          "diners": 6,
+          "newDiners": 2,
+          "units": 24,
+          "byCategory": {
+            "food": 63.02,
+            "drinks": 38.63,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 40.66,
+            "stripe": 60.99
+          }
+        },
+        {
+          "bucket": "2026-09-11",
+          "gross": 139.77,
+          "refunds": 0.0,
+          "net": 139.77,
+          "orders": 10,
+          "visits": 8,
+          "diners": 7,
+          "newDiners": 2,
+          "units": 30,
+          "byCategory": {
+            "food": 86.66,
+            "drinks": 53.11,
+            "other": 0
+          },
+          "byProvider": {
+            "paypal": 55.91,
+            "stripe": 83.86
+          }
+        }
+      ]
+    }
+  }
 }

@@ -27,6 +27,20 @@ describe("manager header", () => {
     expect(within(sections).getByRole("link", { name: "Details" })).toHaveAttribute("href", "#shopDetails")
     expect(within(sections).getByRole("link", { name: "Menu" })).toHaveAttribute("href", "#shopMenu")
     expect(within(sections).getByRole("link", { name: "Tables" })).toHaveAttribute("href", "#tableList")
+    expect(within(sections).getByRole("link", { name: "Sales" })).toHaveAttribute("href", "/shop/s1/sales")
+    expect(within(sections).getByRole("link", { name: "Sales" })).not.toHaveAttribute("aria-current")
+  })
+
+  it("on the shop's Sales page, keeps the breadcrumb and marks Sales, the other tabs leading back to their section", () => {
+    renderAt("/shop/s1/sales")
+
+    const crumbs = screen.getByRole("navigation", { name: "Breadcrumb" })
+    expect(within(crumbs).getByText("First Shop")).toHaveAttribute("aria-current", "page")
+    const sections = screen.getByRole("navigation", { name: "Shop sections" })
+    expect(within(sections).getByRole("link", { name: "Sales" })).toHaveAttribute("aria-current", "page")
+    expect(within(sections).getByRole("link", { name: "Menu" })).toHaveAttribute("href", "/shop/s1#shopMenu")
+    expect(within(sections).getByRole("link", { name: "Details" })).toHaveAttribute("href", "/shop/s1#shopDetails")
+    expect(within(sections).getByRole("link", { name: "Tables" })).toHaveAttribute("href", "/shop/s1#tableList")
   })
 
   it("links the logo to My Shops", () => {

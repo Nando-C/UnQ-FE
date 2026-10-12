@@ -12,19 +12,22 @@ import "./ShopNavbar.css";
 
 // The manager header. One row: the logo, a breadcrumb ("My Shops" on its own, or
 // "My Shops › First Shop" on a shop's page), that shop's section tabs, and the account
-// icon pinned to the right. Everything flows from the left, so the tabs and the shop's
+// icon pinned to the right (the tabs: the shop page's sections, and its Sales page).
+// Everything flows from the left, so the tabs and the shop's
 // name appearing never move My Shops or the account icon. Below 640px there is no room
 // for the tabs beside the breadcrumb, so they wrap onto a second row of their own
 // (ShopNavbar.css); the breadcrumb row reads the same at every width.
 const ShopNavbar = () => {
   // Keyed on the route, not on the selected shop in the store: the store keeps the
-  // last shop after you go back to My Shops.
+  // last shop after you go back to My Shops. A shop's pages are its own page and its
+  // Sales page; the tabs appear on both.
   const shopPage = useMatch("/shop/:shopId");
+  const salesPage = useMatch("/shop/:shopId/sales");
+  const shopId = (shopPage ?? salesPage)?.params.shopId;
   const shop = useAppSelector(selectSelectedShop);
   // While a newly opened shop loads, the store still holds the previous one; show no
   // name rather than the wrong one.
-  const shopName =
-    shop && shop._id === shopPage?.params.shopId ? shop.name : null;
+  const shopName = shop && shop._id === shopId ? shop.name : null;
 
   // The header's height changes with the tabs row (phones only) and the viewport, so
   // it is measured and published as --unq-header-h. ShopNavbar.css turns that into
@@ -61,7 +64,7 @@ const ShopNavbar = () => {
               </>
             )}
           </nav>
-          {shopPage && <ShopSectionNav />}
+          {shopId && <ShopSectionNav shopId={shopId} salesPage={!!salesPage} />}
           <div className="account navbar-nav">
             <NavLink
               className="nav-link"

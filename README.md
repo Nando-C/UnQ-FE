@@ -2,7 +2,7 @@
 
 Scan the QR code on your table, order into a cart you share with everyone sitting there, and pay for exactly the items you picked, by card, Apple Pay, Google Pay or PayPal. No app to install, no waiter to wait for. The venue runs its menu, tables and payments from the same site. This is the web client; the API is [UnQ-BE](https://github.com/Nando-C/UnQ-BE).
 
-React 19 · TypeScript 6 · Vite 8 · Redux Toolkit · React Router 7 · React-Bootstrap · Stripe Payment Element and PayPal · Vitest with Testing Library and msw
+React 19 · TypeScript 6 · Vite 8 · Redux Toolkit · React Router 7 · React-Bootstrap · Recharts · Stripe Payment Element and PayPal · Vitest with Testing Library and msw
 
 [![CI](https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml/badge.svg)](https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-635bff)](./LICENSE)
@@ -141,7 +141,7 @@ CI runs the lint, the suite and the build, which type-checks first, on Node 24 f
 
 ## Roadmap
 
-Next is the sales report page over the orders the API already records, by day, week or item with a CSV export, then a sales dashboard, staff on a shop and then staff roles, and kitchen screens with live updates; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
+Next is the rest of the sales report page (the trend chart and headline figures are in; the other charts, the findings and the CSV export follow), then a sales dashboard, staff on a shop and then staff roles, and kitchen screens with live updates; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
 
 ## About
 

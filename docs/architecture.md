@@ -14,6 +14,7 @@ The same bundle serves two people. A **diner** arrives from a table's QR code on
 | `/shops/:shopId/tables/:tableId` | a table's menu, where its QR code leads (`TableMenu`) | diners |
 | `/shops/:shopId/tables/:tableId/cart` | the table's cart and checkout (`Cart`) | diners |
 | `/shop/:shopId` | the manager's page for one shop (`ShopDetails`, behind `ManagerOnly`) | managers |
+| `/shop/:shopId/sales` | the shop's sales report: period controls, headline figures, the trend chart (`Sales`, a lazy chunk, behind `ManagerOnly`) | managers |
 | `/myAccount` | the account and the devices it is signed in on, or the sign-in form for a guest (`Account`, `Devices`) | both |
 | `*` | `NotFound` | both |
 
@@ -34,12 +35,13 @@ src/
 │   ├── Common/               ManagerOnly, ScreenStates (Loading, LoadFailed, NoMatch…), ConfirmFooter
 │   ├── Customers/            TableMenu, MenuItem, Cart, CartListItems, CartItem, CheckOut, CardPayment,
 │   │                         PaymentFeedback, CartNotices, NavigationBar, AllShopsList, Account…
-│   ├── Shops/                ShopDetails, ShopMenu, Item, ItemModal, ShopModal, ShopNavbar, ShopSectionNav, ShopList
+│   ├── Shops/                ShopDetails, ShopMenu, Item, ItemModal, ShopModal, ShopNavbar, ShopSectionNav, ShopList,
+│   │                         Sales/ (the sales page: Sales, SalesControls, KpiCards, TrendChart)
 │   ├── Tables/               TableList, SingleTable, TableStatus, TableSheet, TableModal
 │   ├── Dashboard/  Login/  Register/  NotFound/
 ├── styles/theme.scss         Bootstrap recompiled with the UnQ palette
 ├── index.css                 the app's shared utilities (.hit-44, .stepper, .page-head, .phone-column…)
-├── typings/                  cart, menu, shop, tables, user
+├── typings/                  cart, menu, sales, shop, tables, user
 └── tests/                    the Vitest suite, its msw server and helpers
 scripts/                      repository checks and tools, outside the app's type check: the responsive audit
                               (+ fixtures), the API contract fixture (openapi.json) with its test and refresh
@@ -89,6 +91,6 @@ Three heights are measured at runtime and published as CSS variables on `<html>`
 ## Build
 
 - **Vite 8**, React plugin; `npm run build` type-checks first (`tsc --noEmit && vite build`).
-- **Chunks**: the libraries every page uses (React, Redux, the router, react-bootstrap, axios, react-icons) are one `vendor` chunk, cached for a year by `vercel.json`'s headers, so a deploy that changes only app code keeps it cached. The card form (`CardPayment`, Stripe's React bindings) is a lazy chunk loaded when the checkout sheet opens with a publishable key set; Stripe.js itself loads then too (`lib/stripe.ts` uses the `pure` entry). PayPal's SDK loads when the sheet opens. The QR code library stays with the manager's table card.
+- **Chunks**: the libraries every page uses (React, Redux, the router, react-bootstrap, axios, react-icons) are one `vendor` chunk, cached for a year by `vercel.json`'s headers, so a deploy that changes only app code keeps it cached. The card form (`CardPayment`, Stripe's React bindings) is a lazy chunk loaded when the checkout sheet opens with a publishable key set; Stripe.js itself loads then too (`lib/stripe.ts` uses the `pure` entry). PayPal's SDK loads when the sheet opens. The QR code library stays with the manager's table card. The sales page (`Sales` and the Recharts charting library it draws with) is a lazy chunk loaded when a manager opens the Sales tab, so diners never download it.
 - **Sass**: Bootstrap 5's SCSS uses features Dart Sass 3 deprecates, so its warnings are silenced; our own files are allowed one `@import`, the Bootstrap one in `theme.scss`, which `scripts/styleImports.test.mjs` enforces.
 - **Environment**: `VITE_BE_URL`, `VITE_PAYPAL_CLIENT_ID`, `VITE_STRIPE_PUBLISHABLE_KEY` reach the bundle; `DEV_PROXY_TARGET` deliberately has no prefix and only the dev server reads it. See [deployment.md](./deployment.md).

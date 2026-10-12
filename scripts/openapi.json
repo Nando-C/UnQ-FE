@@ -66,6 +66,10 @@
       "description": "Refunds, pending payments, pay-backs (money moves)"
     },
     {
+      "name": "Manager: sales",
+      "description": "The shop's sales report over its orders"
+    },
+    {
       "name": "Payments",
       "description": "The payment providers' callbacks"
     },
@@ -732,6 +736,10 @@
                   },
                   "web_URL": {
                     "type": "string"
+                  },
+                  "timeZone": {
+                    "type": "string",
+                    "description": "An IANA time zone name (Europe/London, America/New_York): the zone the shop's days are counted in; Europe/London unless set"
                   }
                 },
                 "required": [
@@ -973,6 +981,10 @@
                   },
                   "web_URL": {
                     "type": "string"
+                  },
+                  "timeZone": {
+                    "type": "string",
+                    "description": "An IANA time zone name (Europe/London, America/New_York): the zone the shop's days are counted in"
                   }
                 }
               }
@@ -1429,6 +1441,94 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/sales": {
+      "get": {
+        "operationId": "getSales",
+        "tags": [
+          "Manager: sales"
+        ],
+        "summary": "The shop's sales over a range of days",
+        "description": "Everything the sales page shows, in one answer: totals, a zero-filled series by day, week or month, sales by weekday and hour, items by revenue, refunds by reason and hour, and the tables. Counted as a till would, in the shop's time zone: gross is completed payments by the day paid; refunds count on the day they were made (completed only), whenever their sale was; net is the difference. Visits are distinct carts, diners distinct payers, and a returning diner had paid at this shop before the range began. Items are net of refunded units under the name and price diners saw last. With `compare=previous`, the range of the same length ending the day before is reported too. At most 366 days.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "The first day, YYYY-MM-DD, in the shop's time zone",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "The last day, included; from `from` to at most 366 days after it",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            }
+          },
+          {
+            "name": "by",
+            "in": "query",
+            "required": false,
+            "description": "How the series is bucketed; unless given, by day up to 92 days and by week beyond. Weeks start on Monday",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month"
+              ]
+            }
+          },
+          {
+            "name": "compare",
+            "in": "query",
+            "required": false,
+            "description": "`previous` adds the range of the same length ending the day before `from`",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "previous"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalesReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "$ref": "#/components/responses/ShopNotFound"
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
@@ -4131,6 +4231,10 @@
           "web_URL": {
             "type": "string"
           },
+          "timeZone": {
+            "type": "string",
+            "description": "The zone the shop's days are counted in (an IANA name); Europe/London unless set"
+          },
           "shopMg": {
             "type": "array",
             "items": {
@@ -4165,6 +4269,7 @@
           "_id",
           "name",
           "cover",
+          "timeZone",
           "shopMg",
           "tables",
           "menu",
@@ -4201,6 +4306,10 @@
           },
           "web_URL": {
             "type": "string"
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The zone the shop's days are counted in (an IANA name); Europe/London unless set"
           },
           "shopMg": {
             "type": "array",
@@ -4245,6 +4354,7 @@
           "_id",
           "name",
           "cover",
+          "timeZone",
           "shopMg",
           "tables",
           "menu",
@@ -4282,6 +4392,10 @@
           },
           "web_URL": {
             "type": "string"
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The zone the shop's days are counted in (an IANA name); Europe/London unless set"
           },
           "shopMg": {
             "type": "array",
@@ -4323,6 +4437,7 @@
           "_id",
           "name",
           "cover",
+          "timeZone",
           "shopMg",
           "tables",
           "menu",
@@ -5557,6 +5672,524 @@
         },
         "required": [
           "message"
+        ]
+      },
+      "SalesReport": {
+        "type": "object",
+        "description": "A shop's sales over a range of its days (at most 366), counted as a till would: gross is completed payments by the day paid, refunds count on the day they were made, net is the difference. Money in pounds, summed in pence",
+        "properties": {
+          "range": {
+            "$ref": "#/components/schemas/SalesRange"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/SalesTotals"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesBucket"
+            }
+          },
+          "heatmap": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesCell"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesItem"
+            }
+          },
+          "refunds": {
+            "$ref": "#/components/schemas/SalesRefunds"
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SalesTable"
+            }
+          },
+          "previous": {
+            "type": "object",
+            "description": "With `compare=previous`: the range of the same length ending the day before `from`, counted and bucketed the same way",
+            "properties": {
+              "range": {
+                "$ref": "#/components/schemas/SalesRange"
+              },
+              "totals": {
+                "$ref": "#/components/schemas/SalesTotals"
+              },
+              "series": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SalesBucket"
+                }
+              }
+            },
+            "required": [
+              "range",
+              "totals",
+              "series"
+            ]
+          }
+        },
+        "required": [
+          "range",
+          "totals",
+          "series",
+          "heatmap",
+          "items",
+          "refunds",
+          "tables"
+        ]
+      },
+      "SalesRange": {
+        "type": "object",
+        "description": "The range reported, as counted",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date",
+            "description": "A day in the shop's time zone, YYYY-MM-DD"
+          },
+          "to": {
+            "type": "string",
+            "format": "date",
+            "description": "A day in the shop's time zone, YYYY-MM-DD"
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The shop's zone, which every day and hour here is in"
+          },
+          "by": {
+            "type": "string",
+            "enum": [
+              "day",
+              "week",
+              "month"
+            ],
+            "description": "The bucket the series is grouped in; weeks start on Monday"
+          },
+          "days": {
+            "type": "integer",
+            "description": "Days in the range, both ends counted"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "timeZone",
+          "by",
+          "days"
+        ]
+      },
+      "SalesTotals": {
+        "type": "object",
+        "properties": {
+          "gross": {
+            "type": "number",
+            "description": "Completed payments made in the range, in pounds (GBP), to the penny"
+          },
+          "refunds": {
+            "type": "number",
+            "description": "Completed refunds made in the range, whenever their sale was, in pounds (GBP), to the penny"
+          },
+          "net": {
+            "type": "number",
+            "description": "gross − refunds, in pounds (GBP), to the penny"
+          },
+          "orders": {
+            "type": "integer",
+            "description": "Completed payments"
+          },
+          "pendingOrders": {
+            "type": "integer",
+            "description": "Payments in the range still awaiting their provider: not counted anywhere else"
+          },
+          "visits": {
+            "type": "integer",
+            "description": "Distinct carts paid"
+          },
+          "diners": {
+            "type": "integer",
+            "description": "Distinct payers"
+          },
+          "returningDiners": {
+            "type": "integer",
+            "description": "Of the diners, those who had paid at this shop before the range began"
+          },
+          "units": {
+            "type": "integer",
+            "description": "Units sold, less those refunded"
+          },
+          "byProvider": {
+            "type": "object",
+            "description": "By payment provider",
+            "properties": {
+              "paypal": {
+                "type": "object",
+                "properties": {
+                  "gross": {
+                    "type": "number",
+                    "description": "Completed payments, in pounds (GBP), to the penny"
+                  },
+                  "orders": {
+                    "type": "integer",
+                    "description": "Completed payments"
+                  }
+                },
+                "required": [
+                  "gross",
+                  "orders"
+                ]
+              },
+              "stripe": {
+                "type": "object",
+                "properties": {
+                  "gross": {
+                    "type": "number",
+                    "description": "Completed payments, in pounds (GBP), to the penny"
+                  },
+                  "orders": {
+                    "type": "integer",
+                    "description": "Completed payments"
+                  }
+                },
+                "required": [
+                  "gross",
+                  "orders"
+                ]
+              }
+            },
+            "required": [
+              "paypal",
+              "stripe"
+            ]
+          }
+        },
+        "required": [
+          "gross",
+          "refunds",
+          "net",
+          "orders",
+          "pendingOrders",
+          "visits",
+          "diners",
+          "returningDiners",
+          "units",
+          "byProvider"
+        ]
+      },
+      "SalesBucket": {
+        "type": "object",
+        "description": "One bucket of the series; every bucket in the range is present, zero where nothing was sold",
+        "properties": {
+          "bucket": {
+            "type": "string",
+            "format": "date",
+            "description": "The bucket's first day (its Monday or its 1st); the first may start before `from`"
+          },
+          "gross": {
+            "type": "number",
+            "description": "Completed payments, in pounds (GBP), to the penny"
+          },
+          "refunds": {
+            "type": "number",
+            "description": "Completed refunds made in the bucket, in pounds (GBP), to the penny"
+          },
+          "net": {
+            "type": "number",
+            "description": "gross − refunds, in pounds (GBP), to the penny"
+          },
+          "orders": {
+            "type": "integer",
+            "description": "Completed payments"
+          },
+          "visits": {
+            "type": "integer",
+            "description": "Distinct carts"
+          },
+          "diners": {
+            "type": "integer",
+            "description": "Distinct payers"
+          },
+          "newDiners": {
+            "type": "integer",
+            "description": "Diners whose first payment at this shop, ever, fell in this bucket"
+          },
+          "units": {
+            "type": "integer",
+            "description": "Units sold, less those refunded"
+          },
+          "byCategory": {
+            "type": "object",
+            "description": "Gross by the lines' category, as sold",
+            "properties": {
+              "food": {
+                "type": "number",
+                "description": "Lines sold, in pounds (GBP), to the penny"
+              },
+              "drinks": {
+                "type": "number",
+                "description": "Lines sold, in pounds (GBP), to the penny"
+              },
+              "other": {
+                "type": "number",
+                "description": "Lines whose category wasn't known, in pounds (GBP), to the penny"
+              }
+            },
+            "required": [
+              "food",
+              "drinks",
+              "other"
+            ]
+          },
+          "byProvider": {
+            "type": "object",
+            "description": "By payment provider",
+            "properties": {
+              "paypal": {
+                "type": "number",
+                "description": "Completed payments, in pounds (GBP), to the penny"
+              },
+              "stripe": {
+                "type": "number",
+                "description": "Completed payments, in pounds (GBP), to the penny"
+              }
+            },
+            "required": [
+              "paypal",
+              "stripe"
+            ]
+          }
+        },
+        "required": [
+          "bucket",
+          "gross",
+          "refunds",
+          "net",
+          "orders",
+          "visits",
+          "diners",
+          "newDiners",
+          "units",
+          "byCategory",
+          "byProvider"
+        ]
+      },
+      "SalesCell": {
+        "type": "object",
+        "description": "Sales at this weekday and hour (only cells with a sale)",
+        "properties": {
+          "dow": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 7,
+            "description": "ISO weekday: 1 Monday … 7 Sunday"
+          },
+          "hour": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 23
+          },
+          "orders": {
+            "type": "integer",
+            "description": "Completed payments"
+          },
+          "gross": {
+            "type": "number",
+            "description": "Completed payments, in pounds (GBP), to the penny"
+          }
+        },
+        "required": [
+          "dow",
+          "hour",
+          "orders",
+          "gross"
+        ]
+      },
+      "SalesItem": {
+        "type": "object",
+        "description": "A menu item's sales, by revenue",
+        "properties": {
+          "menuId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string",
+            "description": "As diners saw it last in the range (a renamed dish keeps one row)"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "The price diners paid last in the range, in pounds (GBP), to the penny"
+          },
+          "units": {
+            "type": "integer",
+            "description": "Sold, less refunded"
+          },
+          "refundedUnits": {
+            "type": "integer",
+            "description": "Refunded, whenever the refund was made"
+          },
+          "revenue": {
+            "type": "number",
+            "description": "units × the price each was sold at, in pounds (GBP), to the penny"
+          }
+        },
+        "required": [
+          "menuId",
+          "name",
+          "category",
+          "unitPrice",
+          "units",
+          "refundedUnits",
+          "revenue"
+        ]
+      },
+      "SalesRefunds": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "Completed refunds made in the range"
+          },
+          "byReason": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "By the reason given; null when none was",
+              "properties": {
+                "reason": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "enum": [
+                        "unavailable",
+                        "wrong_item",
+                        "quality",
+                        "long_wait",
+                        "paid_by_mistake",
+                        "changed_mind",
+                        "other"
+                      ]
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "count": {
+                  "type": "integer",
+                  "description": "Refunds"
+                },
+                "amount": {
+                  "type": "number",
+                  "description": "Refunded, in pounds (GBP), to the penny"
+                }
+              },
+              "required": [
+                "reason",
+                "count",
+                "amount"
+              ]
+            }
+          },
+          "byHour": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "By the hour the refund was made",
+              "properties": {
+                "hour": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 23
+                },
+                "count": {
+                  "type": "integer",
+                  "description": "Refunds"
+                },
+                "amount": {
+                  "type": "number",
+                  "description": "Refunded, in pounds (GBP), to the penny"
+                }
+              },
+              "required": [
+                "hour",
+                "count",
+                "amount"
+              ]
+            }
+          }
+        },
+        "required": [
+          "count",
+          "byReason",
+          "byHour"
+        ]
+      },
+      "SalesTable": {
+        "type": "object",
+        "description": "A table's sales, by net",
+        "properties": {
+          "tableId": {
+            "type": "string",
+            "description": "The table, current or deleted"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "description": "As the orders recorded it"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "orders": {
+            "type": "integer",
+            "description": "Completed payments"
+          },
+          "visits": {
+            "type": "integer",
+            "description": "Distinct carts"
+          },
+          "gross": {
+            "type": "number",
+            "description": "Completed payments, in pounds (GBP), to the penny"
+          },
+          "refunds": {
+            "type": "number",
+            "description": "Completed refunds made in the range on this table's orders, in pounds (GBP), to the penny"
+          },
+          "net": {
+            "type": "number",
+            "description": "gross − refunds, in pounds (GBP), to the penny"
+          }
+        },
+        "required": [
+          "tableId",
+          "name",
+          "orders",
+          "visits",
+          "gross",
+          "refunds",
+          "net"
         ]
       },
       "StripeCheckoutState": {
