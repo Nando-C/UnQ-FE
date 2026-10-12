@@ -22,6 +22,12 @@ import { HeadingPlaceholder, LoadFailed } from "../../Common/ScreenStates";
 import SalesControls from "./SalesControls";
 import KpiCards from "./KpiCards";
 import TrendChart from "./TrendChart";
+import Findings from "./Findings";
+import Heatmap from "./Heatmap";
+import MenuCharts from "./MenuCharts";
+import RefundCharts from "./RefundCharts";
+import DinersChart from "./DinersChart";
+import TablesAndPayment from "./TablesAndPayment";
 import { SalesSkeleton } from "./SalesFallback";
 import type { ISalesReport } from "../../../typings/sales";
 import "./Sales.css";
@@ -155,6 +161,12 @@ const Sales = () => {
                 average={average}
                 onAverage={(on) => update({ average: on })}
               />
+              <Findings report={current} />
+              <Heatmap report={current} />
+              <MenuCharts report={current} />
+              <RefundCharts report={current} />
+              <DinersChart report={current} />
+              <TablesAndPayment report={current} />
             </>
           )}
           {!current && status !== "failed" && <SalesSkeleton />}

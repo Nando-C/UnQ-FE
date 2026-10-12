@@ -164,7 +164,7 @@ describe("the sales page", () => {
 
     // The chart draws, and its numbers are in the table.
     expect(document.querySelector(".recharts-surface")).not.toBeNull()
-    const table = screen.getByRole("table")
+    const table = within(screen.getByRole("figure", { name: "Trend" })).getByRole("table")
     expect(within(table).getByRole("columnheader", { name: "Net sales" })).toBeInTheDocument()
     expect(within(table).getByRole("columnheader", { name: "Period before" })).toBeInTheDocument()
     const rows = within(table).getAllByRole("row").slice(1)
@@ -181,7 +181,7 @@ describe("the sales page", () => {
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Metric" }), "orders")
 
-    const table = screen.getByRole("table")
+    const table = within(screen.getByRole("figure", { name: "Trend" })).getByRole("table")
     expect(within(table).getByRole("columnheader", { name: "Orders" })).toBeInTheDocument()
     expect(within(table).getAllByRole("row")[1]).toHaveTextContent("Mon 5 Oct76")
     expect(requests).toHaveLength(1)

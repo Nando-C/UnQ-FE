@@ -209,7 +209,8 @@
   outline: none;
 }
 
-.Sales .trend-tooltip {
+.Sales .trend-tooltip,
+.Sales .chart-tooltip {
   padding: 0.5rem 0.75rem;
   background-color: var(--bs-body-bg);
   border: 1px solid var(--bs-border-color);
@@ -218,7 +219,8 @@
   font-size: 0.875rem;
 }
 
-.Sales .trend-tooltip .value {
+.Sales .trend-tooltip .value,
+.Sales .chart-tooltip .value {
   font-weight: 600;
 }
 
@@ -232,4 +234,156 @@
 .Sales .updating {
   font-size: 0.875rem;
   color: var(--bs-secondary-color);
+}
+
+/* "More figures" under the cards, and the extra cards it opens. */
+.Sales .more-figures {
+  min-height: 2rem;
+  padding-left: 0;
+  margin-top: 0.25rem;
+}
+
+/* ---- Sections ---------------------------------------------------------------- */
+
+.Sales .sales-section {
+  margin-top: 2.5rem;
+}
+
+.Sales .sales-section > h2 {
+  margin-bottom: 0;
+}
+
+.Sales .sales-section .chart {
+  margin-top: 1rem;
+}
+
+/* Small chips (a measure, a category) in a chart's head. */
+.Sales .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+/* A legend swatch beside its word. */
+.Sales .swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin: 0 0.25rem 0 0.5rem;
+  border-radius: 2px;
+  vertical-align: -0.0625rem;
+}
+
+.Sales .swatch.a {
+  background-color: var(--bs-primary);
+}
+
+.Sales .swatch.b {
+  background-color: var(--bs-emphasis-color);
+}
+
+/* ---- Findings ---------------------------------------------------------------- */
+
+.Sales .findings {
+  margin-top: 2rem;
+  padding: 1rem 1.25rem;
+  background-color: var(--bs-tertiary-bg);
+  border-radius: var(--bs-border-radius);
+}
+
+.Sales .findings h2 {
+  margin-bottom: 0.5rem;
+}
+
+.Sales .findings ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+/* Each sentence is a link to its chart, padded to a 32px target. */
+.Sales .findings a {
+  display: inline-block;
+  padding: 0.4375rem 0;
+  color: inherit;
+  text-decoration-color: var(--bs-secondary-color);
+}
+
+/* ---- Heatmap ----------------------------------------------------------------- */
+
+/* The grid scrolls sideways on a narrow screen rather than squeezing its cells.
+ * Positioned, so the cells' hidden text (absolutely placed) is clipped with
+ * them instead of widening the page. */
+.Sales .heat-scroll {
+  position: relative;
+  overflow-x: auto;
+}
+
+.Sales table.heat {
+  border-collapse: separate;
+  border-spacing: 2px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--bs-secondary-color);
+}
+
+.Sales table.heat th {
+  font-weight: 400;
+  text-align: center;
+  padding: 0 0.125rem;
+}
+
+.Sales table.heat tbody th {
+  text-align: left;
+  padding-right: 0.5rem;
+}
+
+/* A cell's colour is the metric's share of the busiest hour's: the theme's
+ * teal mixed into the page's background. */
+.Sales table.heat td {
+  --heat: 0;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 2px;
+  background-color: color-mix(in srgb, var(--bs-primary) calc(var(--heat) * 100%), var(--bs-tertiary-bg));
+}
+
+@media (min-width: 768px) {
+  .Sales table.heat td {
+    min-width: 2.25rem;
+    height: 1.75rem;
+  }
+}
+
+/* ---- Tables of figures ------------------------------------------------------- */
+
+.Sales .items-table,
+.Sales .tables-table {
+  font-variant-numeric: tabular-nums;
+}
+
+.Sales .items-table th,
+.Sales .tables-table th {
+  white-space: nowrap;
+}
+
+/* A sortable column's header is a button in the header's own type. */
+.Sales th .sort {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  min-width: 2.75rem;
+  min-height: 2rem;
+}
+
+.Sales th .sort:hover,
+.Sales th .sort:focus-visible {
+  text-decoration: underline;
+}
+
+/* The "All items" button stands alone in its box. */
+.Sales .chart.items > .btn {
+  display: inline-block;
 }

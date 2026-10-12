@@ -130,3 +130,11 @@ A full layout and UX review on 2026-09-29 (26 findings at 375, 768 and 1280px, w
 **Decision.** A fourth header tab, Sales, at `/shop/:shopId/sales`, loaded as a chunk of its own so diners never download it. The chart is drawn with Recharts: React components rendering SVG, so it takes the theme's colours through CSS variables, renders in the test environment, prints, and has a keyboard-reachable tooltip layer. The rule is amended for charting as it was for payments: a kind of UI react-bootstrap doesn't have. Every number on the page comes from the API's one answer; the page derives only ratios (an average order, a refund rate) and the 7-day average, a reading aid that is never a reported figure. The view lives in the URL.
 
 **Consequences.** One palette on every chart: teal for the metric, amber for refunds, grey dashed for the period before; no pies, no 3D, zero baselines for money and counts, a visually hidden data table behind each chart. A new metric is a client change, not a request. `components/Shops/Sales/`, `lib/sales.ts`.
+
+## 2026-10-12: the findings are rules, not a model
+
+**Context.** A page of charts asks the reader to find the story. The sales page wanted to tell it: the busiest day, the dish that carries the revenue, why refunds happen. A language model could write such sentences; it would also write plausible ones the figures don't support, cost a request, and need a key.
+
+**Decision.** The findings are deterministic rules over the report the page already has (`lib/findings.ts`): each answers one question, says nothing when it has too little to draw on (a day for a weekday pattern, two refunds for a cause, nine diners for a repeat share) or when there is no movement to report, and is tested sentence for sentence. At most six show, in a fixed order, each a link to the chart a reader can check it against.
+
+**Consequences.** The findings are instant, free, and work offline; they are also only as clever as their rules, and say the same thing to every shop with the same shape of figures. A rule is added where a manager would ask the question, with its test and its silence. The menu's quadrants (stars, workhorses, puzzles, sleepers) are the same kind of thing: a reading of units against price, named so the chart needs no legend; true menu engineering needs a cost per dish, which the data doesn't have.

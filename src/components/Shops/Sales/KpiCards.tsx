@@ -1,9 +1,12 @@
+import { useState } from "react";
+import { Button } from "react-bootstrap";
 import { Change, MetricKey, changeOf, formatCount, formatMetric, formatPercent, metric, metricOf } from "../../../lib/sales";
 import type { ISalesReport, ISalesTotals } from "../../../typings/sales";
 
 // The headline figures with their change against the period before, when the
 // comparison is on: net, orders, average order, refund rate, returning diners.
 // The change's colour says whether it is good news, which for refunds is down.
+// Gross, refunds, visits and units sold wait behind "More figures".
 
 const share = (totals: ISalesTotals) => (totals.diners ? totals.returningDiners / totals.diners : 0);
 
@@ -23,6 +26,7 @@ const Delta = ({ change, bad }: { change: Change | null; bad?: boolean }) => {
 
 const KpiCards = ({ report }: { report: ISalesReport }) => {
   const { totals, previous } = report;
+  const [more, setMore] = useState(false);
   const card = (key: MetricKey) => {
     const m = metric(key);
     const value = metricOf(key, totals);
@@ -40,6 +44,7 @@ const KpiCards = ({ report }: { report: ISalesReport }) => {
     );
   };
   return (
+    <>
     <ul className="kpis" aria-label="Headline figures">
       {card("net")}
       {card("orders")}
@@ -53,7 +58,21 @@ const KpiCards = ({ report }: { report: ISalesReport }) => {
           {formatCount(totals.returningDiners)} of {formatCount(totals.diners)}
         </span>
       </li>
+      {more && card("gross")}
+      {more && card("refunds")}
+      {more && (
+        <li className="kpi">
+          <span className="kpi-label">Visits</span>
+          <span className="kpi-value">{formatCount(totals.visits)}</span>
+          {previous && <Delta change={changeOf(totals.visits, previous.totals.visits, "count")} />}
+        </li>
+      )}
+      {more && card("units")}
     </ul>
+    <Button variant="link" size="sm" className="more-figures" aria-expanded={more} onClick={() => setMore((m) => !m)}>
+      {more ? "Fewer figures" : "More figures"}
+    </Button>
+    </>
   );
 };
 

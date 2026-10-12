@@ -14,7 +14,7 @@ The same bundle serves two people. A **diner** arrives from a table's QR code on
 | `/shops/:shopId/tables/:tableId` | a table's menu, where its QR code leads (`TableMenu`) | diners |
 | `/shops/:shopId/tables/:tableId/cart` | the table's cart and checkout (`Cart`) | diners |
 | `/shop/:shopId` | the manager's page for one shop (`ShopDetails`, behind `ManagerOnly`) | managers |
-| `/shop/:shopId/sales` | the shop's sales report: period controls, headline figures, the trend chart (`Sales`, a lazy chunk, behind `ManagerOnly`) | managers |
+| `/shop/:shopId/sales` | the shop's sales report: period controls, headline figures, the trend chart, findings, and the heatmap, menu, refunds, diners and tables sections (`Sales`, a lazy chunk, behind `ManagerOnly`) | managers |
 | `/myAccount` | the account and the devices it is signed in on, or the sign-in form for a guest (`Account`, `Devices`) | both |
 | `*` | `NotFound` | both |
 
@@ -36,7 +36,8 @@ src/
 │   ├── Customers/            TableMenu, MenuItem, Cart, CartListItems, CartItem, CheckOut, CardPayment,
 │   │                         PaymentFeedback, CartNotices, NavigationBar, AllShopsList, Account…
 │   ├── Shops/                ShopDetails, ShopMenu, Item, ItemModal, ShopModal, ShopNavbar, ShopSectionNav, ShopList,
-│   │                         Sales/ (the sales page: Sales, SalesControls, KpiCards, TrendChart)
+│   │                         Sales/ (the sales page: Sales, SalesControls, KpiCards, TrendChart, Findings,
+│   │                         Heatmap, MenuCharts, RefundCharts, DinersChart, TablesAndPayment)
 │   ├── Tables/               TableList, SingleTable, TableStatus, TableSheet, TableModal
 │   ├── Dashboard/  Login/  Register/  NotFound/
 ├── styles/theme.scss         Bootstrap recompiled with the UnQ palette
