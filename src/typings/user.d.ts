@@ -26,3 +26,13 @@ export interface IUserStore {
     // the user back in.
     decidedCheck?: number
 }
+// A device the account is signed in on (GET /auth/sessions).
+export interface ISession {
+    _id: string
+    createdAt: string
+    lastUsedAt: string
+    // The browser's User-Agent at sign-in; absent when it sent none.
+    userAgent?: string
+    // Whether this is the device asking.
+    current: boolean
+}

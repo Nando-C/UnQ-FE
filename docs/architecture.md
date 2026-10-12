@@ -14,7 +14,7 @@ The same bundle serves two people. A **diner** arrives from a table's QR code on
 | `/shops/:shopId/tables/:tableId` | a table's menu, where its QR code leads (`TableMenu`) | diners |
 | `/shops/:shopId/tables/:tableId/cart` | the table's cart and checkout (`Cart`) | diners |
 | `/shop/:shopId` | the manager's page for one shop (`ShopDetails`, behind `ManagerOnly`) | managers |
-| `/myAccount` | the account, or the sign-in form for a guest (`Account`) | both |
+| `/myAccount` | the account and the devices it is signed in on, or the sign-in form for a guest (`Account`, `Devices`) | both |
 | `*` | `NotFound` | both |
 
 `ManagerOnly` sends a guest to sign in (remembering where to come back to) and a diner to `/`. Until it is known who is signed in, the page renders, since it is nearly always a manager opening it.

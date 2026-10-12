@@ -19,6 +19,8 @@ const CLIENT_CALLS = [
   ["POST", "/auth/login"],
   ["POST", "/auth/refreshToken"],
   ["GET", "/auth/logout"],
+  ["GET", "/auth/sessions"],
+  ["DELETE", "/auth/sessions/{sessionId}"],
   ["GET", "/auth/googleLogin"],
   ["GET", "/users/me"],
   ["PUT", "/users/me"],

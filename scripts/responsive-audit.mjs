@@ -367,6 +367,7 @@ const mockApi = async (route, role) => {
   const [s1, s2] = fixtures.shops
   if (p === "/users/me") return role ? json(fixtures.users[role]) : json({ message: "Unauthorized" }, 401)
   if (p === "/auth/refreshToken") return json({ message: "No refresh token" }, 401)
+  if (p === "/auth/sessions") return json(fixtures.sessions)
   if (p === "/shops/s1") return json(s1)
   if (p === "/shops/s2") return json(s2)
   if (p === "/shops/s1/tables/status") return json(fixtures.tableStatus)

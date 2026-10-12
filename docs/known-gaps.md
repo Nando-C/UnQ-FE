@@ -32,4 +32,4 @@ Each changes behaviour, a contract or several layers at once, so each is a step 
 
 ## Roadmap
 
-In the order decided with the product roadmap: the **sales report** page over the API's orders (by day, week or item, CSV export; the API records one order per payment already), then the **sales dashboard**; **staff roles** narrowing what a shop's managers can do; **kitchen** screens (queue, prep states, live push, which also brings live updates to diners); **several devices per account** (today a second sign-in ends the first's session at its next refresh). Screenshots from the current build and a demo seed are planned alongside.
+In the order decided with the product roadmap: the **sales report** page over the API's orders (by day, week or item, CSV export; the API records one order per payment already), then the **sales dashboard**; **staff on a shop** (inviting and removing members; today a shop's only member is the manager who created it) and then **staff roles** narrowing what each member sees and can press; **kitchen** screens (queue, prep states, live push, which also brings live updates to diners).

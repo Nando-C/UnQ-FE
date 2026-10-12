@@ -5,6 +5,7 @@ import { GrEdit } from "react-icons/gr";
 import "./Account.css";
 import { useState } from "react";
 import AccountOffCanvas from "../AccountOffCanvas/AccountOffCanvas";
+import Devices from "./Devices";
 import { useNavigate } from "react-router-dom";
 import Login from "../../Login/Login";
 import { usePageTitle } from "../../../lib/usePageTitle";
@@ -72,6 +73,7 @@ const Account = () => {
               <GrEdit />
             </Button>
           </Card>
+          <Devices />
           <Button className="my-5" onClick={logMeOut} disabled={loggingOut}>
             Log out
           </Button>
