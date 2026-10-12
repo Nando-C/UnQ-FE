@@ -166,7 +166,8 @@ describe("a cart's log on the table sheet", () => {
     const { sheet } = await openSheet()
 
     const items = within(within(sheet).getByRole("heading", { name: "Log" }).nextElementSibling as HTMLElement).getAllByRole("listitem")
-    expect(items.map((li) => li.textContent?.replace(/^\S+ · /, ""))).toEqual([
+    // The time in front is "23:55", or "Sun 23:55" once midnight has passed since.
+    expect(items.map((li) => li.textContent?.replace(/^(\w{3} )?\d\d:\d\d · /, ""))).toEqual([
       `UnQAction needed: ${payBack}`,
       "A managerClosed the table: nothing unpaid",
       "SamReleased selections: Ada: 1× Latte",
