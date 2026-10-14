@@ -6,7 +6,7 @@ React 19 · TypeScript 6 · Vite 8 · Redux Toolkit · React Router 7 · React-B
 
 [![CI](https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml/badge.svg)](https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-635bff)](./LICENSE)
-[![Version 2.1.0](https://img.shields.io/badge/version-2.1.0-0F6E66)](./CHANGELOG.md)
+[![Version 2.2.0](https://img.shields.io/badge/version-2.2.0-0F6E66)](./CHANGELOG.md)
 
 <p>
   <img src="docs/images/menu.png" alt="A table's menu on a phone: Rocketlit's dishes with photos, descriptions, prices and Add buttons, one item marked sold out" height="520">
@@ -23,7 +23,9 @@ The demo runs at [un-q.vercel.app](https://un-q.vercel.app). Its API sleeps on a
 
 Adding an item asks you to sign in. Create an account, sign in with Google, or use the demo diner, `frank@mail.com` with the password `UnqTester1`. Pay by card with Stripe's test card `4242 4242 4242 4242`, any future expiry and any CVC (`4000 0025 0000 3155` asks for a bank check first, `4000 0000 0000 0002` is declined). PayPal runs against its sandbox and needs a sandbox buyer account.
 
-**As the venue, on a laptop.** Sign in as `manager@mail.com` with the password `UnqManager1`. Three venues are yours, with ninety days of payments behind them. Rocketlit's tables show every state at once: one being ordered at, a selection held too long, a sold-out item in a cart, a payment the provider is still holding, a diner still to be paid back, and a deleted table whose last cart can still be refunded.
+**As the venue, on a laptop.** Sign in as `manager@mail.com` with the password `UnqManager1`. Three venues are yours, with ninety days of payments behind them: open a venue's Sales tab for the trend, the busy hours, what the menu earns, refunds by cause and the highlights written from those figures. Rocketlit's tables show every state at once: one being ordered at, a selection held too long, a sold-out item in a cart, a payment the provider is still holding, a diner still to be paid back, and a deleted table whose last cart can still be refunded.
+
+<img src="docs/images/sales.png" alt="The Sales tab on a desktop: the period controls, the headline figures with their change on the period before, and the trend of net sales with a dashed line for the period before and a 7-day average" width="720">
 
 ## What it has to get right
 
@@ -131,7 +133,7 @@ CI runs the lint, the suite and the build, which type-checks first, on Node 24 f
 - [docs/architecture.md](./docs/architecture.md): the routes, the tree, the four slices and the "latest request wins" rule, data flow, the styling layers, the build.
 - [docs/checkout.md](./docs/checkout.md): selecting what to pay, the card and PayPal flows, and the table of every outcome a diner can see.
 - [docs/manager-tools.md](./docs/manager-tools.md): the shop page, the editors, the tables and the table sheet's actions, word for word.
-- [docs/sales.md](./docs/sales.md): the sales page as a case study: the questions, the chart that answers each, the counting rules, the findings' rules, the demo's patterns.
+- [docs/sales.md](./docs/sales.md): the sales page as a case study: the questions, the chart that answers each, the counting rules, the highlights' rules, the demo's patterns.
 - [docs/ux-decisions.md](./docs/ux-decisions.md): why it is the way it is, dated.
 - [docs/responsive-and-a11y.md](./docs/responsive-and-a11y.md): what holds at every size, touch, focus, colour, and the audit.
 - [docs/deployment.md](./docs/deployment.md): hosts, configuration, the settings on the API's host, the release order.

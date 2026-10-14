@@ -1,5 +1,5 @@
 import { CSSProperties, memo, useMemo, useState } from "react";
-import { daysBetween, formatCount, formatPrice, formatRange, hourSpan, hoursLabel, hoursSpanning, shareOf, weekdayName, weekdayShort, weekdaysIn } from "../../../lib/sales";
+import { daysBetween, formatAxis, formatCount, formatPrice, formatRange, hourSpan, hoursLabel, hoursSpanning, shareOf, weekdayName, weekdayShort, weekdaysIn } from "../../../lib/sales";
 import { Chips, Section } from "./ChartBits";
 import type { ISalesReport } from "../../../typings/sales";
 
@@ -64,12 +64,17 @@ const Heatmap = ({ report }: { report: ISalesReport }) => {
                     </th>
                     {hours.map((h) => {
                       const cell = cells.get(`${dow}-${h}`);
+                      const heat = shareOf(cell?.[measure] ?? 0, max);
                       return (
                         <td
                           key={h}
-                          style={{ "--heat": shareOf(cell?.[measure] ?? 0, max) } as CSSProperties}
+                          className={heat > 0.55 ? "dark" : undefined}
+                          style={{ "--heat": heat } as CSSProperties}
                           title={cell && `${weekdayName(dow)} ${hourSpan(h)}: ${cell.text}`}
                         >
+                          {/* The figure, where the cell is wide enough to hold it
+                              (from tablet widths); the full text for a screen reader. */}
+                          {cell && <span className="value" aria-hidden="true">{measure === "orders" ? formatCount(cell.orders) : formatAxis("money", cell.gross)}</span>}
                           <span className="visually-hidden">{cell?.text ?? "none"}</span>
                         </td>
                       );

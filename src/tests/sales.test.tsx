@@ -194,31 +194,52 @@ describe("the sales page", () => {
       series: [bucket("2026-10-05", { gross: 700, net: 686, orders: 50 })],
       previous: { ...WEEK.previous!, range: { ...WEEK.previous!.range, by: "week" }, series: [bucket("2026-09-28", { gross: 600, net: 594, orders: 48 })] },
     }
-    renderWithProviders(<TrendChart report={weekly} metricKey="net" onMetric={() => {}} average={false} onAverage={() => {}} />)
+    renderWithProviders(<TrendChart report={weekly} today="2026-10-12" metricKey="net" onMetric={() => {}} average={false} onAverage={() => {}} />)
     expect(screen.getByText("Net sales by week, 5 Oct – 11 Oct 2026", { selector: "figcaption" })).toBeInTheDocument()
     expect(screen.queryByRole("columnheader", { name: "Period before" })).not.toBeInTheDocument()
   })
 
-  it("offers the 7-day average only from a week of days, off under two weeks", async () => {
+  it("draws today as a bucket still being written, outside the average and the peak", () => {
+    const toToday = { ...WEEK, range: { ...WEEK.range, from: "2026-10-05", to: "2026-10-11" } }
+    renderWithProviders(<TrendChart report={toToday} today="2026-10-11" metricKey="net" onMetric={() => {}} average onAverage={() => {}} />)
+    const rows = within(screen.getByRole("table")).getAllByRole("row").slice(1)
+    expect(rows[6]).toHaveTextContent("Sun 11 Oct, so far£120.00")
+    // The peak is Saturday's £150, not today's.
+    expect(document.querySelector(".recharts-reference-dot")).not.toBeNull()
+  })
+
+  it("offers the 7-day average from two weeks of days, with a word on what it is", async () => {
     open()
     await screen.findByRole("list", { name: "Headline figures" })
+    expect(screen.queryByRole("checkbox", { name: "7-day average" })).not.toBeInTheDocument()
 
-    const average = screen.getByRole("checkbox", { name: "7-day average" })
-    expect(average).not.toBeChecked()
-    expect(screen.queryByRole("columnheader", { name: "7-day average" })).not.toBeInTheDocument()
+    const fortnight: ISalesReport = {
+      ...WEEK,
+      range: { ...WEEK.range, from: "2026-09-28", to: "2026-10-11", days: 14 },
+      series: [...WEEK.previous!.series, ...WEEK.series],
+      previous: undefined,
+    }
+    const { user, container } = renderWithProviders(<TrendChart report={fortnight} today="2026-10-12" metricKey="net" onMetric={() => {}} average onAverage={() => {}} />)
+    expect(screen.getByRole("checkbox", { name: "7-day average" })).toBeChecked()
+    const rows = within(within(container).getByRole("table")).getAllByRole("row").slice(1)
+    expect(rows[5].querySelectorAll("td")[1]).toHaveTextContent("")
+    expect(rows[6].querySelectorAll("td")[1]).toHaveTextContent("£85.71")
+
+    await user.hover(screen.getByRole("button", { name: "About the 7-day average" }))
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Each day shown as the mean of that day and the six before it")
   })
 
   it("steps to the period before, asking again with the new range in the URL", async () => {
     const { user } = open()
     await screen.findByRole("list", { name: "Headline figures" })
 
-    await user.click(screen.getByRole("button", { name: "Previous period" }))
+    await user.click(screen.getByRole("button", { name: "Previous 7 days" }))
 
     await waitFor(() => expect(requests).toHaveLength(2))
     expect(Object.fromEntries(requests[1].searchParams)).toEqual({ from: "2026-09-28", to: "2026-10-04", by: "day", compare: "previous" })
     expect(await screen.findByText("No sales between 28 Sept – 4 Oct 2026.")).toBeInTheDocument()
     expect(screen.queryByRole("list", { name: "Headline figures" })).not.toBeInTheDocument()
-    expect(screen.getByText("28 Sept – 4 Oct 2026 · 7 days · days in Europe/London")).toBeInTheDocument()
+    expect(document.querySelector(".summary")).toHaveTextContent("28 Sept – 4 Oct 2026 · 7 days · days in Europe/London")
   })
 
   it("groups by week when asked, and turns the comparison off", async () => {
@@ -240,8 +261,9 @@ describe("the sales page", () => {
 
     const today = todayIn("Europe/London")
     expect(Object.fromEntries(requests[0].searchParams)).toEqual({ from: addDays(today, -29), to: today, by: "day", compare: "previous" })
-    expect(screen.getByRole("button", { name: "Last 30 days" })).toHaveAttribute("aria-pressed", "true")
-    expect(screen.getByRole("button", { name: "Next period" })).toBeDisabled()
+    expect(screen.getByRole("combobox", { name: "Period" })).toHaveValue("last30")
+    expect(screen.getByRole("button", { name: "Next 30 days" })).toBeDisabled()
+    expect(screen.getByText(/30 days, today so far · days in Europe\/London/)).toBeInTheDocument()
   })
 
   it("asks again when the range changes while the period includes today", async () => {
@@ -250,7 +272,7 @@ describe("the sales page", () => {
     await screen.findByText(/No sales between/)
     expect(requests).toHaveLength(1)
 
-    await user.click(screen.getByRole("button", { name: "Last 30 days" }))
+    await user.selectOptions(screen.getByRole("combobox", { name: "Period" }), "last30")
     await waitFor(() => expect(requests).toHaveLength(2))
     expect(requests[1].searchParams.get("from")).toBe(addDays(today, -29))
   })
@@ -272,11 +294,11 @@ describe("the sales page", () => {
     const { user } = open(`?from=${lastMonth.from}&to=${lastMonth.to}`)
     await screen.findByText(/No sales between/)
 
-    await user.click(screen.getByRole("button", { name: "Next period" }))
+    await user.click(screen.getByRole("button", { name: "Next month" }))
     await waitFor(() => expect(requests).toHaveLength(2))
     expect(requests[1].searchParams.get("from")).toBe(monthStart(today))
     expect(requests[1].searchParams.get("to")).toBe(today)
-    expect(screen.getByRole("button", { name: "This month" })).toHaveAttribute("aria-pressed", "true")
+    expect(screen.getByRole("combobox", { name: "Period" })).toHaveValue("month")
   })
 
   it("downloads a CSV through the API client and saves it under the API's file name", async () => {

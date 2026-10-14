@@ -1,5 +1,6 @@
 import { ReactNode, useRef } from "react";
-import { Button } from "react-bootstrap";
+import { Button, OverlayTrigger, Tooltip } from "react-bootstrap";
+import { BsInfoCircle } from "react-icons/bs";
 import { useElementWidth } from "../../../lib/useElementWidth";
 import type { Sort } from "../../../lib/useSort";
 
@@ -9,6 +10,16 @@ import type { Sort } from "../../../lib/useSort";
 // (its sort is lib/useSort.ts).
 
 export const ChartTooltip = ({ children }: { children: ReactNode }) => <div className="chart-tooltip">{children}</div>;
+
+// A circled i beside a control or caption: a sentence on hover or focus
+// saying what the thing is. `label` names it for a screen reader.
+export const Hint = ({ id, label, text }: { id: string; label: string; text: string }) => (
+  <OverlayTrigger placement="top" overlay={<Tooltip id={id}>{text}</Tooltip>}>
+    <button type="button" className="hint" aria-label={label}>
+      <BsInfoCircle aria-hidden="true" />
+    </button>
+  </OverlayTrigger>
+);
 
 // A page section: its heading, then its content.
 export const Section = ({ id, title, className = "sales-section", children }: { id: string; title: string; className?: string; children: ReactNode }) => (

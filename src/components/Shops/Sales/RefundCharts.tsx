@@ -8,6 +8,8 @@ import type { ISalesReport } from "../../../typings/sales";
 
 const ROW_PX = 32;
 const NO_REASON = "No reason recorded";
+// Under this many refunds, the hours they fell in say nothing: the chart stands down.
+const HOURS_FROM = 6;
 
 interface Row {
   count: number;
@@ -105,7 +107,7 @@ const RefundCharts = ({ report }: { report: ISalesReport }) => {
               </tbody>
             </HiddenTable>
           </figure>
-          {hours.length > 0 && (
+          {hours.length > 0 && refunds.count >= HOURS_FROM && (
             <figure className="chart hours" aria-label="Refunds by hour">
               <ChartBox height={() => 160}>
                 {({ width, height }) => (

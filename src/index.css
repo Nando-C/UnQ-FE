@@ -21,6 +21,13 @@ code {
   --unq-card-shadow-hover: 0 5px 20px #5c5c5c44;
 }
 
+/* The logo's coral, the one brand colour that reaches the interface: as ink in
+ * the sales charts only (3.01:1 on white is enough for a bar, an area or a
+ * line, not for text), never on a control, as styles/theme.scss explains. */
+:root {
+  --unq-coral: #ff5f45;
+}
+
 /* Every list group in the app is a plain stack of cards: no borders between
  * rows, and no background of its own. */
 .list-group > .list-group-item {

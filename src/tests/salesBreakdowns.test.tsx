@@ -130,9 +130,9 @@ describe("the sections of the sales page", () => {
   })
   const open = () => renderWithProviders(<Sales />, { route: "/shop/s1/sales?from=2026-10-05&to=2026-10-11", path: "/shop/:shopId/sales" })
 
-  it("lists the findings as links to their charts", async () => {
+  it("lists the highlights as links to their charts", async () => {
     open()
-    const panel = await screen.findByRole("region", { name: "Findings" })
+    const panel = await screen.findByRole("region", { name: "Highlights" })
     const links = within(panel).getAllByRole("link")
     expect(links).toHaveLength(6)
     expect(links[1]).toHaveTextContent("Saturday brings 30% of a typical week's sales; the busiest hour is 13:00–14:00.")
@@ -149,7 +149,8 @@ describe("the sections of the sales page", () => {
     expect(columns.map((c) => c.textContent)).toEqual(["909:00–10:00", "1010:00–11:00", "1111:00–12:00", "1212:00–13:00", "1313:00–14:00"])
     const rows = within(grid).getAllByRole("row").slice(1)
     expect(rows).toHaveLength(7)
-    expect(rows[5]).toHaveTextContent("SatSaturdaynonenonenone15 orders, £150.0015 orders, £150.00")
+    // The figure drawn in the cell (from tablet widths), then its full text for a screen reader.
+    expect(rows[5]).toHaveTextContent("SatSaturdaynonenonenone1515 orders, £150.001515 orders, £150.00")
     expect(rows[5].querySelectorAll("td")[3]).toHaveAttribute("title", "Saturday 12:00–13:00: 15 orders, £150.00")
     expect(rows[5].querySelectorAll("td")[3]).toHaveStyle({ "--heat": "1" })
     expect(rows[0].querySelectorAll("td")[4]).toHaveStyle({ "--heat": "0.6666666666666666" })
@@ -171,7 +172,7 @@ describe("the sections of the sales page", () => {
 
   it("ranks the menu by revenue, filters it by category and sorts the full table", async () => {
     const { user } = open()
-    const menu = await screen.findByRole("region", { name: "Menu" })
+    const menu = await screen.findByRole("region", { name: "What sells" })
     expect(within(menu).getByText("Revenue by dish, 5 Oct – 11 Oct 2026: 2 of 4 make 80%", { selector: "figcaption" })).toBeInTheDocument()
 
     await user.click(within(menu).getByRole("button", { name: "All items (4)" }))
@@ -192,18 +193,19 @@ describe("the sections of the sales page", () => {
 
   it("drops a category filter when a period has one category alone", async () => {
     const { user } = open()
-    const menu = await screen.findByRole("region", { name: "Menu" })
+    const menu = await screen.findByRole("region", { name: "What sells" })
     await user.click(within(menu).getByRole("button", { name: "Drinks" }))
     expect(within(menu).getByText(/Revenue by dish, drinks/, { selector: "figcaption" })).toBeInTheDocument()
 
     report = { ...WEEK, range: range("2026-09-28", "2026-10-04", 7), items: WEEK.items.filter((i) => i.category === "food") }
-    await user.click(screen.getByRole("button", { name: "Previous period" }))
+    await user.click(screen.getByRole("button", { name: "Previous 7 days" }))
     const again = await screen.findByText("Revenue by dish, 28 Sept – 4 Oct 2026: 1 of 2 make 80%", { selector: "figcaption" })
     expect(again).toBeInTheDocument()
-    expect(within(screen.getByRole("region", { name: "Menu" })).queryByRole("group", { name: "Category" })).not.toBeInTheDocument()
+    expect(within(screen.getByRole("region", { name: "What sells" })).queryByRole("group", { name: "Category" })).not.toBeInTheDocument()
   })
 
-  it("lists the refunds by cause and by hour, with the amounts", async () => {
+  it("lists the refunds by cause and, from six of them, by hour, with the amounts", async () => {
+    report = { ...WEEK, refunds: { ...WEEK.refunds, count: 6 } }
     open()
     const refunds = await screen.findByRole("region", { name: "Refunds" })
     const [byCause, byHour] = within(refunds).getAllByRole("table")
@@ -212,8 +214,15 @@ describe("the sections of the sales page", () => {
       "Quality issue1£10.00",
       "No reason recorded1£4.00",
     ])
-    expect(within(refunds).getByText("Refunds by cause: 5 refunds, £50.00, 5.0% of gross sales, 5 Oct – 11 Oct 2026", { selector: "figcaption" })).toBeInTheDocument()
+    expect(within(refunds).getByText("Refunds by cause: 6 refunds, £50.00, 5.0% of gross sales, 5 Oct – 11 Oct 2026", { selector: "figcaption" })).toBeInTheDocument()
     expect(within(byHour).getAllByRole("row").slice(1).map((r) => r.textContent)).toEqual(["13:00–14:003£36.00", "19:00–20:002£14.00"])
+  })
+
+  it("keeps the hours to itself under six refunds", async () => {
+    open()
+    const refunds = await screen.findByRole("region", { name: "Refunds" })
+    expect(within(refunds).getAllByRole("table")).toHaveLength(1)
+    expect(within(refunds).queryByRole("figure", { name: "Refunds by hour" })).not.toBeInTheDocument()
   })
 
   it("says so when there were no refunds", async () => {
@@ -235,7 +244,7 @@ describe("the sections of the sales page", () => {
 
   it("ranks the tables by net sales, names a deleted one, and splits the takings by payment method", async () => {
     const { user } = open()
-    const section = await screen.findByRole("region", { name: "Tables and payment" })
+    const section = await screen.findByRole("region", { name: "Tables and how they pay" })
     const [tables, mix] = within(section).getAllByRole("table")
     let rows = within(tables).getAllByRole("row").slice(1)
     expect(rows.map((r) => r.textContent)).toEqual(["Window6050£570.00£12.00", "Garden3020£280.00£15.00", "Deleted table1010£100.00£10.00"])

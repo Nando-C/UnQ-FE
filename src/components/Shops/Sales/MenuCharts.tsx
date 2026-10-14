@@ -17,7 +17,7 @@ import {
   Label,
 } from "recharts";
 import { formatAxis, formatCount, formatPercent, formatPrice, formatRange, shareOf } from "../../../lib/sales";
-import { ChartBox, ChartTooltip, Chips, Section, SortHeader } from "./ChartBits";
+import { ChartBox, ChartTooltip, Chips, Hint, Section, SortHeader } from "./ChartBits";
 import { compareBy, useSort } from "../../../lib/useSort";
 import { COLOURS } from "./colours";
 import type { ISalesItem, ISalesReport } from "../../../typings/sales";
@@ -116,7 +116,7 @@ const MenuCharts = ({ report }: { report: ISalesReport }) => {
   const header = (column: SortKey, label: string, numeric = false) => <SortHeader column={column} label={label} numeric={numeric} sort={sort} onSort={sortBy} />;
 
   return (
-    <Section id="menu" title="Menu">
+    <Section id="menu" title="What sells">
       {hasCategories && <Chips label="Category" options={CATEGORIES} value={category} onChange={setCategory} className="chips mb-3" />}
       {items.length === 0 ? (
         <figure className="chart">
@@ -174,7 +174,14 @@ const MenuCharts = ({ report }: { report: ISalesReport }) => {
                 </ComposedChart>
               )}
             </ChartBox>
-            <figcaption>{paretoCaption}</figcaption>
+            <figcaption>
+              {paretoCaption}{" "}
+              <Hint
+                id="sales-pareto-hint"
+                label="About the line over the bars"
+                text="The line is the running share of revenue, read on the top axis: at each dish, what it and the dishes above it make together. Where it crosses the dashed 80% line is how few dishes carry most of the takings."
+              />
+            </figcaption>
           </figure>
           <figure className="chart scatter" aria-label="Units against price">
             <ChartBox height={(w) => Math.min(320, Math.max(220, w * 0.4))}>

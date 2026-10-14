@@ -18,7 +18,7 @@ import {
   parseSalesSearch,
   todayIn,
 } from "../../../lib/sales";
-import { HeadingPlaceholder, LoadFailed } from "../../Common/ScreenStates";
+import { LoadFailed } from "../../Common/ScreenStates";
 import SalesControls from "./SalesControls";
 import SalesTools from "./SalesTools";
 import KpiCards from "./KpiCards";
@@ -125,15 +125,13 @@ const Sales = () => {
 
   return (
     <Container className="Sales" aria-busy={status === "loading" || undefined}>
-      {/* The page's name is known before the shop is, and the controls have
-          the same shape whichever shop it is, so both are there from the first
-          frame and nothing moves when the shop arrives. */}
+      {/* The page's name is known before the shop is (the header names the
+          shop), and the controls have the same shape whichever shop it is, so
+          both are there from the first frame and nothing moves when the shop
+          arrives. */}
       <div className="page-head">
         <h1>Sales</h1>
       </div>
-      <p className="text-body-secondary mb-3">
-        {shop ? shop.name : shopFailed ? "Shop" : <HeadingPlaceholder />}
-      </p>
       {shopFailed && !shop ? (
         <LoadFailed message="Couldn't load this shop." onRetry={() => dispatch(fetchSingleShop(shopId))} />
       ) : (
@@ -161,6 +159,7 @@ const Sales = () => {
               <KpiCards report={current} />
               <TrendChart
                 report={current}
+                today={today}
                 metricKey={state.metric}
                 onMetric={(metric) => update({ metric })}
                 average={average}
