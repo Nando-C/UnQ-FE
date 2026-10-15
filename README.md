@@ -15,7 +15,7 @@ React 19 · TypeScript 6 · Vite 8 · Redux Toolkit · React Router 7 · React-B
 
 ## Try it
 
-The demo runs at [un-q.vercel.app](https://un-q.vercel.app). Its API sleeps on a free tier, so the first page can take up to a minute to answer; after that it is quick. Payments run in test mode: nothing is charged.
+The demo runs at [un-q.vercel.app](https://un-q.vercel.app). Its API sleeps on a free tier, so the first page can take up to a minute to answer; after that it is quick. Payments run in test mode: nothing is charged. The data is rewritten every night: the venues keep ninety days of history ending yesterday, and whatever was ordered at them the day before is gone by morning; an account you create stays.
 
 **As a diner, on your phone.** Scan the code below with your camera, or tap it if you are reading this on a phone. It puts you at the Fire Place table of Rocketlit, a demo café.
 
