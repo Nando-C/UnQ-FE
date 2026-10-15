@@ -384,6 +384,7 @@ const mockApi = async (route, role) => {
     return json({ range: { from, to, timeZone: "Europe/London", by: "day", days }, totals, series, heatmap: [], items: [], refunds: { count: 0, byReason: [], byHour: [] }, tables: [] })
   }
   if (p === "/shops/s1/tables/status") return json(fixtures.tableStatus)
+  if (p === "/shops/s2/tables/status") return json([])
   if (/^\/shops\/s1\/tables\/[^/]+\/carts$/.test(p)) return json(fixtures.tableCarts)
   // The manager's own shops carry the tables they deleted; one deleted an hour
   // ago (dated at run time), with a recent cart, is listed, so its section is

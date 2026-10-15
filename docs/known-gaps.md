@@ -32,4 +32,4 @@ Each changes behaviour, a contract or several layers at once, so each is a step 
 
 ## Roadmap
 
-In the order decided with the product roadmap, now that the sales report page is in: the **sales dashboard** on My Shops, reusing the report with fixed ranges and the highlights; **staff on a shop** (inviting and removing members; today a shop's only member is the manager who created it) and then **staff roles** narrowing what each member sees and can press; **kitchen** screens (queue, prep states, live push, which also brings live updates to diners).
+In the order decided with the product roadmap, now that the sales report page and the shop at a glance on My Shops are in: **staff on a shop** (inviting and removing members; today a shop's only member is the manager who created it) and then **staff roles** narrowing what each member sees and can press; **kitchen** screens (queue, prep states, live push, which also brings live updates to diners).

@@ -6,6 +6,18 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ## [Unreleased]
 
+### Added
+
+- Each shop's card on My Shops shows the shop at a glance, from the sales report over a fixed week and the tables' status, refreshed every minute while the page is visible: net sales today (with the orders) and over the last seven days against the seven before, the week's best seller with its revenue and units, the first highlight the Sales tab would write that the card doesn't already say, and, as the card's footer, what the tables need right now (tables needing attention, what is owed at the open carts, diners to pay back) or "Tables: all clear", and when the card was last updated. The figures link to the Sales tab on the same week, the footer to the tables. A refresh that fails keeps the figures shown and says so. [docs/manager-tools.md](./docs/manager-tools.md#my-shops).
+
+### Changed
+
+- On My Shops, the shop's photo and name are the link to its page; the figures under them have links of their own, and the bio shows one line.
+
+### Fixed
+
+- A highlight about diners read "Diners is up"; plural metrics now "are", an average "is".
+
 ## [2.2.0] - 2026-10-12
 
 Several devices per account, and the sales page: a shop's report over its payments, with highlights, charts and CSV downloads. Needs the API at 2.2.0. Nothing changes on the host.

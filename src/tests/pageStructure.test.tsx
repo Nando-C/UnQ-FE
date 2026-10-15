@@ -15,6 +15,7 @@ import ShopDetails from "../components/Shops/ShopDetails/ShopDetails"
 import NotFound from "../components/NotFound/NotFound"
 import { makeStore, renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
+import { range, totals } from "./salesFixtures"
 import type { IShop } from "../typings/shop"
 import type { RootState } from "../redux/app/store"
 
@@ -31,6 +32,8 @@ beforeEach(() => {
     http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)),
     http.get(`${BASE}/shops/me`, () => HttpResponse.json([cafe])),
     http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])),
+    // My Shops' cards read the week's report too.
+    http.get(`${BASE}/shops/s1/sales`, () => HttpResponse.json({ range: range("2026-01-01", "2026-01-07", 7), totals: totals(), series: [], heatmap: [], items: [], refunds: { count: 0, byReason: [], byHour: [] }, tables: [] })),
     http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json({ message: "Cart Not Found!" }, { status: 404 }))
   )
 })

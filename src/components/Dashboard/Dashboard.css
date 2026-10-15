@@ -5,3 +5,182 @@
   padding-top: calc(var(--unq-header-h, var(--header-guess)) + 1.5rem);
   padding-bottom: 3rem;
 }
+
+/* ---- A shop at a glance (ShopGlance, under the card's name) ---------------- */
+
+/* The photo and name are the link; the figures under them are a link of their
+ * own, so the first no longer fills the card. The card is a column so the
+ * footer (what the tables need) sits at the bottom of every card in a row. */
+.MyShops .shop-grid .shop-link {
+  height: auto;
+}
+
+.MyShops .card.CustomerShopCard {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The manager wrote the bio; one line of it keeps the figures near the name. */
+.MyShops .CustomerShopCard .bio {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.glance {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  padding: 0.75rem 1rem 0.75rem;
+  border-top: 1px solid var(--bs-border-color);
+  font-size: 0.875rem;
+}
+
+/* The figures are one link to the Sales tab, in the text's colour, with the
+ * "Sales report ›" caption as the clickable-looking part. */
+.glance-figures-link {
+  display: block;
+  /* Always this much air before the footer's rule, however full the card. */
+  padding-bottom: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.glance-more {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0;
+  color: var(--bs-link-color);
+  text-decoration: underline;
+}
+
+@media (hover: hover) {
+  .glance-figures-link:hover .glance-more {
+    color: var(--bs-link-hover-color);
+  }
+}
+
+.glance-figures-link:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 4px;
+  border-radius: var(--bs-border-radius);
+}
+
+.glance-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+  margin: 0;
+}
+
+.glance-figures .glance-wide {
+  grid-column: 1 / -1;
+}
+
+.glance-figures dt {
+  font-weight: normal;
+  color: var(--bs-secondary-color);
+}
+
+.glance-figures dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 0.5rem;
+}
+
+.glance-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.glance-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.glance-note {
+  color: var(--bs-secondary-color);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Good news green, bad news red, no change grey (the sales page's colours). */
+.glance-delta.good {
+  color: var(--bs-success);
+}
+
+.glance-delta.bad {
+  color: var(--bs-danger);
+}
+
+.glance-highlight {
+  margin: 0.75rem 0 0;
+}
+
+/* The footer: the badges the table cards wear when something needs staff,
+ * a quiet line when nothing does, and when the card was last updated.
+ * Pushed to the card's bottom. */
+.glance-footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 0.75rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--bs-border-color);
+  margin-top: auto;
+}
+
+/* The badges wrap within their own column; the time keeps its place at the
+ * top right whatever the number of badges, so every card's footer reads
+ * the same. */
+.glance-tables {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+/* Padded to a comfortable touch target (32px) on one line. */
+.glance-tables a {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  min-height: 32px;
+  padding: 0.25rem 0;
+  align-items: center;
+  text-decoration: none;
+}
+
+.glance-tables .badge {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.glance-tables.clear a {
+  color: var(--bs-secondary-color);
+}
+
+.glance-tables.clear a:hover {
+  text-decoration: underline;
+}
+
+.glance-updated {
+  flex: 0 0 auto;
+  margin-left: auto;
+  /* On the badges' first line: their row is 32px tall. */
+  line-height: 32px;
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.glance-failed {
+  margin: 0;
+  color: var(--bs-secondary-color);
+}
+
+.glance-failed + .glance-footer,
+.placeholder-glow + .glance-footer {
+  margin-top: 0.75rem;
+}
