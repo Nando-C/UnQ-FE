@@ -132,18 +132,20 @@ export const presetOf = (range: DayRange, today: Day): PresetKey | null =>
     return r.from === range.from && r.to === range.to;
   })?.key ?? null;
 
-const monthsBetween = (from: Day, to: Day) => (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + Number(to.slice(5, 7)) - Number(from.slice(5, 7)) + 1;
+export const monthsBetween = (from: Day, to: Day) => (Number(to.slice(0, 4)) - Number(from.slice(0, 4))) * 12 + Number(to.slice(5, 7)) - Number(from.slice(5, 7)) + 1;
 
 // What a range steps by: whole months or weeks (This month and This week are
 // those units so far, and step to the whole unit before), else its own length.
 export type StepUnit = "month" | "week";
+// A range of whole months (the 1st to a month's end) steps by months unasked.
+export const isWholeMonths = ({ from, to }: DayRange) => from === monthStart(from) && to === monthEnd(to);
 // The range before or after this one. A range of whole months steps by as
 // many months whether or not asked to; any other steps by its own length, so
 // Today on the 1st steps to yesterday. A step that would reach past `today`
 // stops there, so last month, stepped forward, is this month so far.
 export const stepRange = ({ from, to }: DayRange, direction: -1 | 1, { today, unit }: { today?: Day; unit?: StepUnit } = {}): DayRange => {
   let next: DayRange;
-  if (unit === "month" || (from === monthStart(from) && to === monthEnd(to))) {
+  if (unit === "month" || isWholeMonths({ from, to })) {
     const months = monthsBetween(from, to);
     const start = addMonths(from, direction * months);
     next = { from: start, to: monthEnd(addMonths(start, months - 1)) };
@@ -165,9 +167,11 @@ export const validRange = (range: Partial<DayRange>): range is DayRange =>
 // the answer arrives.
 export const groupByFor = (range: DayRange): SalesGroupBy => (daysBetween(range.from, range.to) <= 92 ? "day" : "week");
 export const compareDefault = (range: DayRange) => daysBetween(range.from, range.to) >= 7;
-// The 7-day average is a reading aid for daily buckets; drawn by default from
-// two weeks, offered from one, never under that.
-export const averageAllowed = (by: SalesGroupBy, days: number) => by === "day" && days >= 7;
+// The 7-day average is a reading aid for daily buckets, offered and drawn
+// from two weeks of them (under that it is a point or two, which reads as a
+// fault).
+// Offered from one, never under that.
+export const averageAllowed = (by: SalesGroupBy, days: number) => by === "day" && days >= 14;
 export const averageDefault = (by: SalesGroupBy, days: number) => by === "day" && days >= 14;
 
 // ---- Metrics ----------------------------------------------------------------

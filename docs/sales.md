@@ -2,6 +2,8 @@
 
 How a shop's payments become a report a manager can act on: the questions the page answers, the chart that answers each, the rules every number follows, the sentences the page writes, and the demo data that makes the charts worth looking at. The page is the **Sales** tab on a shop's pages (`/shop/:shopId/sales`); its controls and sections are described word for word in [manager-tools.md](./manager-tools.md#sales), and why it is built the way it is in [ux-decisions.md](./ux-decisions.md).
 
+<img src="./images/sales.png" alt="The Sales tab on a desktop: the period controls, the headline figures with their change on the period before, and the trend of net sales with a dashed line for the period before and a 7-day average" width="720">
+
 ## One answer, every chart
 
 The page makes one request, `GET /shops/:shopId/sales` with a period, a grouping and `compare=previous`, and draws everything from the answer: the totals, a zero-filled series with every measure the trend can switch to, the weekday × hour cells, the items, the refunds by cause and hour, the tables, and the same again for the period before. A new metric is a client change; a new period is one request. The page derives only ratios of figures the API gave (an average order, a refund rate, a returning share) and a 7-day average that is a reading aid, never a reported number. The API's side is in [UnQ-BE's api.md](https://github.com/Nando-C/UnQ-BE/blob/main/docs/api.md#sales-report).
@@ -16,15 +18,15 @@ The page makes one request, `GET /shops/:shopId/sales` with a period, a grouping
 | What are we giving back, and why? | Refunds by cause with count and amount, refunds by the hour they were made, and the refund rate as a trend metric. |
 | Do people come back? | New against returning diners per bucket, the returning share, visits per diner. |
 | Which tables earn, and how do people pay? | Each table's orders, visits, net and takings per visit; PayPal against card over time. |
-| What should I do about it? | The findings: up to six sentences from the same answer, each a link to its chart. |
+| What should I do about it? | The highlights: up to six sentences from the same answer, each a link to its chart. |
 
 ## The counting rules
 
 The rules are the API's, decided when the orders were designed and stated in [UnQ-BE's decisions.md](https://github.com/Nando-C/UnQ-BE/blob/main/docs/decisions.md#2026-10-12-sales-are-counted-as-at-a-till-in-the-shops-own-day); the page repeats them in its "How these are counted" note. Days are the shop's own, in its time zone (set in the shop editor, `Europe/London` unless set); weeks start on Monday. Gross is completed payments by the day paid; a payment the provider still holds is counted apart as awaiting, a failed one not at all. Refunds count on the day they were made, whenever the sale was, as at a till; net is gross less refunds. Orders are completed payments, visits distinct carts, diners distinct payers, never named; a returning diner had paid at the shop before the period began. Items count units sold less units refunded, at the price each sold for, under the name diners saw.
 
-## The findings
+## The highlights
 
-The findings are rules, not a model (`src/lib/findings.ts`): each answers one question from the report, is silent when it has too little to draw on, and is tested sentence for sentence. In order, at most six:
+The highlights are rules, not a model (`src/lib/findings.ts`): each answers one question from the report, is silent when it has too little to draw on, and is tested sentence for sentence. In order, at most six:
 
 | Rule | Says | Silent when |
 | --- | --- | --- |
@@ -38,7 +40,7 @@ The findings are rules, not a model (`src/lib/findings.ts`): each answers one qu
 
 ## The demo's patterns
 
-Flat data makes flat charts, so the demo seed (`npm run seed:demo` in UnQ-BE) draws its ninety days with the shapes a real venue has, all from a seeded random generator so a rerun writes the same records. Two thirds of visits start in a peak (the café's 8–10 and 12–14, the restaurant's 12–14 and 18–21); the café grows 35% over its ninety days and the restaurant 20%; the café has one bad week, five weeks back, at half the visits; forty diners, of whom a dozen regulars bring seven visits in ten; a dish, the Pastel de Nata, launched 48 days ago; refunds on 4% of visits, 10% on a Friday or Saturday evening and 14% in the bad week, when they are mostly for the wait; six payments in ten by card. The findings on the demo's café read straight off these.
+Flat data makes flat charts, so the demo seed (`npm run seed:demo` in UnQ-BE) draws its ninety days with the shapes a real venue has, all from a seeded random generator so a rerun writes the same records. Two thirds of visits start in a peak (the café's 8–10 and 12–14, the restaurant's 12–14 and 18–21); the café grows 35% over its ninety days and the restaurant 20%; the café has one bad week, five weeks back, at half the visits; forty diners, of whom a dozen regulars bring seven visits in ten; a dish, the Pastel de Nata, launched 48 days ago; refunds on 4% of visits, 10% on a Friday or Saturday evening and 14% in the bad week, when they are mostly for the wait; six payments in ten by card. The highlights on the demo's café read straight off these.
 
 ## The export and the time zone
 

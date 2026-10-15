@@ -1,5 +1,5 @@
 import { Container } from "react-bootstrap";
-import { HeadingPlaceholder, Loading } from "../../Common/ScreenStates";
+import { Loading } from "../../Common/ScreenStates";
 import "./Sales.css";
 
 // What the Sales page shows while its code (a chunk of its own, with the
@@ -27,9 +27,6 @@ const SalesFallback = () => (
     <div className="page-head">
       <h1>Sales</h1>
     </div>
-    <p className="text-body-secondary mb-3">
-      <HeadingPlaceholder />
-    </p>
     <SalesSkeleton label="Loading the sales page" />
   </Container>
 );

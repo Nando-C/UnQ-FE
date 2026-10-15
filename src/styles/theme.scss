@@ -10,7 +10,10 @@
 //   - The BRAND is the logo's coral-to-amber gradient (#FF5F45 → #FFB627). It lives in
 //     the logo, the wordmark and artwork only, never on a control or on text: coral is
 //     3.01:1 against white, and it sits 14deg from the danger red, so "pay" and "delete"
-//     read as the same colour (CIE76 delta-E 20, 18 for deuteranopes).
+//     read as the same colour (CIE76 delta-E 20, 18 for deuteranopes). The one exception
+//     is ink in the sales charts (--unq-coral in index.css): 3:1 is the bar for a graphic,
+//     and against the teal it is delta-E 102 (63 for deuteranopes, 36 for protanopes),
+//     further than black is. It never touches a control there, nor anything meaning bad.
 //   - The INTERFACE is an evergreen teal, which sits opposite the gradient on the colour
 //     wheel so the logo stands out against the UI instead of blending into it.
 // Contrast figures below are WCAG 2 ratios; delta-E figures are CIE76, with the

@@ -10,7 +10,7 @@ const Findings = ({ report }: { report: ISalesReport }) => {
   const found = useMemo(() => findings(report), [report]);
   if (found.length === 0) return null;
   return (
-    <Section id="findings" title="Findings" className="findings">
+    <Section id="findings" title="Highlights" className="findings">
       <ul>
         {found.map((f) => (
           <li key={f.id}>

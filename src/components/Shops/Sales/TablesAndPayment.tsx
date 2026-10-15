@@ -57,7 +57,7 @@ const TablesAndPayment = ({ report }: { report: ISalesReport }) => {
   };
 
   return (
-    <Section id="tables" title="Tables and payment">
+    <Section id="tables" title="Tables and how they pay">
       <Row className="g-3">
         <Col xs={12} lg={7}>
           <div className="chart tables h-100">

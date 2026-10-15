@@ -16,12 +16,14 @@ import {
   metricOf,
   movingAverage,
 } from "../../../lib/sales";
-import { ChartBox, ChartTooltip, HiddenTable } from "./ChartBits";
+import { ChartBox, ChartTooltip, HiddenTable, Hint } from "./ChartBits";
 import { COLOURS } from "./colours";
 import type { ISalesReport } from "../../../typings/sales";
 
 interface TrendChartProps {
   report: ISalesReport;
+  // The shop's today: a bucket that holds it is still being written.
+  today: string;
   metricKey: MetricKey;
   onMetric: (key: MetricKey) => void;
   average: boolean;
@@ -31,6 +33,9 @@ interface TrendChartProps {
 interface Point {
   bucket: string;
   value: number;
+  // Still being written: today's bucket, drawn hollow and left out of the
+  // average and the peak.
+  partial: boolean;
   previous?: number;
   previousBucket?: string;
   average: number | null;
@@ -52,26 +57,38 @@ const floor = (min: number) => Math.min(0, min);
 // The ghost line is drawn by day only: a week or month at a range's edge is
 // a partial bucket, so only days line up point for point (the headline
 // figures compare the whole periods, whatever the grouping).
-const TrendChart = ({ report, metricKey, onMetric, average, onAverage }: TrendChartProps) => {
+const TrendChart = ({ report, today, metricKey, onMetric, average, onAverage }: TrendChartProps) => {
   const m = metric(metricKey);
   const { by, days } = report.range;
   const previous = by === "day" ? report.previous : undefined;
   const points = useMemo<Point[]>(() => {
     const values = report.series.map((b) => metricOf(metricKey, b));
-    const averages = movingAverage(values);
+    const last = report.series.length - 1;
+    const partial = report.range.to >= today ? last : -1;
+    const averages = movingAverage(partial >= 0 ? values.slice(0, -1) : values);
     return report.series.map((b, i) => ({
       bucket: b.bucket,
       value: values[i],
+      partial: i === partial,
       ...(previous?.series[i] && { previous: metricOf(metricKey, previous.series[i]), previousBucket: previous.series[i].bucket }),
-      average: averages[i],
+      average: averages[i] ?? null,
     }));
-  }, [report.series, previous, metricKey]);
+  }, [report.series, report.range.to, today, previous, metricKey]);
 
-  const peak = points.reduce<Point | null>((best, p) => (p.value > 0 && (!best || p.value > best.value) ? p : best), null);
+  const peak = points.reduce<Point | null>((best, p) => (!p.partial && p.value > 0 && (!best || p.value > best.value) ? p : best), null);
   const canAverage = averageAllowed(by, days);
   const showAverage = average && canAverage;
   const colour = m.bad ? COLOURS.bad : COLOURS.metric;
   const tick = (bucket: string) => bucketLabel(bucket, by);
+  const soFar = (p: Point) => (p.partial ? ", so far" : "");
+  // A dot per point up to a month of them; the bucket still being written is
+  // hollow, and drawn whatever the length.
+  const dot = ({ cx, cy, payload }: { cx?: number; cy?: number; payload?: Point }) => {
+    if (cx === undefined || cy === undefined || !payload) return <g key="none" />;
+    if (payload.partial) return <circle key={payload.bucket} cx={cx} cy={cy} r={4} fill="var(--bs-body-bg)" stroke={colour} strokeWidth={2} />;
+    if (points.length > DOTS_UP_TO) return <g key={payload.bucket} />;
+    return <circle key={payload.bucket} cx={cx} cy={cy} r={3} fill={colour} />;
+  };
 
   const tooltip = ({ active, payload }: TooltipContentProps) => {
     const point = payload?.[0]?.payload as Point | undefined;
@@ -79,7 +96,10 @@ const TrendChart = ({ report, metricKey, onMetric, average, onAverage }: TrendCh
     const change = point.previous !== undefined ? changeOf(point.value, point.previous, m.kind) : null;
     return (
       <ChartTooltip>
-        <div>{bucketLabelLong(point.bucket, by)}</div>
+        <div>
+          {bucketLabelLong(point.bucket, by)}
+          {soFar(point)}
+        </div>
         <div className="value">{formatMetric(m.kind, point.value)}</div>
         {point.previousBucket !== undefined && point.previous !== undefined && (
           <div className="text-body-secondary">
@@ -105,7 +125,14 @@ const TrendChart = ({ report, metricKey, onMetric, average, onAverage }: TrendCh
           ))}
         </Form.Select>
         {canAverage && (
-          <Form.Check type="switch" id="sales-average" label="7-day average" checked={showAverage} onChange={(e) => onAverage(e.target.checked)} />
+          <span className="with-hint">
+            <Form.Check type="switch" id="sales-average" label="7-day average" checked={showAverage} onChange={(e) => onAverage(e.target.checked)} />
+            <Hint
+              id="sales-average-hint"
+              label="About the 7-day average"
+              text="Each day shown as the mean of that day and the six before it, so the weekday swing drops out and the direction shows. It starts on the seventh day and leaves today out."
+            />
+          </span>
         )}
       </div>
       <ChartBox height={(w) => Math.min(360, Math.max(240, w * 0.42))}>
@@ -142,7 +169,7 @@ const TrendChart = ({ report, metricKey, onMetric, average, onAverage }: TrendCh
               name={m.label}
               stroke={colour}
               strokeWidth={2}
-              dot={points.length <= DOTS_UP_TO ? { r: 3, strokeWidth: 0, fill: colour } : false}
+              dot={dot}
               activeDot={{ r: 5 }}
               isAnimationActive={false}
             />
@@ -176,7 +203,10 @@ const TrendChart = ({ report, metricKey, onMetric, average, onAverage }: TrendCh
         <tbody>
           {points.map((p) => (
             <tr key={p.bucket}>
-              <th scope="row">{bucketLabelLong(p.bucket, by)}</th>
+              <th scope="row">
+                {bucketLabelLong(p.bucket, by)}
+                {soFar(p)}
+              </th>
               <td>{formatMetric(m.kind, p.value)}</td>
               {previous && <td>{p.previous !== undefined ? formatMetric(m.kind, p.previous) : ""}</td>}
               {showAverage && <td>{p.average === null ? "" : formatMetric(m.kind, p.average)}</td>}
