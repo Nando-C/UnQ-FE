@@ -63,7 +63,7 @@ const WEEK: ISalesReport = {
 describe("the findings' rules", () => {
   it("say what the week's figures say, each pointing at its chart", () => {
     expect(findings(WEEK)).toEqual([
-      { id: "mover", section: "trend", text: "Net sales are up 25.0% on the period before." },
+      { id: "mover", section: "trend", metric: "net", text: "Net sales are up 25.0% on the period before." },
       { id: "busiest", section: "when", text: "Saturday brings 30% of a typical week's sales; the busiest hour is 13:00–14:00." },
       { id: "menu", section: "menu", text: "Sea Bass alone is 54% of revenue." },
       { id: "refunds", section: "refunds", text: "“Long wait” is the most common refund cause, 3 of 5 (£36.00), most of them 13:00–14:00." },

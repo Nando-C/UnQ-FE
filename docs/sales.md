@@ -8,6 +8,8 @@ How a shop's payments become a report a manager can act on: the questions the pa
 
 The page makes one request, `GET /shops/:shopId/sales` with a period, a grouping and `compare=previous`, and draws everything from the answer: the totals, a zero-filled series with every measure the trend can switch to, the weekday × hour cells, the items, the refunds by cause and hour, the tables, and the same again for the period before. A new metric is a client change; a new period is one request. The page derives only ratios of figures the API gave (an average order, a refund rate, a returning share) and a 7-day average that is a reading aid, never a reported number. The API's side is in [UnQ-BE's api.md](https://github.com/Nando-C/UnQ-BE/blob/main/docs/api.md#sales-report).
 
+My Shops reads the same answer a second time, for each shop's card ([manager-tools.md](./manager-tools.md#my-shops)): the last seven days against the seven before, by day, read into today's bucket, the week's net and its change, the top dish by revenue and the first highlight, with no chart. A reading the card shows is one the page shows too, so the two never disagree.
+
 ## The questions
 
 | A manager asks | The page answers with |

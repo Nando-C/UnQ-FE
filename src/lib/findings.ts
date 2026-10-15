@@ -26,6 +26,8 @@ export interface Finding {
   text: string;
   // The chart the sentence came from.
   section: "trend" | "when" | "menu" | "refunds" | "diners" | "tables";
+  // The metric a mover is about, for a reader already showing its change.
+  metric?: MetricKey;
 }
 
 const MAX_FINDINGS = 6;
@@ -56,8 +58,9 @@ const mover = ({ totals, previous }: ISalesReport): Finding | null => {
   const m = metric(best.key);
   const change = changeOf(metricOf(best.key, totals), metricOf(best.key, previous.totals), m.kind);
   if (!change || change.direction === "same") return null;
-  const verb = m.key === "net" || m.key === "orders" ? "are" : "is";
-  return { id: "mover", section: "trend", text: `${m.label} ${verb} ${change.direction} ${change.text} on the period before.` };
+  // Plural metrics (sales, orders, diners) "are"; an average "is".
+  const verb = m.key === "avgOrder" || m.key === "avgVisit" ? "is" : "are";
+  return { id: "mover", section: "trend", metric: m.key, text: `${m.label} ${verb} ${change.direction} ${change.text} on the period before.` };
 };
 
 // The weekday that brings the most sales, and the busiest hour, from a week.
