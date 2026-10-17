@@ -128,7 +128,7 @@ The suite runs with Vitest, React Testing Library and msw, which answers every r
 npm test
 ```
 
-CI runs the lint, the suite and the build, which type-checks first, on Node 24 for every push to `main` and every pull request. No API and no secrets are needed. The gates, how the suite is built and what it doesn't cover are in [docs/testing.md](./docs/testing.md).
+CI runs the lint, the suite and the build, which type-checks first, on Node 24 for every push to `main` and every pull request. No API and no secrets are needed. A second check fails a pull request that changes the code without a word in the changelog or the docs, unless it is labelled `no-docs`. The gates, how the suite is built and what it doesn't cover are in [docs/testing.md](./docs/testing.md); the release steps in [docs/deployment.md](./docs/deployment.md#releasing).
 
 ## Documentation
 

@@ -14,7 +14,7 @@ npm run build             # tsc --noEmit && vite build
 npm run audit:responsive  # layout, in headless Chrome; see responsive-and-a11y.md
 ```
 
-CI (`ci.yml`) runs `npm ci`, lint, the tests and the build on Node 24 for every push to `main` and every pull request. The suite needs no API, no secrets and no browser: msw answers every request.
+CI (`ci.yml`) runs `npm ci`, lint, the tests and the build on Node 24 for every push to `main` and every pull request. The suite needs no API, no secrets and no browser: msw answers every request. A second workflow, Docs (`docs.yml`), fails a pull request that changes `src/` (the tests apart), `vercel.json`, `vite.config.ts`, `index.html` or `public/` without touching `CHANGELOG.md`, `README.md` or `docs/`: a rule that moved while the page describing it didn't is the slip no test can catch. The `no-docs` label says the change is invisible to anyone using the app, and the check stands down; it reads the pull request's file list, so it needs no checkout. The pull request template lists what a change carries with it (a changelog entry, the page a changed rule lives on, the screenshot of a changed screen, the issue it closes), and the issue templates ask which page describes the behaviour.
 
 Habits that caught real slips: work out the expected test total before running (previous total plus added minus removed) and stop if the count differs; for a bug fix, show its test failing without the fix; test anything that overlaps or arrives late in one table of every ordering; update the tests that assert old wording in the same change as the wording.
 
