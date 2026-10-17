@@ -1,6 +1,6 @@
 # Deployment
 
-Where the client runs, what it needs from its hosts and from the API's, and the order a release goes out in. Read from `vercel.json`, `vite.config.ts`, `.env.example`, `.github/workflows/ci.yml` and `CHANGELOG.md`. The API's side is in [UnQ-BE's operations.md](https://github.com/Nando-C/UnQ-BE/blob/main/docs/operations.md).
+Where the client runs, what it needs from its hosts and from the API's, and the order a release goes out in. Read from `vercel.json`, `vite.config.ts`, `.env.example`, `.github/workflows/` and `CHANGELOG.md`. The API's side is in [UnQ-BE's operations.md](https://github.com/Nando-C/UnQ-BE/blob/main/docs/operations.md).
 
 ## Where it runs
 
@@ -36,13 +36,15 @@ For Apple Pay and Google Pay, the exact domain must be registered under Stripe's
 
 ## Releasing
 
-The two repositories release together with their own [Semantic Versioning](https://semver.org/) numbers. This app at `x.y.*` needs the API at `x.y.0` or later: the shared MINOR says which pair belong together, patches are independent, and the MAJOR changes only when a release needs a change on a host or a new API major (2.0.0 was one: `VITE_BE_URL`, the output directory, the Stripe key).
+The two repositories release together with their own [Semantic Versioning](https://semver.org/) numbers. This app at `x.y.*` needs the API at `x.y.0` or later: the shared MINOR says which pair belong together, patches are independent, and the MAJOR changes only when a release needs a change on a host or a new API major (2.0.0 was one: `VITE_BE_URL`, the output directory, the Stripe key). A release goes out on a branch `release/x.y.0` that one pull request merges, after the API's own release is live:
 
-1. Refresh the API contract fixture from the API about to ship (`npm run contract:refresh`, see [testing.md](./testing.md)) and run the gates: `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`, `npm run audit:responsive`.
-2. `npm version minor --no-git-tag-version` (or `patch`), write the changelog entry (deploy notes first when a host setting changes), update the README's version badge.
-3. Merge to `main`; CI runs on Node 24 (`npm ci`, lint, tests, build).
-4. **The API deploys first**, then this app: Vercel builds `main` on merge. Tag: `git tag -a v2.1.0 -m "UnQ front end 2.1.0"`, `git push --follow-tags`.
-5. Check on the live site: a deep link renders (`/shops/<id>/tables/<id>`, not a 404: the fallback rewrite is in place); sign in on Safari with tracking prevention on; Google sign-in completes; a test card pays (`4242 4242 4242 4242`; `4000 0025 0000 3155` asks for a bank check; `4000 0000 0000 0002` is declined); Apple Pay or Google Pay shows on a registered domain.
+1. **Settle the docs.** Every claim in `README.md` and `docs/` that changed since the last tag is re-read against the code (`git diff $(git describe --tags --abbrev=0)..main --stat -- README.md docs/` lists the pages), and [known-gaps.md](./known-gaps.md) says what the release still leaves open, its roadmap paragraph included. A screen that changed has its screenshot retaken with `npm run shots -- --env=<file>`, which drives the live demo as its two accounts (the file names the demo passwords and is never committed). To show the release before it ships, `--base=<url>` points it at the branch served locally with `/api` proxied to the live API; the proxy must then send the live client's `Origin`, or the API's CORS check refuses the sign-in. The Try it sections here and on the [product page](https://github.com/Nando-C/UnQ) describe the live demo: a flow or a screen that changed changes their sentences too.
+2. **Refresh the API contract fixture** from the API release this one pairs with (`npm run contract:refresh -- <url|file>`, see [testing.md](./testing.md)); the contract test checks the fixture's MAJOR.MINOR is this app's.
+3. **Close the changelog.** The Unreleased section becomes `[x.y.0] - <date>`, opened by a paragraph that says what changed, which API release it needs and what the host needs (deploy notes first when a host setting changes); an empty Unreleased section goes above it.
+4. **Bump the version**: `npm version minor --no-git-tag-version` (or `patch`), and the README's version badge to match; a test fails when they differ.
+5. **Run the gates**: `npx tsc --noEmit`, `npm run lint`, `npm test`, `npm run build`, and `npm run audit:responsive` when layout changed. Open the pull request; CI runs them again (`npm ci`, lint, tests, build on Node 24).
+6. **Merge once the API answers the new version** at `GET /health`; Vercel builds `main`. Tag what is deployed, `git tag -a vx.y.0 -m "UnQ front end x.y.0"` on `main`, and push the tag.
+7. **Check the live site**: a deep link renders (`/shops/<id>/tables/<id>`, not a 404: the fallback rewrite is in place); sign in on Safari with tracking prevention on; Google sign-in completes; a test card pays (`4242 4242 4242 4242`; `4000 0025 0000 3155` asks for a bank check; `4000 0000 0000 0002` is declined); Apple Pay or Google Pay shows on a registered domain; the README's Try it reads true against what the demo shows. Then close the roadmap issues the pair ships, each with a line on what shipped where.
 
 ## Local development
 

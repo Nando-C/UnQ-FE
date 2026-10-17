@@ -6,6 +6,10 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ## [Unreleased]
 
+### Added
+
+- A pull request template, issue templates and a Docs check (`.github/workflows/docs.yml`): a pull request that changes the code without a word in the changelog or the docs fails the check, unless it carries the `no-docs` label. The steps a release follows are written down in [docs/deployment.md](./docs/deployment.md#releasing).
+
 ## [2.3.0] - 2026-10-15
 
 Each shop at a glance on My Shops, and the demo's data rewritten every night. Needs the API at 2.3.0. Nothing changes on the host.

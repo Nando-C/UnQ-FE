@@ -1,0 +1,21 @@
+name: Bug report
+description: The app does something it shouldn't
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you saw and what you expected. The page's own wording helps. Never paste a password or a card number.
+    validations:
+      required: true
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The page, the browser and the device (a phone's width matters for anything about layout), on the live demo or a local run.
+  - type: textarea
+    id: docs
+    attributes:
+      label: Docs to update
+      description: The page in `docs/` or the README section that describes this behaviour, if one does. A fix changes it in the same pull request, with a changelog entry.
