@@ -1,0 +1,18 @@
+/* The staff list: one row per member, the account's picture leading it. */
+.StaffList .staff-avatar {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  flex: none;
+}
+
+.StaffList .member-name {
+  min-width: 0;
+}
+
+/* The member dialog's picture, larger, above the details. */
+.MemberModal .staff-avatar {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+}

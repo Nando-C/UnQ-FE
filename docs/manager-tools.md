@@ -2,7 +2,7 @@
 
 What a shop manager can do from the app and how each screen does it. Read from `src/components/Dashboard`, `Shops/` and `Tables/`, `src/redux/slices/shopSlice.ts`, `src/lib/tables.ts`, `lib/refundReasons.ts`, `lib/paybacks.ts` and `lib/providers.ts`. The manager routes themselves, with every status and message, are in the [API's OpenAPI document](https://github.com/Nando-C/UnQ-BE/blob/main/docs/api.md) under "Manager: tables" and "Manager: refunds and payments"; what the API does about money is in [its payments.md](https://github.com/Nando-C/UnQ-BE/blob/main/docs/payments.md).
 
-A manager is whoever runs a shop: an account with the `shopMg` role (a shop manager, who may create shops) or the `admin` role (an administrator, who may do everything on every shop and is never a member of one), or a member of a shop, added by its owner (or an administrator). Neither role comes from the app's own sign-up (its role selector was dead UI and went in 2.0.0): an administrator gives them, and the first administrator is set in the database. Running a shop swaps the shell: a fixed header with a breadcrumb ("My Shops › First Shop"), the shop's section tabs (Details, Menu, Tables), and the account icon. The tabs follow the scroll (`ShopSectionNav`, `lib/sections.ts`) and move onto a row of their own below 640px.
+A manager is whoever runs a shop: an account with the `shopMg` role (a shop manager, who may create shops) or the `admin` role (an administrator, who may do everything on every shop and is never a member of one), or a member of a shop, added by its owner (or an administrator). Neither role comes from the app's own sign-up (its role selector was dead UI and went in 2.0.0): an administrator gives them, and the first administrator is set in the database. Running a shop swaps the shell: a fixed header with a breadcrumb ("My Shops › First Shop"), the shop's section tabs (Details, Menu, Tables, Staff), and the account icon. The tabs follow the scroll (`ShopSectionNav`, `lib/sections.ts`) and move onto a row of their own below 640px, which scrolls sideways when they don't fit it (at 200% text on a phone).
 
 ## My Shops
 
@@ -12,7 +12,7 @@ Under each shop's name, the shop at a glance (`ShopGlance`, `lib/glance.ts`): tw
 
 ## The shop page
 
-`ShopDetails` loads the shop (`GET /shops/:shopId`) and shows, one after the other: the details card (cover in a 16:9 box kept from the start, bio, opening times, phone, web address), the **menu** with a search box and one row per item, and the **tables** as cards. Content is capped at 60rem so menu rows don't stretch across a desktop. While the shop loads, only its heading and placeholders show, and the page is swapped whole when it arrives, so nothing on screen is pushed down.
+`ShopDetails` loads the shop (`GET /shops/:shopId`) and shows, one after the other: the details card (cover in a 16:9 box kept from the start, bio, opening times, phone, web address), the **menu** with a search box and one row per item, the **tables** as cards, and the **staff**, one row per member. Content is capped at 60rem so menu rows don't stretch across a desktop. While the shop loads, only its heading and placeholders show, and the page is swapped whole when it arrives, so nothing on screen is pushed down.
 
 ### The three editors
 
@@ -102,3 +102,17 @@ Money staff must give a diner another way, because Stripe won't (`lib/paybacks.t
 ### The log
 
 Each cart's `managerLog`, newest first: what managers did ("Refunded", "Released selections", "Closed the table"…) and what the server did about card payments ("Card payment finished", "Refunded by Stripe"). A line staff must act on, a card refund Stripe won't make (`stripeRefundFailed`, shown as "Action needed"), is marked, and flags the closed carts it's under with "Needs staff".
+
+## Staff
+
+The shop's members, under the tables (`StaffList`, `lib/staff.ts`): `GET /shops/:shopId/staff`, one row per member, the owner first, each with their picture, name ("(you)" on the signed-in account's own row), email, role (Owner or Manager), "since 12 Oct 2026" and, when the member who added them is still on the staff, "added by Sam" (an administrator who did isn't a member, so nothing is said). An account that was deleted keeps its row, named "An account that was deleted". A failed load says "Couldn't load the staff." with Try again. The list is the API's answer, reloaded after every change together with the account's shops, since who owns the shop and who belongs to it decide what the page shows.
+
+Each row's **Manage** opens the member's dialog (`MemberModal`): who they are, their role, since when and who added them, and the actions the signed-in account has, each asking first in the dialog's own footer (`ConfirmFooter`):
+
+- **Remove**, for the owner or an administrator, on anyone but the owner: "Remove Ada from Cafe? They keep their account and lose access to this shop on their next request." (`DELETE /shops/:shopId/staff/:userId`).
+- **Leave shop**, on the signed-in account's own row unless it is the owner: "Leave Cafe? You keep your account and lose access to this shop on your next request." Having left, the page goes back to My Shops.
+- **Make owner**, for the owner or an administrator, on a manager's row: "Make Ada the owner of Cafe? You become a manager and can no longer delete the shop or remove managers." (for an administrator, "Sam becomes a manager.") (`PUT /shops/:shopId/owner`). The previous owner stays on as a manager.
+
+A row with nothing to press says why: the owner's, "The owner can't be removed: the shop is handed over first."; another manager's, to a manager, "Only the owner removes a manager." The API's refusals (a change that landed in the same instant, "The shop's staff changed, please retry") show in the dialog as they are, and the list reloads.
+
+**Add staff**, in the section's header for the owner or an administrator, opens a dialog (`AddStaffModal`) asking for an email; they join as a manager. Once the address is typed, the fields for a new account appear (name, surname, a first password of at least 8 characters), sent only when filled: an address that already has an account is attached as it is and the API ignores them, one without gets an account made from them (`POST /shops/:shopId/staff`, 200 or 201). The section then says which happened: "Account created for Alex. Give them the password you set; they can change it on their account page." or "Alex already had an account and is now a manager at Cafe." The API's refusals show in the dialog: which fields a new account still needs ("Required for a new account"), "Already a member", "That is your own address", and the hourly limit on people added.
