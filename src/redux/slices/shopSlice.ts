@@ -3,8 +3,9 @@ import { AxiosResponse } from "axios"
 import backend from "../../backend/backend"
 import { IMenu } from "../../typings/menu";
 import { IShop, IShopStore } from "../../typings/shop"
-import { RootState } from "../app/store";
-import { logOut } from "./userSlice";
+import { AppThunk, RootState } from "../app/store";
+import { fetchUserData, logOut } from "./userSlice";
+import { isManagerRole } from "../../lib/membership";
 
 const initialState: IShopStore = {
     data: [],
@@ -12,10 +13,22 @@ const initialState: IShopStore = {
     selectedMenu: null,
 }
 
-export const fetchShopList = createAsyncThunk("shop/fetchShopList", async () => {
-    const { data }: AxiosResponse<IShop[]> = await backend.get("/shops/me")
-    return data
-})
+let listRequests = 0
+export const fetchShopList = createAsyncThunk(
+    "shop/fetchShopList",
+    async () => {
+        const { data }: AxiosResponse<IShop[]> = await backend.get("/shops/me")
+        return data
+    },
+    { idGenerator: () => String(++listRequests) }
+)
+// Asks for the account's shops unless they were asked for already (the shell
+// does, for every signed-in account; the editors refetch after each change,
+// and My Shops on opening). Signing out forgets the answer, so the next account
+// loads its own.
+export const loadShopList = (): AppThunk => (dispatch, getState) => {
+    if (getState().shops.dataStatus === undefined) dispatch(fetchShopList())
+}
 
 // Each request for a shop is numbered in the order it was sent (its requestId),
 // so the reducers can tell a newer answer from an older one.
@@ -67,20 +80,34 @@ export const shopsSlice = createSlice({
         },
     },
     extraReducers: (builder) => {
-        builder.addCase(fetchShopList.pending, (state) => {
+        // The list is numbered as asked for; an answer to a request sent before
+        // the account signed out is dropped, or it would stand as the next
+        // account's shops and stop theirs being asked for.
+        builder.addCase(fetchShopList.pending, (state, action) => {
+            state.listLatest = Number(action.meta.requestId)
             state.dataStatus = "loading"
         })
         builder.addCase(fetchShopList.fulfilled, (state, action) => {
+            if (Number(action.meta.requestId) <= (state.listDecided ?? 0)) return
             state.data = action.payload
             state.dataStatus = "ready"
         })
-        builder.addCase(fetchShopList.rejected, (state) => {
+        builder.addCase(fetchShopList.rejected, (state, action) => {
+            if (Number(action.meta.requestId) <= (state.listDecided ?? 0)) return
             state.dataStatus = "failed"
         })
-        // The manager's shops are theirs alone: whoever signs in next loads their own.
-        builder.addCase(logOut.fulfilled, (state) => {
+        // The account's shops are theirs alone: whoever signs in next loads their
+        // own. Forgotten when the account signs out, and when the session turns
+        // out to have ended (the API says there's no session or no account), so
+        // a guest never keeps the manager shell from the shops of before.
+        const forget = (state: IShopStore) => {
             state.data = []
             delete state.dataStatus
+            state.listDecided = state.listLatest
+        }
+        builder.addCase(logOut.fulfilled, forget)
+        builder.addCase(fetchUserData.rejected, (state, action) => {
+            if (action.payload?.signedOut) forget(state)
         })
         // An answer becomes `selected` when it is about the shop last asked
         // for (a late one about a shop opened before would replace it and
@@ -116,6 +143,11 @@ export const selectShopsData = (state: RootState) => state.shops.data
 export const selectSelectedShop = (state: RootState) => state.shops.selected
 export const selectSelectedMenu = (state: RootState) => state.shops.selectedMenu
 export const selectShopsDataStatus = (state: RootState) => state.shops.dataStatus
+// Whether the signed-in account runs shops, so gets the manager shell and the
+// manager pages: by its role (a shop manager, or an administrator), or because
+// it is a member of a shop, which the shops answer once they have loaded.
+export const selectIsManager = (state: RootState) =>
+    isManagerRole(state.user.data.role) || state.shops.data.length > 0
 // A page's own shop: the one selected, but only once it is the one the page
 // asked for (the store may still hold another shop), else null.
 export const selectShopFor = (state: RootState, shopId: string | undefined) =>

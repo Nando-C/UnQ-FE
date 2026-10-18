@@ -22,6 +22,7 @@ const CLIENT_CALLS = [
   ["GET", "/auth/sessions"],
   ["DELETE", "/auth/sessions/{sessionId}"],
   ["GET", "/auth/googleLogin"],
+  ["GET", "/users"],
   ["GET", "/users/me"],
   ["PUT", "/users/me"],
   ["PUT", "/users/me/avatar"],
