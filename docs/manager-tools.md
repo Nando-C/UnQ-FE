@@ -105,6 +105,8 @@ Each cart's `managerLog`, newest first: what managers did ("Refunded", "Released
 
 ## Staff
 
+<img src="./images/staff.png" alt="The Staff section on a desktop: two rows, the owner and a manager added by them, each with their picture, email, role and since when, and a Manage button; Add staff in the header" width="720">
+
 The shop's members, under the tables (`StaffList`, `lib/staff.ts`): `GET /shops/:shopId/staff`, one row per member, the owner first, each with their picture, name ("(you)" on the signed-in account's own row), email, role (Owner or Manager), "since 12 Oct 2026" and, when the member who added them is still on the staff, "added by Sam" (an administrator who did isn't a member, so nothing is said). An account that was deleted keeps its row, named "An account that was deleted". A failed load says "Couldn't load the staff." with Try again. The list is the API's answer, reloaded after every change together with the account's shops, since who owns the shop and who belongs to it decide what the page shows.
 
 Each row's **Manage** opens the member's dialog (`MemberModal`): who they are, their role, since when and who added them, and the actions the signed-in account has, each asking first in the dialog's own footer (`ConfirmFooter`):
