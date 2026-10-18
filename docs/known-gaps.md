@@ -33,4 +33,4 @@ Each changes behaviour, a contract or several layers at once, so each is a step 
 
 ## Roadmap
 
-In the order decided with the product roadmap, now that the sales report page and the shop at a glance on My Shops are in: **staff on a shop** (the owner adds managers and hands the shop over, members leave, an administrator runs every shop and the accounts; the Staff section is in, the administrator's Accounts page next) and then **staff roles** narrowing what each member sees and can press; **kitchen** screens (queue, prep states, live push, which also brings live updates to diners).
+In the order decided with the product roadmap, now that the sales report page and the shop at a glance on My Shops are in: **staff on a shop** (the owner adds managers and hands the shop over, members leave, an administrator runs every shop and the accounts; the Staff section and the administrator's Accounts page are in) and then **staff roles** narrowing what each member sees and can press; **kitchen** screens (queue, prep states, live push, which also brings live updates to diners).

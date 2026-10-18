@@ -7,7 +7,8 @@
       "surname": "Montgomery-Smith",
       "email": "manager.longaddress@example.com",
       "avatar": "https://img.fixtures.test/600x600/200.svg",
-      "role": "customer"
+      "role": "customer",
+      "hasPassword": true
     },
     "shopMg": {
       "_id": "u1",
@@ -15,7 +16,17 @@
       "surname": "Montgomery-Smith",
       "email": "manager.longaddress@example.com",
       "avatar": "https://img.fixtures.test/600x600/200.svg",
-      "role": "shopMg"
+      "role": "shopMg",
+      "hasPassword": true
+    },
+    "admin": {
+      "_id": "u9",
+      "name": "Rosalind",
+      "surname": "Administrator-Longfellow",
+      "email": "rosalind.administrator-longfellow@example.com",
+      "avatar": "https://img.fixtures.test/96x96/40",
+      "role": "admin",
+      "hasPassword": true
     }
   },
   "shops": [
@@ -2560,6 +2571,61 @@
       "role": "manager",
       "since": "2026-09-18T14:30:00.000Z",
       "addedBy": "u1"
+    }
+  ],
+  "accounts": [
+    {
+      "_id": "u5",
+      "name": "Bartholomew",
+      "surname": "Montgomery-Smythe",
+      "email": "bartholomew.montgomery-smythe@example.com",
+      "avatar": "https://img.fixtures.test/96x96/120",
+      "role": "customer",
+      "hasPassword": false,
+      "createdAt": "2026-09-18T14:30:00.000Z",
+      "updatedAt": "2026-09-18T14:30:00.000Z",
+      "shops": [
+        {
+          "_id": "s1",
+          "name": "The Corner Café & Bakery on the High Street",
+          "role": "manager"
+        }
+      ]
+    },
+    {
+      "_id": "u1",
+      "name": "Alexandra",
+      "surname": "Montgomery-Smith",
+      "email": "manager.longaddress@example.com",
+      "avatar": "https://img.fixtures.test/600x600/200.svg",
+      "role": "shopMg",
+      "createdAt": "2026-03-02T09:00:00.000Z",
+      "updatedAt": "2026-10-01T09:00:00.000Z",
+      "shops": [
+        {
+          "_id": "s1",
+          "name": "The Corner Café & Bakery on the High Street",
+          "role": "owner"
+        },
+        {
+          "_id": "s2",
+          "name": "First Shop",
+          "role": "owner"
+        }
+      ],
+      "hasPassword": true
+    },
+    {
+      "_id": "u9",
+      "name": "Rosalind",
+      "surname": "Administrator-Longfellow",
+      "email": "rosalind.administrator-longfellow@example.com",
+      "avatar": "https://img.fixtures.test/96x96/40",
+      "role": "admin",
+      "hasPassword": true,
+      "createdAt": "2026-01-10T09:00:00.000Z",
+      "updatedAt": "2026-01-10T09:00:00.000Z",
+      "shops": []
     }
   ]
 }

@@ -13,6 +13,7 @@ import Cart from "../components/Customers/Cart/Cart"
 import Account from "../components/Customers/Account/Account"
 import ShopDetails from "../components/Shops/ShopDetails/ShopDetails"
 import NotFound from "../components/NotFound/NotFound"
+import Accounts from "../components/Admin/Accounts/Accounts"
 import { makeStore, renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
 import { range, totals } from "./salesFixtures"
@@ -33,6 +34,7 @@ beforeEach(() => {
     http.get(`${BASE}/shops/me`, () => HttpResponse.json([cafe])),
     http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])),
     http.get(`${BASE}/shops/s1/staff`, () => HttpResponse.json({ members: [] })),
+    http.get(`${BASE}/users`, () => HttpResponse.json({ users: [], total: 0, page: 1, limit: 20 })),
     // My Shops' cards read the week's report too.
     http.get(`${BASE}/shops/s1/sales`, () => HttpResponse.json({ range: range("2026-01-01", "2026-01-07", 7), totals: totals(), series: [], heatmap: [], items: [], refunds: { count: 0, byReason: [], byHour: [] }, tables: [] })),
     http.get(`${BASE}/carts/tables/t1`, () => HttpResponse.json({ message: "Cart Not Found!" }, { status: 404 }))
@@ -49,6 +51,7 @@ const cases: Case[] = [
   ["a table's cart", <Cart />, "/shops/s1/tables/t1/cart", "/shops/:shopId/tables/:tableId/cart", {}, "Cart · Table Window · UnQ", "Table: Window"],
   ["the account", <Account />, "/myAccount", undefined, { user: { data: diner, status: "authenticated" } }, "Account · UnQ", "Account"],
   ["a manager's shop", <ShopDetails />, "/shop/s1", "/shop/:shopId", { user: { data: manager, status: "authenticated" } }, "Manage Cafe · UnQ", "Cafe"],
+  ["the accounts", <Accounts />, "/admin/accounts", undefined, { user: { data: { ...diner, role: "admin" }, status: "authenticated" } }, "Accounts · UnQ", "Accounts"],
   ["page not found", <NotFound />, "/nope", undefined, {}, "Page not found · UnQ", "Page not found"],
 ]
 

@@ -68,6 +68,12 @@ const SCREENS = [
   // The sales page: a month of figures with the month before, and a shop with none.
   ["m-sales", "shopMg", "/shop/s1/sales?from=2026-09-12&to=2026-10-11", null],
   ["m-sales-empty", "shopMg", "/shop/s2/sales?from=2026-09-12&to=2026-10-11", null],
+  // The administrator's accounts page, New account, and an account's dialog.
+  ["a-accounts", "admin", "/admin/accounts", null],
+  ["a-account-new", "admin", "/admin/accounts", "newAccount"],
+  ["a-account", "admin", "/admin/accounts", "manageAccount"],
+  // The administrator's header on a shop page: the tabs, Accounts and the icon.
+  ["a-shop", "admin", "/shop/s1", null],
 ]
 
 const VIEWPORTS = [
@@ -92,6 +98,8 @@ const ACTIONS = {
   addStaff: (p) => p.getByRole("button", { name: /add staff/i }).first(),
   // The second member: a manager, so the owner's two actions show.
   manageMember: (p) => p.getByRole("button", { name: /^manage/i }).nth(1),
+  newAccount: (p) => p.getByRole("button", { name: /new account/i }).first(),
+  manageAccount: (p) => p.getByRole("button", { name: /^manage/i }).first(),
   refundPicker: (p) => [
     p.getByRole("button", { name: /view table/i }).first(),
     p.getByRole("button", { name: /^refund items from/i }).first(),
@@ -374,6 +382,8 @@ const mockApi = async (route, role) => {
   const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) })
   const [s1, s2] = fixtures.shops
   if (p === "/users/me") return role ? json(fixtures.users[role]) : json({ message: "Unauthorized" }, 401)
+  // The accounts page: one page of accounts, newest first, the administrator's own last.
+  if (p === "/users") return json({ users: fixtures.accounts, total: fixtures.accounts.length, page: 1, limit: 20 })
   if (p === "/auth/refreshToken") return json({ message: "No refresh token" }, 401)
   if (p === "/auth/sessions") return json(fixtures.sessions)
   if (p === "/shops/s1") return json(s1)

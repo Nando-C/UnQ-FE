@@ -16,9 +16,10 @@ The same bundle serves two people. A **diner** arrives from a table's QR code on
 | `/shop/:shopId` | the manager's page for one shop (`ShopDetails`, behind `ManagerOnly`) | managers |
 | `/shop/:shopId/sales` | the shop's sales report: period controls, headline figures, the trend chart, highlights, and the heatmap, menu, refunds, diners and tables sections (`Sales`, a lazy chunk, behind `ManagerOnly`) | managers |
 | `/myAccount` | the account and the devices it is signed in on, or the sign-in form for a guest (`Account`, `Devices`) | both |
+| `/admin/accounts` | every account, searched and paged, each with its role, its shops and what an administrator does about it (`Accounts`, behind `AdminOnly`) | administrators |
 | `*` | `NotFound` | both |
 
-`ManagerOnly` (`Common/Guards.tsx`) sends a guest to sign in (remembering where to come back to) and a diner to `/`. Until it is known who is signed in, the page renders, since it is nearly always a manager opening it. A signed-in account without the manager role may still be a member of a shop, so the guard waits for the account's shops before deciding (a placeholder heading, "Loading your shops" for a screen reader); once they have loaded it shows the page to a member and sends anyone else to `/`, and if they couldn't be loaded it shows the page and lets the API refuse. `AdminOnly`, beside it, keeps a page for administrators the same way, by role alone; no route uses it yet.
+`ManagerOnly` (`Common/Guards.tsx`) sends a guest to sign in (remembering where to come back to) and a diner to `/`. Until it is known who is signed in, the page renders, since it is nearly always a manager opening it. A signed-in account without the manager role may still be a member of a shop, so the guard waits for the account's shops before deciding (a placeholder heading, "Loading your shops" for a screen reader); once they have loaded it shows the page to a member and sends anyone else to `/`, and if they couldn't be loaded it shows the page and lets the API refuse. `AdminOnly`, beside it, keeps a page for administrators the same way, by role alone.
 
 ## The tree
 
@@ -32,6 +33,7 @@ src/
 │   └── slices/               user, shops, browse, carts
 ├── lib/                      pure helpers and hooks shared by components (below)
 ├── components/
+│   ├── Admin/Accounts/       Accounts (the page), AccountModal, NewAccountModal
 │   ├── Common/               Guards (ManagerOnly, AdminOnly), ScreenStates (Loading, LoadFailed, NoMatch…), ConfirmFooter
 │   ├── Customers/            TableMenu, MenuItem, Cart, CartListItems, CartItem, CheckOut, CardPayment,
 │   │                         PaymentFeedback, CartNotices, NavigationBar, AllShopsList, Account…

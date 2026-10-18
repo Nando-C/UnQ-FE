@@ -5,6 +5,7 @@ import { Link, NavLink, useMatch } from "react-router-dom";
 import wordmark from "../../../assets/unq-wordmark-onematerial.svg";
 import { useAppSelector } from "../../../redux/app/hooks";
 import { selectSelectedShop } from "../../../redux/slices/shopSlice";
+import { selectUserData } from "../../../redux/slices/userSlice";
 import ShopSectionNav from "../ShopSectionNav/ShopSectionNav";
 import ShopName from "./ShopName";
 import { usePublishedHeight } from "../../../lib/usePublishedHeight";
@@ -25,6 +26,8 @@ const ShopNavbar = () => {
   const salesPage = useMatch("/shop/:shopId/sales");
   const shopId = (shopPage ?? salesPage)?.params.shopId;
   const shop = useAppSelector(selectSelectedShop);
+  // An administrator has a page of their own, the accounts.
+  const isAdmin = useAppSelector(selectUserData).role === "admin";
   // While a newly opened shop loads, the store still holds the previous one; show no
   // name rather than the wrong one.
   const shopName = shop && shop._id === shopId ? shop.name : null;
@@ -66,6 +69,11 @@ const ShopNavbar = () => {
           </nav>
           {shopId && <ShopSectionNav shopId={shopId} salesPage={!!salesPage} />}
           <div className="account navbar-nav">
+            {isAdmin && (
+              <NavLink className="nav-link" data-label="Accounts" to="/admin/accounts">
+                Accounts
+              </NavLink>
+            )}
             <NavLink
               className="nav-link"
               to={`/myAccount`}
