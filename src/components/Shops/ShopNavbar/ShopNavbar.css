@@ -88,7 +88,7 @@ html {
 
 /* Below 640px the tabs don't fit beside the breadcrumb, so they take a second row of
  * their own, spanning the bar edge to edge (the negative margins undo the container's
- * gutter) with the three tabs sharing it evenly for bigger touch targets. The
+ * gutter) with the tabs sharing it evenly for bigger touch targets. The
  * breadcrumb row keeps its layout; the shop's name gets whatever width is left. */
 @media (max-width: 639.98px) {
   .navbar.ShopNavbar .shop-bar {
@@ -113,8 +113,22 @@ html {
     --bs-nav-underline-gap: 0;
   }
 
+  /* Five tabs don't fit a 390px row at 200% text: the row then scrolls sideways
+   * under a finger, like the shop's name, rather than running off the screen. At
+   * the usual text size the tabs still share the row. */
+  .ShopNavbar .ShopSectionNav {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .ShopNavbar .ShopSectionNav::-webkit-scrollbar {
+    display: none;
+  }
+
   .ShopNavbar .ShopSectionNav .nav-link {
-    flex: 1 1 0;
+    flex: 1 0 auto;
+    white-space: nowrap;
   }
 }
 

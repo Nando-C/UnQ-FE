@@ -10,6 +10,7 @@ const SECTIONS = [
   { id: "shopDetails", label: "Details" },
   { id: "shopMenu", label: "Menu" },
   { id: "tableList", label: "Tables" },
+  { id: "staffList", label: "Staff" },
 ];
 
 interface ShopSectionNavProps {
@@ -19,10 +20,10 @@ interface ShopSectionNavProps {
 }
 
 // A shop's tabs, in the manager header on that shop's pages: beside the breadcrumb on
-// wide screens, on a row of their own below 640px (ShopNavbar.css). Three are the shop
+// wide screens, on a row of their own below 640px (ShopNavbar.css). Four are the shop
 // page's sections, and the tab for the one you are reading follows the scroll, so
-// unlike a highlight set on click it can't go stale; the fourth, Sales, is a page of
-// its own, from which the three lead back to their section.
+// unlike a highlight set on click it can't go stale; the fifth, Sales, is a page of
+// its own, from which the four lead back to their section.
 const ShopSectionNav = ({ shopId, salesPage }: ShopSectionNavProps) => {
   const shop = useAppSelector(selectSelectedShop);
   const [current, setCurrent] = useState(SECTIONS[0].id);

@@ -35,7 +35,7 @@ src/
 │   ├── Common/               Guards (ManagerOnly, AdminOnly), ScreenStates (Loading, LoadFailed, NoMatch…), ConfirmFooter
 │   ├── Customers/            TableMenu, MenuItem, Cart, CartListItems, CartItem, CheckOut, CardPayment,
 │   │                         PaymentFeedback, CartNotices, NavigationBar, AllShopsList, Account…
-│   ├── Shops/                ShopDetails, ShopMenu, Item, ItemModal, ShopModal, ShopNavbar, ShopSectionNav, ShopList,
+│   ├── Shops/                ShopDetails, ShopMenu, Item, ItemModal, ShopModal, ShopNavbar, ShopSectionNav, ShopList, Staff (StaffList, MemberModal, AddStaffModal),
 │   │                         Sales/ (the sales page: Sales, SalesControls, SalesTools, KpiCards, TrendChart,
 │   │                         Findings, Heatmap, MenuCharts, RefundCharts, DinersChart, TablesAndPayment)
 │   ├── Tables/               TableList, SingleTable, TableStatus, TableSheet, TableModal

@@ -19,6 +19,7 @@ beforeEach(() => {
     http.get(`${BASE}/shops/s1`, () => HttpResponse.json(saved)),
     http.get(`${BASE}/shops/me`, () => HttpResponse.json([saved])),
     http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])),
+    http.get(`${BASE}/shops/s1/staff`, () => HttpResponse.json({ members: [] })),
     http.put(`${BASE}/shops/s1`, async ({ request }) => {
       saved = { ...saved, ...((await request.json()) as Partial<IShop>) }
       return HttpResponse.json(saved)

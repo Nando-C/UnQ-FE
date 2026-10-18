@@ -27,6 +27,7 @@ describe("manager header", () => {
     expect(within(sections).getByRole("link", { name: "Details" })).toHaveAttribute("href", "#shopDetails")
     expect(within(sections).getByRole("link", { name: "Menu" })).toHaveAttribute("href", "#shopMenu")
     expect(within(sections).getByRole("link", { name: "Tables" })).toHaveAttribute("href", "#tableList")
+    expect(within(sections).getByRole("link", { name: "Staff" })).toHaveAttribute("href", "#staffList")
     expect(within(sections).getByRole("link", { name: "Sales" })).toHaveAttribute("href", "/shop/s1/sales")
     expect(within(sections).getByRole("link", { name: "Sales" })).not.toHaveAttribute("aria-current")
   })
@@ -41,6 +42,7 @@ describe("manager header", () => {
     expect(within(sections).getByRole("link", { name: "Menu" })).toHaveAttribute("href", "/shop/s1#shopMenu")
     expect(within(sections).getByRole("link", { name: "Details" })).toHaveAttribute("href", "/shop/s1#shopDetails")
     expect(within(sections).getByRole("link", { name: "Tables" })).toHaveAttribute("href", "/shop/s1#tableList")
+    expect(within(sections).getByRole("link", { name: "Staff" })).toHaveAttribute("href", "/shop/s1#staffList")
   })
 
   it("links the logo to My Shops", () => {

@@ -118,7 +118,8 @@
       ],
       "shopMg": [
         "u1"
-      ]
+      ],
+      "ownerId": "u1"
     },
     {
       "_id": "s2",
@@ -219,7 +220,8 @@
       ],
       "shopMg": [
         "u1"
-      ]
+      ],
+      "ownerId": "u1"
     }
   ],
   "cart": {
@@ -2538,5 +2540,26 @@
         }
       ]
     }
-  }
+  },
+  "staff": [
+    {
+      "userId": "u1",
+      "name": "Alexandra",
+      "surname": "Montgomery-Smith",
+      "email": "alexandra.featherstonehaugh@example.com",
+      "avatar": "https://img.fixtures.test/96x96/200",
+      "role": "owner",
+      "since": "2026-03-02T09:00:00.000Z"
+    },
+    {
+      "userId": "u5",
+      "name": "Bartholomew",
+      "surname": "Montgomery-Smythe",
+      "email": "bartholomew.montgomery-smythe@example.com",
+      "avatar": "https://img.fixtures.test/96x96/120",
+      "role": "manager",
+      "since": "2026-09-18T14:30:00.000Z",
+      "addedBy": "u1"
+    }
+  ]
 }

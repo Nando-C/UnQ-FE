@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import ShopModal from "../ShopModal/ShopModal";
 import ShopMenu from "../ShopMenu/ShopMenu";
 import TableList from "../../Tables/TableList/TableList";
+import StaffList from "../Staff/StaffList";
 import {
   fetchShopList,
   fetchSingleShop,
@@ -120,6 +121,7 @@ const ShopDetails = () => {
           </Card>
           <ShopMenu shopId={shopId} />
           <TableList shopId={shopId} />
+          <StaffList shopId={shopId} />
         </div>
       ) : (
         <div key="loading">
@@ -140,10 +142,11 @@ const ShopDetails = () => {
                 message="Couldn't load this shop."
                 onRetry={() => dispatch(fetchSingleShop(shopId))}
               />
-              {/* The manager's own copy of the menu and tables may still
-                  have loaded. */}
+              {/* The manager's own copy of the menu, tables and staff may
+                  still have loaded. */}
               <ShopMenu shopId={shopId} />
               <TableList shopId={shopId} />
+              <StaffList shopId={shopId} />
             </>
           ) : (
             <Loading label="Loading the shop">

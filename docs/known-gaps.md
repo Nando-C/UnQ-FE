@@ -11,6 +11,7 @@ What the client knowingly doesn't do yet, what it accepts, and what is on the li
 - **PayPal's capture has no table guard** while the card's does: a PayPal capture's cart is taken whatever table is on screen. The popup keeps the diner on the page, so the cart on screen is the one being paid; a guard matching the card path is deferred (item 6).
 - **Each menu card subscribes to the whole shop**, and each menu row and table card mounts its own hidden editor or sheet; fine at a menu's size.
 - **Managers see one open cart as "the one diners see"**; a duplicate is flagged and can be merged, not prevented here.
+- **A member whose account was deleted can't be removed from the staff list in the app.** The staff list names them "An account that was deleted" and their row stays: the API gives such a member no id to name in a removal. Removing them is a database step until the API answers with the id.
 - **The audit can time out under heavy machine load** on screens a change didn't touch; rerun those before believing a failure.
 
 ## Open bugs
@@ -32,4 +33,4 @@ Each changes behaviour, a contract or several layers at once, so each is a step 
 
 ## Roadmap
 
-In the order decided with the product roadmap, now that the sales report page and the shop at a glance on My Shops are in: **staff on a shop** (inviting and removing members; today a shop's only member is the manager who created it) and then **staff roles** narrowing what each member sees and can press; **kitchen** screens (queue, prep states, live push, which also brings live updates to diners).
+In the order decided with the product roadmap, now that the sales report page and the shop at a glance on My Shops are in: **staff on a shop** (the owner adds managers and hands the shop over, members leave, an administrator runs every shop and the accounts; the Staff section is in, the administrator's Accounts page next) and then **staff roles** narrowing what each member sees and can press; **kitchen** screens (queue, prep states, live push, which also brings live updates to diners).

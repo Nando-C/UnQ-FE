@@ -70,7 +70,8 @@ describe("the manager's menu search", () => {
     server.use(
       http.get(`${BASE}/shops/s1`, () => HttpResponse.json(cafe)),
       http.get(`${BASE}/shops/me`, () => HttpResponse.json([cafe])),
-      http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([]))
+      http.get(`${BASE}/shops/s1/tables/status`, () => HttpResponse.json([])),
+      http.get(`${BASE}/shops/s1/staff`, () => HttpResponse.json({ members: [] })),
     )
     const { user } = renderAt("/shop/s1", "/shop/:shopId", <ShopDetails />, {
       user: { data: manager, status: "authenticated" },

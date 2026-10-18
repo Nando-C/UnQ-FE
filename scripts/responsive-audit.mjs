@@ -60,6 +60,8 @@ const SCREENS = [
   ["m-item-add", "shopMg", "/shop/s1", "addItem"],
   ["m-table-add", "shopMg", "/shop/s1", "addTable"],
   ["m-table-sheet", "shopMg", "/shop/s1", "viewTable"],
+  ["m-staff-add", "shopMg", "/shop/s1", "addStaff"],
+  ["m-member", "shopMg", "/shop/s1", "manageMember"],
   ["m-refund", "shopMg", "/shop/s1", "refundPicker"],
   ["m-refund-other", "shopMg", "/shop/s1", "refundOther"],
   ["m-account", "shopMg", "/myAccount", null],
@@ -87,6 +89,9 @@ const ACTIONS = {
   addItem: (p) => p.getByRole("button", { name: /add menu item/i }).first(),
   addTable: (p) => p.getByRole("button", { name: /add table/i }).first(),
   viewTable: (p) => p.getByRole("button", { name: /view table/i }).first(),
+  addStaff: (p) => p.getByRole("button", { name: /add staff/i }).first(),
+  // The second member: a manager, so the owner's two actions show.
+  manageMember: (p) => p.getByRole("button", { name: /^manage/i }).nth(1),
   refundPicker: (p) => [
     p.getByRole("button", { name: /view table/i }).first(),
     p.getByRole("button", { name: /^refund items from/i }).first(),
@@ -384,6 +389,8 @@ const mockApi = async (route, role) => {
     return json({ range: { from, to, timeZone: "Europe/London", by: "day", days }, totals, series, heatmap: [], items: [], refunds: { count: 0, byReason: [], byHour: [] }, tables: [] })
   }
   if (p === "/shops/s1/tables/status") return json(fixtures.tableStatus)
+  // The staff: the signed-in manager owns the shop, with one manager added by them.
+  if (p === "/shops/s1/staff" || p === "/shops/s2/staff") return json({ members: fixtures.staff })
   if (p === "/shops/s2/tables/status") return json([])
   if (/^\/shops\/s1\/tables\/[^/]+\/carts$/.test(p)) return json(fixtures.tableCarts)
   // The manager's own shops carry the tables they deleted; one deleted an hour

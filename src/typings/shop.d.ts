@@ -51,6 +51,19 @@ export interface IMember {
     addedBy?: string
 }
 
+// A member as the staff list gives them (GET /shops/:shopId/staff): joined to
+// their account, whose fields are null once the account is gone.
+export interface IStaffMember {
+    userId: string | null
+    name: string | null
+    surname?: string
+    email: string | null
+    avatar?: string
+    role: MemberRole
+    since: string
+    addedBy?: string
+}
+
 export interface IDeletedTable {
     _id: string
     name: string
