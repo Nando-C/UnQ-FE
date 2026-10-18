@@ -6,14 +6,15 @@ import Login from "./components/Login/Login";
 import Dashboard from "./components/Dashboard/Dashboard";
 import ShopDetails from "./components/Shops/ShopDetails/ShopDetails";
 import { useAppDispatch, useAppSelector } from "./redux/app/hooks";
-import { fetchUserData, selectUserData } from "./redux/slices/userSlice";
+import { fetchUserData, selectUserStatus } from "./redux/slices/userSlice";
+import { loadShopList, selectIsManager } from "./redux/slices/shopSlice";
 import Cart from "./components/Customers/Cart/Cart";
 import NavigationBar from "./components/Customers/NavigationBar/NavigationBar";
 import TableMenu from "./components/Customers/TableMenu/TableMenu";
 import Account from "./components/Customers/Account/Account";
 import ShopNavbar from "./components/Shops/ShopNavbar/ShopNavbar";
 import NotFound from "./components/NotFound/NotFound";
-import { ManagerOnly } from "./components/Common/ManagerOnly";
+import { ManagerOnly } from "./components/Common/Guards";
 import SalesFallback from "./components/Shops/Sales/SalesFallback";
 
 // The sales page brings the charting library, which only managers who open
@@ -27,10 +28,17 @@ function App() {
     dispatch(fetchUserData());
   }, [dispatch]);
 
-  // Shop managers get the manager header, everyone else (diners, guests) the
-  // bottom tab bar.
-  const userDataStore = useAppSelector(selectUserData);
-  const isManager = userDataStore.role === "shopMg" ? true : false;
+  // Every signed-in account loads the shops it is a member of (one small
+  // request, answering [] for a diner): they decide the shell, with the role.
+  const status = useAppSelector(selectUserStatus);
+  useEffect(() => {
+    if (status === "authenticated") dispatch(loadShopList());
+  }, [status, dispatch]);
+
+  // Whoever runs a shop (a shop manager or an administrator by role, or a
+  // member of a shop) gets the manager header, everyone else (diners, guests)
+  // the bottom tab bar.
+  const isManager = useAppSelector(selectIsManager);
 
   return (
     <div className={isManager ? "App bg-light is-manager" : "App bg-light"}>

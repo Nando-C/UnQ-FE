@@ -8,6 +8,9 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ### Added
 
+- Whoever runs a shop gets the manager side of the app: a shop manager or an administrator by role, or a member of a shop, which the account's shops say. Every signed-in account loads them, the shell and My Shops read them, and the manager pages wait for them before sending anyone to the home page, so a member who opens their shop's address directly isn't bounced while the answer is on its way. The account page says what the account is: "Administrator"; by its shops, "Owner of Cafe", "Staff at Cafe" or "Manages 2 shops"; or, with no shop yet, "Shop manager". A session that turns out to have ended forgets the shops, as signing out does. [docs/architecture.md](./docs/architecture.md#one-app-two-interfaces).
+- An administrator sees every shop on My Shops, and the shop editor's Owner field when creating one: a search of the accounts by name or email, whose pick becomes the shop's owner. A member of someone else's shop has no Add Shop. [docs/manager-tools.md](./docs/manager-tools.md#my-shops).
+- The types know a shop's `ownerId` and `members`, and an account's `createdBy` and `admin` role; the API contract fixture is the API's document with the Staff and Accounts operations.
 - A pull request template, issue templates and a Docs check (`.github/workflows/docs.yml`): a pull request that changes the code without a word in the changelog or the docs fails the check, unless it carries the `no-docs` label. The steps a release follows are written down in [docs/deployment.md](./docs/deployment.md#releasing).
 
 ## [2.3.0] - 2026-10-15

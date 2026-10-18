@@ -25,7 +25,7 @@ Habits that caught real slips: work out the expected test total before running (
 `setup.ts` makes the rules:
 
 - **An unhandled request fails its test.** msw refuses it and the test ends with "requests no handler answered", so a component can't quietly call something the test didn't expect.
-- Default handlers (`server.ts`) keep a guest render quiet: `/users/me` is a 401, the home page's shops are empty, the refresh probe is a 400, as the real API answers a guest.
+- Default handlers (`server.ts`) keep a guest render quiet: `/users/me` is a 401, the home page's shops are empty, the refresh probe is a 400, as the real API answers a guest; and a signed-in account's own shops (`/shops/me`) are none, as for a diner.
 - jsdom's missing browser APIs are shimmed (`matchMedia`, `ResizeObserver`, `scrollTo`).
 
 `helpers.tsx` gives `renderWithProviders` (real reducers, a `MemoryRouter`, an optional route pattern for `useParams`, a `userEvent` instance), `makeStore` for thunk tests, and `gate`, which holds a request until the test lets it through: how ordering tests make a late answer arrive late.

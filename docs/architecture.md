@@ -4,7 +4,7 @@ How the client is put together: what lives where, how data moves, and the rules 
 
 ## One app, two interfaces
 
-The same bundle serves two people. A **diner** arrives from a table's QR code on a phone, orders into the table's shared cart and pays for the units they picked. A **manager** signs in on a laptop and runs their shops, menus and tables, and watches each table's carts and money. `App.tsx` decides which shell to draw from the signed-in user's role (`shopMg` gets the fixed manager header, everyone else the fixed bottom tab bar), and the routes below are open to both:
+The same bundle serves two people. A **diner** arrives from a table's QR code on a phone, orders into the table's shared cart and pays for the units they picked. A **manager** signs in on a laptop and runs their shops, menus and tables, and watches each table's carts and money. `App.tsx` decides which shell to draw from who is signed in: whoever runs a shop gets the fixed manager header, everyone else the fixed bottom tab bar. Running a shop is the account's role (`shopMg`, a shop manager who may create shops, or `admin`, an administrator who may do everything on every shop) or being a member of one, which only the account's shops say: every signed-in account loads them (`GET /shops/me`, `[]` for a diner) and one selector, `selectIsManager`, reads both. The routes below are open to both:
 
 | Route | Page | Who |
 |---|---|---|
@@ -18,7 +18,7 @@ The same bundle serves two people. A **diner** arrives from a table's QR code on
 | `/myAccount` | the account and the devices it is signed in on, or the sign-in form for a guest (`Account`, `Devices`) | both |
 | `*` | `NotFound` | both |
 
-`ManagerOnly` sends a guest to sign in (remembering where to come back to) and a diner to `/`. Until it is known who is signed in, the page renders, since it is nearly always a manager opening it.
+`ManagerOnly` (`Common/Guards.tsx`) sends a guest to sign in (remembering where to come back to) and a diner to `/`. Until it is known who is signed in, the page renders, since it is nearly always a manager opening it. A signed-in account without the manager role may still be a member of a shop, so the guard waits for the account's shops before deciding (a placeholder heading, "Loading your shops" for a screen reader); once they have loaded it shows the page to a member and sends anyone else to `/`, and if they couldn't be loaded it shows the page and lets the API refuse. `AdminOnly`, beside it, keeps a page for administrators the same way, by role alone; no route uses it yet.
 
 ## The tree
 
@@ -32,7 +32,7 @@ src/
 │   └── slices/               user, shops, browse, carts
 ├── lib/                      pure helpers and hooks shared by components (below)
 ├── components/
-│   ├── Common/               ManagerOnly, ScreenStates (Loading, LoadFailed, NoMatch…), ConfirmFooter
+│   ├── Common/               Guards (ManagerOnly, AdminOnly), ScreenStates (Loading, LoadFailed, NoMatch…), ConfirmFooter
 │   ├── Customers/            TableMenu, MenuItem, Cart, CartListItems, CartItem, CheckOut, CardPayment,
 │   │                         PaymentFeedback, CartNotices, NavigationBar, AllShopsList, Account…
 │   ├── Shops/                ShopDetails, ShopMenu, Item, ItemModal, ShopModal, ShopNavbar, ShopSectionNav, ShopList,
@@ -59,7 +59,7 @@ Redux Toolkit holds what more than one component reads, or what must outlive a p
 | Slice | Holds | Loaded by |
 |---|---|---|
 | `user` | the signed-in account and `status`: `idle` → `loading` → `authenticated` or `guest` | `fetchUserData` (`GET /users/me`) on every app start and after sign-in; `logOut` |
-| `shops` | the manager's own shops (`data`, from `GET /shops/me`) and the shop whose page is open (`selected`, from `GET /shops/:shopId`), with load statuses | `fetchShopList`, `fetchSingleShop` |
+| `shops` | the shops the signed-in account is a member of, every shop for an administrator (`data`, from `GET /shops/me`), and the shop whose page is open (`selected`, from `GET /shops/:shopId`), with load statuses | `loadShopList` (once per signed-in account, from the shell and the guard; signing out forgets them), `fetchShopList` (My Shops on opening, the editors after a change), `fetchSingleShop` |
 | `browse` | the home page's shops, a page at a time, with the search they answer and the cursor of the next page | `browseShops` (`GET /shops/browse`) |
 | `carts` | the table's cart as the API has it, the table the diner is at (`pointers`), the selections asked for but not yet confirmed (`pending`), and the last split error per item | `getTableCart`, the cart thunks, `setSplitQty` |
 
@@ -79,7 +79,7 @@ component ──dispatch(thunk)──▶ slice ──▶ backend (axios) ──�
 - **Errors** are read in one place, `lib/errors.ts`: the API's `{ message, details?, reason? }` body, its status, and `apiErrorMessage`, which prefers the zod `details` of a 400 to its message. Only an object body counts; a proxy's HTML error page is ignored.
 - **Cart requests** go through `cartThunk`, which rejects with the API's `{ status, message, reason }` (`CartRejection`) so the UI can tell refusals apart; the checkout's mapping of those is in [checkout.md](./checkout.md).
 - **Who is signed in** gates every change. `lib/useSignIn.ts` says whether it's known yet (`/users/me` answered), whether someone is signed in, and sends a guest to `/login` with the current page remembered. A tap made before it is known waits for the answer rather than guessing (`MenuItem`).
-- **Coming back after signing in**: `lib/returnTo.ts` keeps the table's path in `sessionStorage` for 30 minutes, because sign-up reloads the page and Google sign-in leaves the site and returns to `/`. `Login`, `Register` and `Dashboard` take it; `ManagerOnly` and `Login` set it.
+- **Coming back after signing in**: `lib/returnTo.ts` keeps the table's path in `sessionStorage` for 30 minutes, because sign-up reloads the page and Google sign-in leaves the site and returns to `/`. `Login`, `Register` and `Dashboard` take it; the guards and `Login` set it.
 
 ## Styling layers
 

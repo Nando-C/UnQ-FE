@@ -1,11 +1,13 @@
 import { useId } from "react";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
-import { Modal, Button, Form, FloatingLabel, Image, Alert } from "react-bootstrap";
+import { Modal, Button, Form, FloatingLabel, Image, Alert, ListGroup } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import backend from "../../../backend/backend";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList, fetchSingleShop } from "../../../redux/slices/shopSlice";
 import { IShop } from "../../../typings/shop";
+import { IListedUser } from "../../../typings/user";
+import { selectUserData } from "../../../redux/slices/userSlice";
 import placeholder from "../../../assets/placeholder.svg";
 import "./ShopModal.css";
 import { apiErrorMessage } from "../../../lib/errors";
@@ -64,11 +66,21 @@ const EMPTY_SHOP: IShop = {
   timeZone: DEFAULT_TIME_ZONE,
 };
 
+// The accounts an administrator may name as a new shop's owner: those matching
+// what was typed (GET /users?q=, a page of this many), bar administrators, who
+// are never members.
+const OWNER_MATCHES = 10;
+const ownerName = (account: Pick<IListedUser, "name" | "surname">) => [account.name, account.surname].filter(Boolean).join(" ");
+
 const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   const formId = useId();
   const shop = useAppSelector((state) =>
     state.shops.data.find((shop) => shop._id === shopId)
   );
+  // An administrator is never a member of a shop, so one they create needs
+  // its owner named (the API refuses otherwise): the Owner field below.
+  const isAdmin = useAppSelector(selectUserData).role === "admin";
+  const namesOwner = isAdmin && shopId === "new";
 
   const [editShop, setEditShop] = useState<IShop>(EMPTY_SHOP);
   const dispatch = useAppDispatch();
@@ -89,7 +101,43 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
     setCreatedId(null);
     setImageFile(null);
     setError(null);
+    setOwner(null);
+    setOwnerQuery("");
   }, [show]);
+
+  // The Owner field: what was typed, the accounts matching it (null until
+  // asked, or while the text is empty), and the one picked. The search goes
+  // out a moment after typing stops, and only the latest answer is shown.
+  const [owner, setOwner] = useState<IListedUser | null>(null);
+  const [ownerQuery, setOwnerQuery] = useState("");
+  const [ownerMatches, setOwnerMatches] = useState<IListedUser[] | null>(null);
+  const [ownerSearchFailed, setOwnerSearchFailed] = useState(false);
+  const ownerSearches = useRef(0);
+  useEffect(() => {
+    // Whatever was asked before no longer applies: an owner was picked, or the
+    // text was cleared.
+    const search = ++ownerSearches.current;
+    if (!namesOwner || owner) return;
+    const q = ownerQuery.trim();
+    if (!q) {
+      setOwnerMatches(null);
+      setOwnerSearchFailed(false);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await backend.get<{ users: IListedUser[] }>("/users", { params: { q, limit: OWNER_MATCHES } });
+        if (search !== ownerSearches.current) return;
+        setOwnerMatches(data.users.filter((account) => account.role !== "admin"));
+        setOwnerSearchFailed(false);
+      } catch {
+        if (search !== ownerSearches.current) return;
+        setOwnerMatches(null);
+        setOwnerSearchFailed(true);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [namesOwner, owner, ownerQuery]);
 
   const [imageFile, setImageFile] = useState<File | null>();
   const preview = useObjectURL(imageFile);
@@ -127,6 +175,10 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       setError("Name is required");
       return;
     }
+    if (namesOwner && !id && !owner) {
+      setError("Choose the shop's owner");
+      return;
+    }
     const fields = {
       name: editShop.name,
       bio: editShop.bio,
@@ -141,7 +193,8 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
       if (id) {
         await backend.put(`/shops/${id}`, fields);
       } else {
-        id = (await backend.post(`/shops`, fields)).data._id as string;
+        // Only an administrator names the owner; a manager's own shop is theirs.
+        id = (await backend.post(`/shops`, namesOwner ? { ...fields, ownerId: owner!._id } : fields)).data._id as string;
         setCreatedId(id);
       }
       if (imageFile) {
@@ -258,6 +311,53 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
                 />
               </FloatingLabel>
             </Form.Group>
+            {namesOwner && (
+              <Form.Group className="mb-3">
+                {owner ? (
+                  <div className="d-flex flex-wrap align-items-center gap-2">
+                    <span>
+                      Owner: <strong>{ownerName(owner)}</strong> <span className="text-break">({owner.email})</span>
+                    </span>
+                    <Button variant="link" size="sm" className="p-0" onClick={() => setOwner(null)}>
+                      Change
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <FloatingLabel controlId={`${formId}-owner`} label="Owner (search by name or email)">
+                      <Form.Control
+                        placeholder="Owner"
+                        autoComplete="off"
+                        value={ownerQuery}
+                        onChange={(e) => setOwnerQuery(e.target.value)}
+                      />
+                    </FloatingLabel>
+                    {ownerMatches && ownerMatches.length > 0 && (
+                      <ListGroup as="ul" className="mt-1" aria-label="Matching accounts">
+                        {ownerMatches.map((account) => (
+                          <ListGroup.Item as="li" key={account._id} className="p-0">
+                            <Button
+                              variant="link"
+                              className="w-100 text-start text-decoration-none px-3 py-2"
+                              onClick={() => setOwner(account)}
+                            >
+                              {ownerName(account)} <span className="text-muted text-break">· {account.email}</span>
+                            </Button>
+                          </ListGroup.Item>
+                        ))}
+                      </ListGroup>
+                    )}
+                    {/* Said aloud as the search answers, since the list below the
+                        field appears without the focus moving. */}
+                    <div role="status">
+                      {ownerMatches?.length === 0 && <Form.Text>No account matches.</Form.Text>}
+                      {ownerSearchFailed && <Form.Text className="text-danger">Couldn't search the accounts.</Form.Text>}
+                    </div>
+                  </>
+                )}
+                <Form.Text as="div">The owner runs the shop and adds its managers.</Form.Text>
+              </Form.Group>
+            )}
             <Form.Group className="mb-3">
               <FloatingLabel controlId={`${formId}-bio`} label="Bio">
                 <Form.Control

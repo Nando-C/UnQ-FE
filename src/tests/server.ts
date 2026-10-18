@@ -10,9 +10,11 @@ export const BASE = import.meta.env.VITE_BE_URL
 // (401), the home page's shop list is empty, and the guest refresh probe 400s the
 // way the real BE does — so the 401 interceptor's follow-up refresh resolves
 // (to a rejection) instead of hitting an unhandled request. The account page
-// asks for its devices: one, this one.
+// asks for its devices: one, this one. Every signed-in account asks for its
+// shops: none, as for a diner.
 export const handlers = [
   http.get(`${BASE}/users/me`, () => new HttpResponse(null, { status: 401 })),
+  http.get(`${BASE}/shops/me`, () => HttpResponse.json([])),
   http.get(`${BASE}/auth/sessions`, () =>
     HttpResponse.json([{ _id: "s1", createdAt: "2026-10-01T09:00:00.000Z", lastUsedAt: "2026-10-11T09:00:00.000Z", userAgent: "Mozilla/5.0 (iPhone) Safari/605.1", current: true }])
   ),

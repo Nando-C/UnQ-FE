@@ -10,10 +10,18 @@ import { useNavigate } from "react-router-dom";
 import Login from "../../Login/Login";
 import { usePageTitle } from "../../../lib/usePageTitle";
 import { takeReturnTo } from "../../../lib/returnTo";
+import { roleLine } from "../../../lib/membership";
+import { selectShopsData, selectShopsDataStatus } from "../../../redux/slices/shopSlice";
 
 const Account = () => {
   const user = useAppSelector(selectUserData);
   const status = useAppSelector(selectUserStatus);
+  const shops = useAppSelector(selectShopsData);
+  const shopsStatus = useAppSelector(selectShopsDataStatus);
+  // What the account is (lib/membership.ts), once its shops have answered (or
+  // couldn't), so the line doesn't change under the reader; an administrator's
+  // doesn't depend on them.
+  const line = user.role === "admin" || shopsStatus === "ready" || shopsStatus === "failed" ? roleLine(user, shops) : null;
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
@@ -60,8 +68,9 @@ const Account = () => {
             </Card.Title>
             <Card.Body>
               <Card.Text className="text-break">{user.email}</Card.Text>
-              {/* Diners aren't shown a role; a manager sees they are one. */}
-              {user.role === "shopMg" && <Card.Text>Shop manager</Card.Text>}
+              {/* Diners aren't shown a role; whoever runs shops sees which,
+                  and as what. */}
+              {line && <Card.Text>{line}</Card.Text>}
             </Card.Body>
             <Button
               className="edit-profile"

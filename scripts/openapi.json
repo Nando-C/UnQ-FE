@@ -4,7 +4,7 @@
     "title": "UnQ API",
     "version": "2.3.0",
     "summary": "Order and pay at the table, split the bill, run the shop.",
-    "description": "The API behind UnQ, a food and drinks ordering app: diners at a venue scan their table's QR code, order from their phones, pick what each of them pays for, and pay by PayPal or card (Stripe); managers run their shops, menus and tables from the same app.\n\n## Conventions\n\n- **Sign-in** is two HttpOnly cookies, `accessToken` (15 minutes) and `refreshToken` (4 weeks), set by the auth routes. Each sign-in is a session of its own, so an account can be signed in on several devices (up to 10) and sign one out (`DELETE /auth/sessions/{sessionId}`). A 401 means refresh (`POST /auth/refreshToken`) and retry; a refresh that fails ends the session. Operations marked with the lock need the cookie; the rest are public, and some show more to a signed-in caller.\n- **Roles.** Every account is a `customer`; a `shopMg` (shop manager, set in the database) can create shops. Manager routes check that the caller manages the shop in the URL (403 otherwise).\n- **Ids** are MongoDB ObjectIds (24 hex characters). A table's id is its `_id` in the shop's `tables`.\n- **Money** is in pounds (GBP) to the penny everywhere a cart, a payment or a refund says an amount, and the `price` a manager sets is the same. The one exception is `createStripeCheckout`'s `amount`, in pence, as Stripe counts. The client never names an amount to pay: every total comes from database prices.\n- **Errors** are `{ message, details?, reason? }`. `400 Validation failed` carries `details`, one `{ path, message }` per problem; a few errors carry a machine-readable `reason`. A 5xx says only \"Generic Server Error\" unless its message was written for the user.\n- **Rate limits**, per account, not per IP: wrong passwords (10 in 15 minutes, wherever tried) and a diner's cart changes (120 a minute, starting a card payment included; capturing a payment is never limited). Both configurable (`PASSWORD_FAILS_PER_ACCOUNT`, `CART_EDITS_PER_MINUTE`).\n- **Soft deletes.** A deleted menu item stays, unavailable, for the carts that hold it; a deleted table stays under the shop's `deletedTables` so its carts and money stay reachable; a shop is deleted for good, with everything in it, once no money is moving.\n- **Concurrency.** A cart is saved under optimistic concurrency: a write that meets a newer version retries or answers 409 \"The cart changed, please retry\".\n\n## Checkout\n\nA diner selects units to pay for (`addSplitItem`), then pays in two calls around the provider's UI: PayPal `createCheckoutOrder` → popup → `captureCheckout`; card `createStripeCheckout` → Payment Element → `captureStripeCheckout`. The second call re-checks everything before money moves, and a payment that can't be recorded afterwards is refunded automatically. A card payment the diner abandons after authorising is still finished by Stripe's webhook or the server's 2-minute sweep, and the diner is told the outcome in their cart's `notices` on their next visit.",
+    "description": "The API behind UnQ, a food and drinks ordering app: diners at a venue scan their table's QR code, order from their phones, pick what each of them pays for, and pay by PayPal or card (Stripe); managers run their shops, menus and tables from the same app.\n\n## Conventions\n\n- **Sign-in** is two HttpOnly cookies, `accessToken` (15 minutes) and `refreshToken` (4 weeks), set by the auth routes. Each sign-in is a session of its own, so an account can be signed in on several devices (up to 10) and sign one out (`DELETE /auth/sessions/{sessionId}`). A 401 means refresh (`POST /auth/refreshToken`) and retry; a refresh that fails ends the session. Operations marked with the lock need the cookie; the rest are public, and some show more to a signed-in caller.\n- **Roles.** Every account is a `customer`; a `shopMg` (shop manager) can create shops, and an `admin` can do everything on every shop. Never from the account's own request (register, profile edit): an administrator gives them (the Accounts operations), and the first administrator is set in the database. A shop's staff are its `members`, each with a role (`owner`, one per shop, or `manager`), added by the owner (the Staff operations); the owner, or an administrator, alone adds managers, removes other members and hands the shop over, and any member may leave; manager routes check that the caller is a member of the shop in the URL, or an administrator (403 otherwise).\n- **Ids** are MongoDB ObjectIds (24 hex characters). A table's id is its `_id` in the shop's `tables`.\n- **Money** is in pounds (GBP) to the penny everywhere a cart, a payment or a refund says an amount, and the `price` a manager sets is the same. The one exception is `createStripeCheckout`'s `amount`, in pence, as Stripe counts. The client never names an amount to pay: every total comes from database prices.\n- **Errors** are `{ message, details?, reason? }`. `400 Validation failed` carries `details`, one `{ path, message }` per problem; a few errors carry a machine-readable `reason`. A 5xx says only \"Generic Server Error\" unless its message was written for the user.\n- **Rate limits**, per account, not per IP: wrong passwords (10 in 15 minutes, wherever tried), a diner's cart changes (120 a minute, starting a card payment included; capturing a payment is never limited) and people added (20 an hour, an account created or attached by an administrator or a shop's staff). All configurable (`PASSWORD_FAILS_PER_ACCOUNT`, `CART_EDITS_PER_MINUTE`, `PEOPLE_ADDED_PER_HOUR`).\n- **Soft deletes.** A deleted menu item stays, unavailable, for the carts that hold it; a deleted table stays under the shop's `deletedTables` so its carts and money stay reachable; a shop is deleted for good, with everything in it, once no money is moving.\n- **Concurrency.** A cart is saved under optimistic concurrency: a write that meets a newer version retries or answers 409 \"The cart changed, please retry\".\n\n## Checkout\n\nA diner selects units to pay for (`addSplitItem`), then pays in two calls around the provider's UI: PayPal `createCheckoutOrder` → popup → `captureCheckout`; card `createStripeCheckout` → Payment Element → `captureStripeCheckout`. The second call re-checks everything before money moves, and a payment that can't be recorded afterwards is refunded automatically. A card payment the diner abandons after authorising is still finished by Stripe's webhook or the server's 2-minute sweep, and the diner is told the outcome in their cart's `notices` on their next visit.",
     "contact": {
       "name": "Hernando Crespo",
       "url": "https://github.com/Nando-C"
@@ -32,6 +32,14 @@
     {
       "name": "Users",
       "description": "The signed-in account"
+    },
+    {
+      "name": "Accounts",
+      "description": "Every account, for administrators: list, create, set a role, delete"
+    },
+    {
+      "name": "Staff",
+      "description": "A shop's members: list, add, remove, hand the shop over"
     },
     {
       "name": "Shops",
@@ -92,7 +100,7 @@
         ],
         "security": [],
         "summary": "Create an account and sign in",
-        "description": "A new account with the customer role (the manager role is set in the database). Sets the `accessToken` (15 minutes) and `refreshToken` (4 weeks) cookies: HttpOnly, Secure, SameSite=None. The sign-in is a session of its own on the account (a device), beside the ones other devices hold: at most 10, the oldest sign-in going beyond that. The avatar is a generated initials image.",
+        "description": "A new account with the customer role; the shopMg and admin roles are given by an administrator (POST /users, PUT /users/{userId}/role), the first administrator in the database. Sets the `accessToken` (15 minutes) and `refreshToken` (4 weeks) cookies: HttpOnly, Secure, SameSite=None. The sign-in is a session of its own on the account (a device), beside the ones other devices hold: at most 10, the oldest sign-in going beyond that. The avatar is a generated initials image.",
         "requestBody": {
           "required": true,
           "content": {
@@ -416,6 +424,331 @@
         }
       }
     },
+    "/users": {
+      "get": {
+        "operationId": "listUsers",
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "A page of accounts",
+        "description": "Newest first, each with the shops it is a member of and its role on each. `q` matches the name, surname or email, case aside. An empty parameter counts as absent.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Text to search for (up to 100 characters); empty or absent lists every account",
+            "schema": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "description": "Only accounts with this role",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "customer",
+                "shopMg",
+                "admin"
+              ]
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "1 is the first (default 1)",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Accounts per page, 1 to 50 (default 20)",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdministratorOnly"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createUser",
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Create an account",
+        "description": "With any role (`customer` unless said); `createdBy` is the administrator. The person is told the password and changes it on their account page. Counts towards the administrator's people-added limit.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "surname": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "Trimmed and lowercased"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "description": "At least 8 characters: the account's first password"
+                  },
+                  "role": {
+                    "default": "customer",
+                    "type": "string",
+                    "enum": [
+                      "customer",
+                      "shopMg",
+                      "admin"
+                    ],
+                    "description": "customer unless said"
+                  }
+                },
+                "required": [
+                  "name",
+                  "surname",
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdministratorOnly"
+          },
+          "404": {
+            "$ref": "#/components/responses/UserGone"
+          },
+          "409": {
+            "description": "\"Email already registered\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyAdded"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "delete": {
+        "operationId": "deleteUser",
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Delete an account",
+        "description": "The shops it works at lose it; its sessions end. Not the caller's own (so the last administrator stays), not one that owns a shop (handed over or deleted first).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/userId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "\"Another administrator deletes your account\": the caller's own",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdministratorOnly"
+          },
+          "404": {
+            "description": "\"User not found\": no such account; \"User not found!\": the caller's is gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"Transfer or delete their shops first\": the account owns a shop",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/users/{userId}/role": {
+      "put": {
+        "operationId": "setRole",
+        "tags": [
+          "Accounts"
+        ],
+        "summary": "Set an account's role",
+        "description": "Not the caller's own, so the last administrator can't demote themselves and another would have to exist to demote them. `admin` only for an account on no shop (an administrator is never a member).",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/userId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "customer",
+                      "shopMg",
+                      "admin"
+                    ]
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account as it is now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Validation failed\" (details); \"You can't change your own role\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/AdministratorOnly"
+          },
+          "404": {
+            "description": "\"User not found\": no such account; \"User not found!\": the caller's is gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"Hand over or leave their shops first\": `admin` for an account on a shop",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
     "/users/me": {
       "get": {
         "operationId": "getMe",
@@ -551,7 +884,7 @@
           "Users"
         ],
         "summary": "Delete the signed-in account",
-        "description": "Needs `currentPassword` when the account has a password. A manager's shops must be deleted first. Clears the cookies.",
+        "description": "Needs `currentPassword` when the account has a password. The shops the account owns must be handed over or deleted first; the shops it merely works at lose it. An administrator's account is deleted by another administrator. Clears the cookies.",
         "requestBody": {
           "required": true,
           "content": {
@@ -600,7 +933,7 @@
             "$ref": "#/components/responses/UserGone"
           },
           "409": {
-            "description": "\"Delete your shops first\"",
+            "description": "\"Delete your shops first\": the account owns a shop (hand it over or delete it); \"An administrator's account is deleted by another administrator\"",
             "content": {
               "application/json": {
                 "schema": {
@@ -710,7 +1043,7 @@
           "Shops"
         ],
         "summary": "Create a shop",
-        "description": "The caller becomes its manager (`shopMg`).",
+        "description": "The caller becomes its owner (`ownerId`, the first of its `members`). An administrator is never a member, so one names the owner instead (`ownerId`, any account but another administrator's); from anyone else the field is refused.",
         "requestBody": {
           "required": true,
           "content": {
@@ -740,6 +1073,11 @@
                   "timeZone": {
                     "type": "string",
                     "description": "An IANA time zone name (Europe/London, America/New_York): the zone the shop's days are counted in; Europe/London unless set"
+                  },
+                  "ownerId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$",
+                    "description": "Administrators only: the account that owns the new shop"
                   }
                 },
                 "required": [
@@ -761,16 +1099,47 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/ValidationFailed"
+            "description": "\"Validation failed\" (details); \"Name the shop's owner (ownerId): an administrator isn't a member\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "$ref": "#/components/responses/ManagerOnly"
+            "description": "\"Shop Manager Only!!\": the account can't create shops; \"Only an administrator names an owner\": `ownerId` from a shop manager",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "404": {
-            "$ref": "#/components/responses/UserGone"
+            "description": "\"User not found!\": the token's account no longer exists; \"Owner not found\": no account has the `ownerId`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"An administrator can't be a member of a shop\": the `ownerId` is an administrator's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
@@ -812,10 +1181,10 @@
           "Shops"
         ],
         "summary": "The caller's shops",
-        "description": "Menus populated. Each deleted table says whether something there still needs the manager (`needsAttention`) and until when its closed carts stay on its sheet (`recentCartsUntil`).",
+        "description": "The shops the caller is a member of, whatever their account role: `[]` for an account on none, every shop for an administrator. Menus populated. Each deleted table says whether something there still needs the staff (`needsAttention`) and until when its closed carts stay on its sheet (`recentCartsUntil`). A shop from before membership gets its `ownerId` and `members` here, from its `shopMg`.",
         "responses": {
           "200": {
-            "description": "The shops the caller manages",
+            "description": "The shops the caller is a member of",
             "content": {
               "application/json": {
                 "schema": {
@@ -829,9 +1198,6 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/ManagerOnly"
           },
           "404": {
             "$ref": "#/components/responses/UserGone"
@@ -949,8 +1315,8 @@
         "tags": [
           "Shops"
         ],
-        "summary": "Edit a shop the caller manages",
-        "description": "Every field optional; only the ones sent change. An empty `phone` clears it.",
+        "summary": "Edit a shop the caller is a member of",
+        "description": "Any member of the shop, whatever their account role (or an administrator). Every field optional; only the ones sent change. An empty `phone` clears it.",
         "parameters": [
           {
             "$ref": "#/components/parameters/shopId"
@@ -1003,7 +1369,16 @@
             }
           },
           "400": {
-            "description": "\"Validation failed\" (details); \"Shop Not Found or you are not authorized!\" (no such shop, or not the caller's)",
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"; \"User not found!\"",
             "content": {
               "application/json": {
                 "schema": {
@@ -1011,15 +1386,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/ManagerOnly"
-          },
-          "404": {
-            "$ref": "#/components/responses/UserGone"
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
@@ -1032,7 +1398,7 @@
           "Shops"
         ],
         "summary": "Delete a shop and everything in it",
-        "description": "Takes its menu items (deleted ones too), its carts (payment records included) and its pay-backs; the orders remain as the sales record, written first (nothing is deleted if they can't be). Refused while money is still moving: an open cart, a payment or refund a provider hasn't confirmed, a card payment still being finished, a diner to pay back, or a payment that can still be refunded from a table's sheet (a paid cart closed or changed in the last 24 hours).",
+        "description": "The owner's alone (or an administrator's). Takes its menu items (deleted ones too), its carts (payment records included) and its pay-backs; the orders remain as the sales record, written first (nothing is deleted if they can't be). Refused while money is still moving: an open cart, a payment or refund a provider hasn't confirmed, a card payment still being finished, a diner to pay back, or a payment that can still be refunded from a table's sheet (a paid cart closed or changed in the last 24 hours).",
         "parameters": [
           {
             "$ref": "#/components/parameters/shopId"
@@ -1042,8 +1408,14 @@
           "204": {
             "description": "Deleted"
           },
-          "400": {
-            "description": "\"Shop Not Found or you are not authorized!\": no such shop, or the caller doesn't manage it",
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsOwner"
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"; \"User not found!\"",
             "content": {
               "application/json": {
                 "schema": {
@@ -1051,15 +1423,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/ManagerOnly"
-          },
-          "404": {
-            "$ref": "#/components/responses/UserGone"
           },
           "409": {
             "description": "\"A table in this shop has an open cart — close it first\"; \"A payment or refund at table … is still awaiting PayPal|Stripe — check it there first\"; \"A payment at table … can still be refunded from its sheet: the shop can be deleted once no paid cart has changed for a day\"; or a card-payment reason (carts/stripeDeletion.ts)",
@@ -1080,6 +1443,338 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/staff": {
+      "get": {
+        "operationId": "listStaff",
+        "tags": [
+          "Staff"
+        ],
+        "summary": "The shop's members",
+        "description": "Each joined to their account (name, email, avatar), the owner first. Any member of the shop, or an administrator.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/StaffMember"
+                      }
+                    }
+                  },
+                  "required": [
+                    "members"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsManager"
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "post": {
+        "operationId": "addStaff",
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Add someone to the shop",
+        "description": "By their email. An address with an account attaches that account, name and password untouched (200); one without gets an account created from `name`, `surname` and `password`, which the caller tells them (201; account role `customer`, `createdBy` the caller). Only the owner (or an administrator) adds a `manager`. One update puts them in both membership lists, so two adds of one person land once. Counts towards the caller's people-added limit, created or attached.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "description": "Trimmed and lowercased"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "manager"
+                    ],
+                    "description": "The membership role they get"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "For a new account"
+                  },
+                  "surname": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "For a new account"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "description": "For a new account: at least 8 characters, its first password"
+                  }
+                },
+                "required": [
+                  "email",
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "An existing account, attached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffAdded"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "An account created for them, attached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffAdded"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "\"Validation failed\" (details; for a new account, name, surname and password are \"Required for a new account\"); \"That is your own address\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "\"Shop Manager Only!\": not a member of this shop; \"Only the owner adds managers\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"Already a member\"; \"An administrator can't be a member of a shop\"; \"The shop's staff changed, please retry\": the shop lost its owner or the account went in the same instant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyAdded"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/staff/{userId}": {
+      "delete": {
+        "operationId": "removeStaff",
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Remove a member",
+        "description": "The owner (or an administrator) removes anyone but the owner; a manager only the roles below manager (none yet); any member themselves (leaving). The owner is never removed: the shop is handed over first. The account stays.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/userId"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "\"Shop Manager Only!\": not a member of this shop; \"The owner can't be removed\"; \"Only the owner removes a manager\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"; \"Not a member of this shop\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"The shop's staff changed, please retry\": a hand-over landed in the same instant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/shops/{shopId}/owner": {
+      "put": {
+        "operationId": "handOver",
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Make another member the owner",
+        "description": "The owner (or an administrator) names a member, who becomes the owner; the previous owner becomes a manager. One update, matched on the current owner.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{24}$",
+                    "description": "A member of the shop"
+                  }
+                },
+                "required": [
+                  "userId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The members, as GET /shops/{shopId}/staff lists them",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/StaffMember"
+                      }
+                    }
+                  },
+                  "required": [
+                    "members"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/NotThisShopsOwner"
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"; \"Not a member of this shop\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"Already the owner\"; \"The shop's staff changed, please retry\": another hand-over, a removal or a deletion landed in the same instant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
           }
         }
       }
@@ -1129,7 +1824,7 @@
             }
           },
           "400": {
-            "description": "\"Only JPEG, PNG, WebP, GIF, AVIF or HEIC images can be uploaded\"; \"No image was sent (field \\\"cover\\\")\"; \"Shop Not Found or you are not authorized!\"",
+            "description": "\"Only JPEG, PNG, WebP, GIF, AVIF or HEIC images can be uploaded\"; \"No image was sent (field \\\"cover\\\")\"",
             "content": {
               "application/json": {
                 "schema": {
@@ -3920,6 +4615,17 @@
           "pattern": "^[0-9a-f]{24}$",
           "description": "A MongoDB ObjectId"
         }
+      },
+      "userId": {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "description": "The account",
+        "schema": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{24}$",
+          "description": "A MongoDB ObjectId"
+        }
       }
     },
     "responses": {
@@ -3953,8 +4659,8 @@
           }
         }
       },
-      "ManagerOnly": {
-        "description": "\"Shop Manager Only!!\": the account isn't a shop manager",
+      "NotThisShopsManager": {
+        "description": "\"Shop Manager Only!\": the account isn't a member of this shop (nor an administrator)",
         "content": {
           "application/json": {
             "schema": {
@@ -3963,12 +4669,46 @@
           }
         }
       },
-      "NotThisShopsManager": {
-        "description": "\"Shop Manager Only!\": the account doesn't manage this shop",
+      "NotThisShopsOwner": {
+        "description": "\"Only the owner can do this\": the account isn't this shop's owner (nor an administrator)",
         "content": {
           "application/json": {
             "schema": {
               "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "AdministratorOnly": {
+        "description": "\"Administrator only\": the account isn't an administrator",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "TooManyAdded": {
+        "description": "\"Too many people added in an hour — wait a while and try again\": more than PEOPLE_ADDED_PER_HOUR (default 20) accounts created or attached by this account in an hour",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "headers": {
+          "RateLimit": {
+            "description": "The limit's current state (IETF draft 8)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "RateLimit-Policy": {
+            "description": "The limit's policy (IETF draft 8)",
+            "schema": {
+              "type": "string"
             }
           }
         }
@@ -4078,9 +4818,10 @@
             "type": "string",
             "enum": [
               "customer",
-              "shopMg"
+              "shopMg",
+              "admin"
             ],
-            "description": "shopMg (shop manager) is set in the database, never through the API"
+            "description": "shopMg (shop manager) can create shops; admin can do everything on every shop and manage accounts. Never from the account's own request (register, profile edit): an administrator gives them (POST /users, PUT /users/{userId}/role); the first administrator is set in the database"
           },
           "googleId": {
             "type": "string"
@@ -4088,6 +4829,11 @@
           "hasPassword": {
             "type": "boolean",
             "description": "Whether the account can sign in with a password; a Google-only account can't"
+          },
+          "createdBy": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "Who made the account when it wasn't the person (an administrator, or a shop's owner adding staff); absent on a self-registered one"
           },
           "createdAt": {
             "type": "string",
@@ -4106,6 +4852,214 @@
           "hasPassword",
           "createdAt",
           "updatedAt"
+        ]
+      },
+      "ListedUser": {
+        "type": "object",
+        "description": "An account and the shops it is a member of, with its role on each",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "name": {
+            "type": "string"
+          },
+          "surname": {
+            "type": "string",
+            "description": "Absent on some Google accounts"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Stored trimmed and lowercased"
+          },
+          "avatar": {
+            "type": "string",
+            "format": "uri"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "customer",
+              "shopMg",
+              "admin"
+            ],
+            "description": "shopMg (shop manager) can create shops; admin can do everything on every shop and manage accounts. Never from the account's own request (register, profile edit): an administrator gives them (POST /users, PUT /users/{userId}/role); the first administrator is set in the database"
+          },
+          "googleId": {
+            "type": "string"
+          },
+          "hasPassword": {
+            "type": "boolean",
+            "description": "Whether the account can sign in with a password; a Google-only account can't"
+          },
+          "createdBy": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "Who made the account when it wasn't the person (an administrator, or a shop's owner adding staff); absent on a self-registered one"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "shops": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{24}$",
+                  "description": "A MongoDB ObjectId"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "owner",
+                    "manager"
+                  ]
+                }
+              },
+              "required": [
+                "_id",
+                "name",
+                "role"
+              ]
+            }
+          }
+        },
+        "required": [
+          "_id",
+          "name",
+          "email",
+          "role",
+          "hasPassword",
+          "createdAt",
+          "updatedAt",
+          "shops"
+        ]
+      },
+      "AccountPage": {
+        "type": "object",
+        "description": "A page of accounts, newest first",
+        "properties": {
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ListedUser"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Accounts matching, over every page"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "limit": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "users",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "StaffMember": {
+        "type": "object",
+        "description": "A member of a shop, with their account's name, email and avatar (null once the account is gone)",
+        "properties": {
+          "userId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{24}$",
+                "description": "A MongoDB ObjectId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "surname": {
+            "type": "string"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "avatar": {
+            "type": "string",
+            "format": "uri"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "manager"
+            ]
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When they joined"
+          },
+          "addedBy": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "Who added them; absent for the first owner of a shop they created themselves (an administrator who creates the shop for them is recorded) and for the members of a shop from before membership"
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "email",
+          "role",
+          "since"
+        ]
+      },
+      "StaffAdded": {
+        "type": "object",
+        "properties": {
+          "member": {
+            "$ref": "#/components/schemas/StaffMember"
+          },
+          "created": {
+            "type": "boolean",
+            "description": "true: the account was created for them (201); false: an existing account was attached (200)"
+          }
+        },
+        "required": [
+          "member",
+          "created"
         ]
       },
       "Session": {
@@ -4285,6 +5239,39 @@
           "updatedAt"
         ]
       },
+      "Member": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "A MongoDB ObjectId"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "manager"
+            ],
+            "description": "owner: one per shop, the only member who deletes it; manager: runs it"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When they joined (the shop's creation for a shop from before membership)"
+          },
+          "addedBy": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "Who added them; absent for the first owner of a shop they created themselves (an administrator who creates the shop for them is recorded) and for the members of a shop from before membership"
+          }
+        },
+        "required": [
+          "userId",
+          "role",
+          "since"
+        ]
+      },
       "Shop": {
         "type": "object",
         "description": "A shop as everyone sees it: menu items populated, deleted tables left out",
@@ -4326,7 +5313,12 @@
               "pattern": "^[0-9a-f]{24}$",
               "description": "A MongoDB ObjectId"
             },
-            "description": "The managers' user ids"
+            "description": "Every member's user id, the owner's included: who may run the shop"
+          },
+          "ownerId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "The owner's user id. Absent on a shop from before membership that no member or administrator has opened yet; set the first time one does"
           },
           "tables": {
             "type": "array",
@@ -4363,7 +5355,7 @@
       },
       "ShopRecord": {
         "type": "object",
-        "description": "A shop as stored: menu items by id, deleted tables included (the answer to creating or editing one)",
+        "description": "A shop as stored: menu items by id, deleted tables and members included (the answer to creating or editing one)",
         "properties": {
           "_id": {
             "type": "string",
@@ -4402,7 +5394,12 @@
               "pattern": "^[0-9a-f]{24}$",
               "description": "A MongoDB ObjectId"
             },
-            "description": "The managers' user ids"
+            "description": "Every member's user id, the owner's included: who may run the shop"
+          },
+          "ownerId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "The owner's user id. Absent on a shop from before membership that no member or administrator has opened yet; set the first time one does"
           },
           "tables": {
             "type": "array",
@@ -4417,6 +5414,13 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            },
+            "description": "One per id in shopMg; [] on a shop from before membership that no member or administrator has opened yet"
           },
           "menu": {
             "type": "array",
@@ -4449,7 +5453,7 @@
       },
       "ManagerShop": {
         "type": "object",
-        "description": "A shop for its manager: menu items populated, deleted tables with what still needs them",
+        "description": "A shop for its staff: menu items populated, deleted tables with what still needs them, members",
         "properties": {
           "_id": {
             "type": "string",
@@ -4488,7 +5492,12 @@
               "pattern": "^[0-9a-f]{24}$",
               "description": "A MongoDB ObjectId"
             },
-            "description": "The managers' user ids"
+            "description": "Every member's user id, the owner's included: who may run the shop"
+          },
+          "ownerId": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "The owner's user id. Absent on a shop from before membership that no member or administrator has opened yet; set the first time one does"
           },
           "tables": {
             "type": "array",
@@ -4503,6 +5512,13 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Member"
+            },
+            "description": "One per id in shopMg; [] on a shop from before membership that no member or administrator has opened yet"
           },
           "menu": {
             "type": "array",
