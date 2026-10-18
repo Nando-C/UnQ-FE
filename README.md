@@ -23,7 +23,7 @@ The demo runs at [un-q.vercel.app](https://un-q.vercel.app). Its API sleeps on a
 
 Adding an item asks you to sign in. Create an account, sign in with Google, or use the demo diner, `frank@mail.com` with the password `UnqTester1`. Pay by card with Stripe's test card `4242 4242 4242 4242`, any future expiry and any CVC (`4000 0025 0000 3155` asks for a bank check first, `4000 0000 0000 0002` is declined). PayPal runs against its sandbox and needs a sandbox buyer account.
 
-**As the venue, on a laptop.** Sign in as `manager@mail.com` with the password `UnqManager1`. Three venues are yours, with ninety days of payments behind them. Each card shows the venue at a glance: today so far, the last seven days against the seven before, the week's best seller, a highlight, and what its tables need right now. Open a venue's Sales tab for the trend, the busy hours, what the menu earns, refunds by cause and the highlights written from those figures. Rocketlit's tables show every state at once: one being ordered at, a selection held too long, a sold-out item in a cart, a payment the provider is still holding, a diner still to be paid back, and a deleted table whose last cart can still be refunded.
+**As the venue, on a laptop.** Sign in as `manager@mail.com` with the password `UnqManager1`. Three venues are yours, with ninety days of payments behind them. Each card shows the venue at a glance: today so far, the last seven days against the seven before, the week's best seller, a highlight, and what its tables need right now. The café has a second manager, Alex, whom the demo manager added: the Staff section on its page shows both, and lets the owner add, remove or hand the shop over. Open a venue's Sales tab for the trend, the busy hours, what the menu earns, refunds by cause and the highlights written from those figures. Rocketlit's tables show every state at once: one being ordered at, a selection held too long, a sold-out item in a cart, a payment the provider is still holding, a diner still to be paid back, and a deleted table whose last cart can still be refunded.
 
 <img src="docs/images/my-shops.png" alt="My Shops on a desktop: three venue cards, each with its photo and name, net sales today and over the last seven days with the change on the week before, the best seller, a highlight, and a footer with what its tables need and when the card was updated" width="720">
 
@@ -44,6 +44,7 @@ Each with its reason and what it costs; the dated log is [docs/ux-decisions.md](
 - **The latest request wins.** Every fetch that can overlap is numbered and its answer applied only if nothing newer was asked for since, so a slow answer never overwrites a newer screen and a failed probe never signs a manager out. Cost: five small implementations of one idea, listed in [known-gaps.md](./docs/known-gaps.md) to unify. [architecture.md](./docs/architecture.md#state-four-slices-one-store)
 - **Honest outcomes that stay.** A refusal before money moved says nothing was charged; a lost answer after a capture never claims either way; a card payment the API couldn't confirm is "being confirmed", not failed, and the cart is looked at again. Every outcome stays until the diner closes it. [checkout.md](./docs/checkout.md#outcomes)
 - **Sold-out items are shown, not hidden.** A diner sees why an item can't be added, and one that sold out after it was added stays in the cart flagged, never charged, until it is removed. [ux-decisions.md](./docs/ux-decisions.md)
+- **Who runs a shop is the shop's answer, not the token's.** Every signed-in account loads the shops it belongs to, and the manager side shows to whoever has one, or holds the shop manager or administrator role; the client shows the owner's controls and lets the API refuse, so a change of staff takes effect on the next request without a new sign-in. Cost: the manager pages wait for that answer before sending anyone home. [manager-tools.md](./docs/manager-tools.md#staff)
 - **Layout is tested, not eyeballed.** A headless-Chrome audit renders the main screens from 320px to 1440px and at 200% text against a mocked API and fails on overflow, content spilling out of its card or sheet, controls under 24px, and content hidden under a fixed bar. [responsive-and-a11y.md](./docs/responsive-and-a11y.md)
 
 ## Architecture
@@ -76,7 +77,7 @@ src/
 ├── backend/backend.ts      the one axios instance and its refresh interceptor
 ├── redux/                  the store, typed hooks, four slices (user, shops, browse, carts)
 ├── lib/                    shared helpers and hooks: errors, prices, the outcome mapping, sign-in gating
-├── components/             Customers (menu, cart, checkout), Shops and Tables (the manager), Common
+├── components/             Customers (menu, cart, checkout), Shops and Tables (the manager), Admin (the accounts), Common
 ├── styles/theme.scss       Bootstrap recompiled with the UnQ palette
 ├── typings/                shared types
 └── tests/                  the Vitest suite, its msw server and helpers
@@ -134,7 +135,7 @@ CI runs the lint, the suite and the build, which type-checks first, on Node 24 f
 
 - [docs/architecture.md](./docs/architecture.md): the routes, the tree, the four slices and the "latest request wins" rule, data flow, the styling layers, the build.
 - [docs/checkout.md](./docs/checkout.md): selecting what to pay, the card and PayPal flows, and the table of every outcome a diner can see.
-- [docs/manager-tools.md](./docs/manager-tools.md): the shop page, the editors, the tables and the table sheet's actions, word for word.
+- [docs/manager-tools.md](./docs/manager-tools.md): the shop page, the editors, the tables and the table sheet's actions, the staff and the administrator's accounts, word for word.
 - [docs/sales.md](./docs/sales.md): the sales page as a case study: the questions, the chart that answers each, the counting rules, the highlights' rules, the demo's patterns.
 - [docs/ux-decisions.md](./docs/ux-decisions.md): why it is the way it is, dated.
 - [docs/responsive-and-a11y.md](./docs/responsive-and-a11y.md): what holds at every size, touch, focus, colour, and the audit.

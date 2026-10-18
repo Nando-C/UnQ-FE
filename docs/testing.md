@@ -32,7 +32,7 @@ Habits that caught real slips: work out the expected test total before running (
 
 ## What it covers
 
-Forty-five files, grouped by what they prove:
+Fifty files, grouped by what they prove:
 
 - **Sessions**: the refresh interceptor (refresh and replay, single flight, the `superseded` resend, a read asked again as a guest, `sessionUnknown`); log in, sign up and the account editor with the API's errors; the account's devices list (naming a device from its User-Agent, signing one out, the failures); returning to the table after signing in; the manager route guard.
 - **Ordering and the cart**: adding from the menu (a sold-out 409, a changed cart, a closed table); split selection, Select All, −/+ bursts, the optimistic loop's failures and rollbacks; the counters; totals at paid prices; the bin and − with units others hold; sold-out rows and the blocked checkout; notices shown and dismissed.
@@ -41,6 +41,7 @@ Forty-five files, grouped by what they prove:
 - **The shop list**: paging, server search, out-of-order answers, failures; the latest-shop-wins rules.
 - **The sales page**: today and the presets in the shop's zone, stepping a range (by its length, by whole months), the grouping default, the URL state; the ratios and the moving average; the headline figures and their changes (and the four more), the trend's hidden table, a metric switched without a request, stepping and regrouping with the requests they send, the default range, the empty, failed and loading states; the Sales tab in the header. The highlights' rules over one week (every sentence, the silence with too little to draw on, the alternatives), and each section's table: the heatmap's hours and single-day row, the menu's filter and sorting, the refunds by cause and hour and the no-refunds case, the diners per day, the tables' sorting and the payment mix; the counting note and the CSV links; the shop editor's time zone.
 - **My Shops**: the readings from the week's report and the tables' status (today's bucket, the change on the week before, the best seller by revenue, the first highlight, the flags, what is owed, the pay-backs); each card's figures, links and request, the nothing-sold wording, a failure on one card's one part with a retry, the updated time and the figures kept through a failed refresh, the loading placeholder and its status line.
+- **Staff and accounts**: who runs a shop (the selector's five states, the guard waiting for the shops, the shell for a member and an administrator, the account page's line, the Owner field); the Staff section (the rules for the owner, a manager and an administrator, each question's wording, the requests, a deleted account's row, the 409 reload); the Accounts page (search and role filter with a dropped stale answer, paging, the role saved and put back, delete, the own-account case, New account's checks).
 - **Pages**: loading, failed, empty, no-match and not-found states; one `main` and one `h1` and a title per page; the layout stability of placeholders; touch targets and the published bar heights.
 - **Units**: `formatPrice`, `availableQty`, the outcome helpers.
 

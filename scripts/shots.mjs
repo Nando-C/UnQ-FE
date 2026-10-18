@@ -272,6 +272,18 @@ if (wanted("tables") || wanted("qr") || wanted("table-sheet") || wanted("refund"
     await d.emulateMedia({ media: "screen" })
   }
 }
+if (wanted("staff")) {
+  // The café's staff: the demo manager as its owner, with the manager they
+  // added. The section is the last on the page and short, so a shorter window
+  // shows it under the header rather than at the foot of the tables.
+  await d.setViewportSize({ width: 1440, height: 600 })
+  await goto(d, `/shop/${DEMO_SHOP}`, 1500)
+  await d.getByRole("button", { name: /^Manage / }).first().waitFor({ timeout: 15000 })
+  await d.evaluate(() => document.getElementById("staffList").scrollIntoView({ block: "start" }))
+  await sleep(800)
+  await save("staff", "browser", d, `un-q.vercel.app/shop/${DEMO_SHOP}`)
+  await d.setViewportSize({ width: 1440, height: 1000 })
+}
 if (wanted("notice")) {
   // Release Frank's selection at Marlow's Table 3, so he has a notice to see.
   await goto(d, `/shop/${marlowId}`, 1200)
