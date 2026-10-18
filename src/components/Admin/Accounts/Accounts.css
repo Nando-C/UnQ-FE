@@ -1,0 +1,26 @@
+/* The accounts page clears the fixed manager header by its measured height
+ * (--unq-header-h). Until then it allows for the header's usual height (55px
+ * at 16px, in rem as it grows with the text size): an administrator's page
+ * always sits under that header, and the page may paint before the shell
+ * knows who is signed in, so the guess is this page's own rather than
+ * App.css's --header-guess, which only exists once the shell is a manager's. */
+.Accounts {
+  padding-top: calc(var(--unq-header-h, 3.4375rem) + 1.5rem);
+  padding-bottom: 3rem;
+}
+
+/* The accounts list: the search above, one row per account. */
+.Accounts .filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.Accounts .filters .form-floating {
+  min-width: 0;
+}
+
+.Accounts .account-name {
+  min-width: 0;
+}

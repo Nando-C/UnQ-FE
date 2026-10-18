@@ -14,7 +14,8 @@ import TableMenu from "./components/Customers/TableMenu/TableMenu";
 import Account from "./components/Customers/Account/Account";
 import ShopNavbar from "./components/Shops/ShopNavbar/ShopNavbar";
 import NotFound from "./components/NotFound/NotFound";
-import { ManagerOnly } from "./components/Common/Guards";
+import { AdminOnly, ManagerOnly } from "./components/Common/Guards";
+import Accounts from "./components/Admin/Accounts/Accounts";
 import SalesFallback from "./components/Shops/Sales/SalesFallback";
 
 // The sales page brings the charting library, which only managers who open
@@ -85,6 +86,15 @@ function App() {
               element={<Cart />}
             />
             <Route path="/myAccount" element={<Account />} />
+            {/* The administrator's accounts page. */}
+            <Route
+              path="/admin/accounts"
+              element={
+                <AdminOnly>
+                  <Accounts />
+                </AdminOnly>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

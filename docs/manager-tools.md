@@ -116,3 +116,18 @@ Each row's **Manage** opens the member's dialog (`MemberModal`): who they are, t
 A row with nothing to press says why: the owner's, "The owner can't be removed: the shop is handed over first."; another manager's, to a manager, "Only the owner removes a manager." The API's refusals (a change that landed in the same instant, "The shop's staff changed, please retry") show in the dialog as they are, and the list reloads.
 
 **Add staff**, in the section's header for the owner or an administrator, opens a dialog (`AddStaffModal`) asking for an email; they join as a manager. Once the address is typed, the fields for a new account appear (name, surname, a first password of at least 8 characters), sent only when filled: an address that already has an account is attached as it is and the API ignores them, one without gets an account made from them (`POST /shops/:shopId/staff`, 200 or 201). The section then says which happened: "Account created for Alex. Give them the password you set; they can change it on their account page." or "Alex already had an account and is now a manager at Cafe." The API's refusals show in the dialog: which fields a new account still needs ("Required for a new account"), "Already a member", "That is your own address", and the hourly limit on people added.
+
+## Accounts
+
+An administrator's page at `/admin/accounts` (`Accounts`, behind `AdminOnly`; "Accounts" in the header for an administrator): every account, newest first (`GET /users`), searched by name or email as the text is typed (the rows stay until the answer lands, the count line saying "Searching…") and by role, twenty at a time with "Show more". The count says "3 accounts" or "No account matches.". A search that is typed over is dropped, its late failure too. Each row: name ("(you)" on the administrator's own), email, role (Customer, Shop manager, Administrator), the shops they work at ("Owner of Cafe, manager at Deli", or "no shops") and "since 12 Oct 2026". A failed load says "Couldn't load the accounts." with Try again.
+
+Each row's **Manage** opens the account's dialog (`AccountModal`): the same details, whether they sign in with a password or with Google only, and:
+
+- **Role**, a select saved as it is picked (`PUT /users/:userId/role`); the API's refusals put it back and show as they are ("Hand over or leave their shops first": an administrator is never a member of a shop).
+- **Delete account**, asking first in the dialog's own footer: "Delete Ada's account? Their sign-ins end and they leave the shops they work at.", and when the account owns a shop, "They own Cafe: hand it over or delete it first.", which is what the API will refuse (`DELETE /users/:userId`, "Transfer or delete their shops first").
+
+On the administrator's own account neither is offered ("You can't change your own role.", "Another administrator deletes your account."), as the API refuses both.
+
+**New account** (`NewAccountModal`): name, surname, email, a first password of at least 8 characters and the role (`POST /users`). The form asks for every field and a password of eight characters before sending ("All fields are required", "The password needs at least 8 characters"). The page then says "Account created for Alex. Give them the password you set; they can change it on their account page.", clears the search and lists the account first. The API's refusals ("Email already registered", the hourly limit on people added) show in the dialog.
+
+The list lives in the page's own state: nothing else reads it.
