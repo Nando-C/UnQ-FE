@@ -6,6 +6,10 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-10-18
+
+Staff on a shop. Whoever runs a shop gets the manager side: a shop manager or an administrator by role, or a member of a shop, which the account's shops say. The shop page gains a Staff section, where the owner adds managers by email, removes them and hands the shop over, and any member leaves; an administrator sees every shop, names a new shop's owner, and has an Accounts page. Needs the API at 2.4.0. Nothing changes on the host.
+
 ### Added
 
 - An Accounts page for an administrator, at `/admin/accounts` and in the header: every account, searched by name or email and by role, twenty at a time, each with its role, the shops it works at and since when. Each row's Manage opens the account's dialog, where the role is saved as it is picked and the account deleted after being told what follows (and that a shop it owns must be handed over or deleted first). New account creates one with a first password and any role. [docs/manager-tools.md](./docs/manager-tools.md#accounts).
