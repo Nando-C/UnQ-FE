@@ -6,7 +6,7 @@ React 19 · TypeScript 6 · Vite 8 · Redux Toolkit · React Router 7 · React-B
 
 [![CI](https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml/badge.svg)](https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-635bff)](./LICENSE)
-[![Version 2.3.0](https://img.shields.io/badge/version-2.3.0-0F6E66)](./CHANGELOG.md)
+[![Version 2.4.0](https://img.shields.io/badge/version-2.4.0-0F6E66)](./CHANGELOG.md)
 
 <p>
   <img src="docs/images/menu.png" alt="A table's menu on a phone: Rocketlit's dishes with photos, descriptions, prices and Add buttons, one item marked sold out" height="520">
