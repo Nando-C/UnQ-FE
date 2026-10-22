@@ -40,8 +40,10 @@ export interface IShopPage {
 }
 
 // A shop's staff: one owner, who alone adds and removes managers and hands the
-// shop over, and managers.
-export type MemberRole = "owner" | "manager"
+// shop over; managers, who run it; and below manager till (the tables and the
+// money), floor (the tables, no money) and kitchen (reads the tables and their
+// orders). What each may do is lib/roles.ts.
+export type MemberRole = "owner" | "manager" | "till" | "floor" | "kitchen"
 
 export interface IMember {
     userId: string

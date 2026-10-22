@@ -4,7 +4,7 @@
     "title": "UnQ API",
     "version": "2.4.0",
     "summary": "Order and pay at the table, split the bill, run the shop.",
-    "description": "The API behind UnQ, a food and drinks ordering app: diners at a venue scan their table's QR code, order from their phones, pick what each of them pays for, and pay by PayPal or card (Stripe); managers run their shops, menus and tables from the same app.\n\n## Conventions\n\n- **Sign-in** is two HttpOnly cookies, `accessToken` (15 minutes) and `refreshToken` (4 weeks), set by the auth routes. Each sign-in is a session of its own, so an account can be signed in on several devices (up to 10) and sign one out (`DELETE /auth/sessions/{sessionId}`). A 401 means refresh (`POST /auth/refreshToken`) and retry; a refresh that fails ends the session. Operations marked with the lock need the cookie; the rest are public, and some show more to a signed-in caller.\n- **Roles.** Every account is a `customer`; a `shopMg` (shop manager) can create shops, and an `admin` can do everything on every shop. Never from the account's own request (register, profile edit): an administrator gives them (the Accounts operations), and the first administrator is set in the database. A shop's staff are its `members`, each with a role (`owner`, one per shop, or `manager`), added by the owner (the Staff operations); the owner, or an administrator, alone adds managers, removes other members and hands the shop over, and any member may leave; manager routes check that the caller is a member of the shop in the URL, or an administrator (403 otherwise).\n- **Ids** are MongoDB ObjectIds (24 hex characters). A table's id is its `_id` in the shop's `tables`.\n- **Money** is in pounds (GBP) to the penny everywhere a cart, a payment or a refund says an amount, and the `price` a manager sets is the same. The one exception is `createStripeCheckout`'s `amount`, in pence, as Stripe counts. The client never names an amount to pay: every total comes from database prices.\n- **Errors** are `{ message, details?, reason? }`. `400 Validation failed` carries `details`, one `{ path, message }` per problem; a few errors carry a machine-readable `reason`. A 5xx says only \"Generic Server Error\" unless its message was written for the user.\n- **Rate limits**, per account, not per IP: wrong passwords (10 in 15 minutes, wherever tried), a diner's cart changes (120 a minute, starting a card payment included; capturing a payment is never limited) and people added (20 an hour, an account created or attached by an administrator or a shop's staff). All configurable (`PASSWORD_FAILS_PER_ACCOUNT`, `CART_EDITS_PER_MINUTE`, `PEOPLE_ADDED_PER_HOUR`).\n- **Soft deletes.** A deleted menu item stays, unavailable, for the carts that hold it; a deleted table stays under the shop's `deletedTables` so its carts and money stay reachable; a shop is deleted for good, with everything in it, once no money is moving.\n- **Concurrency.** A cart is saved under optimistic concurrency: a write that meets a newer version retries or answers 409 \"The cart changed, please retry\".\n\n## Checkout\n\nA diner selects units to pay for (`addSplitItem`), then pays in two calls around the provider's UI: PayPal `createCheckoutOrder` → popup → `captureCheckout`; card `createStripeCheckout` → Payment Element → `captureStripeCheckout`. The second call re-checks everything before money moves, and a payment that can't be recorded afterwards is refunded automatically. A card payment the diner abandons after authorising is still finished by Stripe's webhook or the server's 2-minute sweep, and the diner is told the outcome in their cart's `notices` on their next visit.",
+    "description": "The API behind UnQ, a food and drinks ordering app: diners at a venue scan their table's QR code, order from their phones, pick what each of them pays for, and pay by PayPal or card (Stripe); managers run their shops, menus and tables from the same app.\n\n## Conventions\n\n- **Sign-in** is two HttpOnly cookies, `accessToken` (15 minutes) and `refreshToken` (4 weeks), set by the auth routes. Each sign-in is a session of its own, so an account can be signed in on several devices (up to 10) and sign one out (`DELETE /auth/sessions/{sessionId}`). A 401 means refresh (`POST /auth/refreshToken`) and retry; a refresh that fails ends the session. Operations marked with the lock need the cookie; the rest are public, and some show more to a signed-in caller.\n- **Roles.** Every account is a `customer`; a `shopMg` (shop manager) can create shops, and an `admin` can do everything on every shop. Never from the account's own request (register, profile edit): an administrator gives them (the Accounts operations), and the first administrator is set in the database. A shop's staff are its `members`, each with a role: `owner` (one per shop), `manager`, and below manager `till`, `floor` and `kitchen` (the Staff operations). The owner, or an administrator, alone adds managers, removes them, changes a manager's role and hands the shop over; a manager adds, re-roles and removes the three below; any member may leave. A shop's operations check that the caller is a member of the shop in the URL, or an administrator (403 \"Shop Manager Only!\" otherwise), then that their role may do this: each such operation carries `x-ability`, what it asks of the role (the fact the server checks), and `x-roles`, the roles that hold it today (403 \"Your role on this shop doesn't allow this\" for the others).\n- **Ids** are MongoDB ObjectIds (24 hex characters). A table's id is its `_id` in the shop's `tables`.\n- **Money** is in pounds (GBP) to the penny everywhere a cart, a payment or a refund says an amount, and the `price` a manager sets is the same. The one exception is `createStripeCheckout`'s `amount`, in pence, as Stripe counts. The client never names an amount to pay: every total comes from database prices.\n- **Errors** are `{ message, details?, reason? }`. `400 Validation failed` carries `details`, one `{ path, message }` per problem; a few errors carry a machine-readable `reason`. A 5xx says only \"Generic Server Error\" unless its message was written for the user.\n- **Rate limits**, per account, not per IP: wrong passwords (10 in 15 minutes, wherever tried), a diner's cart changes (120 a minute, starting a card payment included; capturing a payment is never limited) and people added (20 an hour, an account created or attached by an administrator or a shop's staff). All configurable (`PASSWORD_FAILS_PER_ACCOUNT`, `CART_EDITS_PER_MINUTE`, `PEOPLE_ADDED_PER_HOUR`).\n- **Soft deletes.** A deleted menu item stays, unavailable, for the carts that hold it; a deleted table stays under the shop's `deletedTables` so its carts and money stay reachable; a shop is deleted for good, with everything in it, once no money is moving.\n- **Concurrency.** A cart is saved under optimistic concurrency: a write that meets a newer version retries or answers 409 \"The cart changed, please retry\".\n\n## Checkout\n\nA diner selects units to pay for (`addSplitItem`), then pays in two calls around the provider's UI: PayPal `createCheckoutOrder` → popup → `captureCheckout`; card `createStripeCheckout` → Payment Element → `captureStripeCheckout`. The second call re-checks everything before money moves, and a payment that can't be recorded afterwards is refunded automatically. A card payment the diner abandons after authorising is still finished by Stripe's webhook or the server's 2-minute sweep, and the diner is told the outcome in their cart's `notices` on their next visit.",
     "contact": {
       "name": "Hernando Crespo",
       "url": "https://github.com/Nando-C"
@@ -39,7 +39,7 @@
     },
     {
       "name": "Staff",
-      "description": "A shop's members: list, add, remove, hand the shop over"
+      "description": "A shop's members: list, add, change a role, remove, hand the shop over"
     },
     {
       "name": "Shops",
@@ -1315,8 +1315,15 @@
         "tags": [
           "Shops"
         ],
+        "x-ability": [
+          "shop.edit"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
+        ],
         "summary": "Edit a shop the caller is a member of",
-        "description": "Any member of the shop, whatever their account role (or an administrator). Every field optional; only the ones sent change. An empty `phone` clears it.",
+        "description": "The owner's and managers' (`x-roles`), whatever their account role, or an administrator's. Every field optional; only the ones sent change. An empty `phone` clears it.",
         "parameters": [
           {
             "$ref": "#/components/parameters/shopId"
@@ -1397,6 +1404,12 @@
         "tags": [
           "Shops"
         ],
+        "x-ability": [
+          "shop.own"
+        ],
+        "x-roles": [
+          "owner"
+        ],
         "summary": "Delete a shop and everything in it",
         "description": "The owner's alone (or an administrator's). Takes its menu items (deleted ones too), its carts (payment records included) and its pay-backs; the orders remain as the sales record, written first (nothing is deleted if they can't be). Refused while money is still moving: an open cart, a payment or refund a provider hasn't confirmed, a card payment still being finished, a diner to pay back, or a payment that can still be refunded from a table's sheet (a paid cart closed or changed in the last 24 hours).",
         "parameters": [
@@ -1453,8 +1466,18 @@
         "tags": [
           "Staff"
         ],
+        "x-ability": [
+          "staff.read"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till",
+          "floor",
+          "kitchen"
+        ],
         "summary": "The shop's members",
-        "description": "Each joined to their account (name, email, avatar), the owner first. Any member of the shop, or an administrator.",
+        "description": "Each joined to their account (name, email, avatar), the owner first. Every member of the shop, or an administrator.",
         "parameters": [
           {
             "$ref": "#/components/parameters/shopId"
@@ -1509,7 +1532,7 @@
           "Staff"
         ],
         "summary": "Add someone to the shop",
-        "description": "By their email. An address with an account attaches that account, name and password untouched (200); one without gets an account created from `name`, `surname` and `password`, which the caller tells them (201; account role `customer`, `createdBy` the caller). Only the owner (or an administrator) adds a `manager`. One update puts them in both membership lists, so two adds of one person land once. Counts towards the caller's people-added limit, created or attached.",
+        "description": "By their email. An address with an account attaches that account, name and password untouched (200); one without gets an account created from `name`, `surname` and `password`, which the caller tells them (201; account role `customer`, `createdBy` the caller). The owner (or an administrator) gives any role but owner; a manager gives `till`, `floor` or `kitchen`. One update puts them in both membership lists, so two adds of one person land once. Counts towards the caller's people-added limit, created or attached.",
         "parameters": [
           {
             "$ref": "#/components/parameters/shopId"
@@ -1529,9 +1552,12 @@
                   "role": {
                     "type": "string",
                     "enum": [
-                      "manager"
+                      "manager",
+                      "till",
+                      "floor",
+                      "kitchen"
                     ],
-                    "description": "The membership role they get"
+                    "description": "The membership role they get: manager (the owner gives it), or till, floor or kitchen"
                   },
                   "name": {
                     "type": "string",
@@ -1592,7 +1618,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "\"Shop Manager Only!\": not a member of this shop; \"Only the owner adds managers\"",
+            "description": "\"Shop Manager Only!\": not a member of this shop; \"Only the owner adds managers\": a manager asked for one; \"Your role on this shop doesn't allow this\": the caller is till, floor or kitchen",
             "content": {
               "application/json": {
                 "schema": {
@@ -1631,13 +1657,116 @@
       }
     },
     "/shops/{shopId}/staff/{userId}": {
+      "put": {
+        "operationId": "setMemberRole",
+        "tags": [
+          "Staff"
+        ],
+        "summary": "Change a member's role",
+        "description": "To any role but owner. The caller must be allowed to handle both the role the member has and the new one: the owner (or an administrator) changes anyone's but the owner's; a manager moves `till`, `floor` and `kitchen` among themselves and never makes or unmakes a manager; nobody changes their own. The owner's role changes by handing the shop over. One update, matched on the member still holding the role read.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/shopId"
+          },
+          {
+            "$ref": "#/components/parameters/userId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "manager",
+                      "till",
+                      "floor",
+                      "kitchen"
+                    ],
+                    "description": "The new role"
+                  }
+                },
+                "required": [
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The members, as GET /shops/{shopId}/staff lists them",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "members": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/StaffMember"
+                      }
+                    }
+                  },
+                  "required": [
+                    "members"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "\"Shop Manager Only!\": not a member of this shop; \"The owner's role changes by handing the shop over\"; \"Only the owner changes a manager's role\": a manager, to or from manager; \"Your role on this shop doesn't allow this\": the caller is till, floor or kitchen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "\"Shop Not Found!\"; \"Not a member of this shop\"; \"User not found!\"",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "\"Already that role\"; \"The shop's staff changed, please retry\": a hand-over, a removal or another change landed in the same instant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
       "delete": {
         "operationId": "removeStaff",
         "tags": [
           "Staff"
         ],
         "summary": "Remove a member",
-        "description": "The owner (or an administrator) removes anyone but the owner; a manager only the roles below manager (none yet); any member themselves (leaving). The owner is never removed: the shop is handed over first. The account stays.",
+        "description": "The owner (or an administrator) removes anyone but the owner; a manager only `till`, `floor` and `kitchen`; any member themselves (leaving). The owner is never removed: the shop is handed over first. The account stays.",
         "parameters": [
           {
             "$ref": "#/components/parameters/shopId"
@@ -1654,7 +1783,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "description": "\"Shop Manager Only!\": not a member of this shop; \"The owner can't be removed\"; \"Only the owner removes a manager\"",
+            "description": "\"Shop Manager Only!\": not a member of this shop; \"The owner can't be removed\"; \"Only the owner removes a manager\": a manager asked; \"Your role on this shop doesn't allow this\": the caller is till, floor or kitchen",
             "content": {
               "application/json": {
                 "schema": {
@@ -1694,6 +1823,12 @@
         "operationId": "handOver",
         "tags": [
           "Staff"
+        ],
+        "x-ability": [
+          "shop.own"
+        ],
+        "x-roles": [
+          "owner"
         ],
         "summary": "Make another member the owner",
         "description": "The owner (or an administrator) names a member, who becomes the owner; the previous owner becomes a manager. One update, matched on the current owner.",
@@ -1785,8 +1920,15 @@
         "tags": [
           "Shops"
         ],
+        "x-ability": [
+          "shop.edit"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
+        ],
         "summary": "Upload a shop's cover image",
-        "description": "The manager check runs before the upload, so a refused request never reaches Cloudinary. The replaced image is deleted there if this app uploaded it.",
+        "description": "The membership and role checks run before the upload, so a refused request never reaches Cloudinary. The replaced image is deleted there if this app uploaded it.",
         "parameters": [
           {
             "$ref": "#/components/parameters/shopId"
@@ -1863,6 +2005,13 @@
         "operationId": "createTable",
         "tags": [
           "Tables"
+        ],
+        "x-ability": [
+          "tables.edit"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
         ],
         "summary": "Add a table",
         "description": "Names are unique within the shop (checked in the same update, so two requests at once can't both pass). The table's QR URL is its page in the front end.",
@@ -2018,6 +2167,13 @@
         "tags": [
           "Tables"
         ],
+        "x-ability": [
+          "tables.edit"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
+        ],
         "summary": "Rename a table",
         "description": "The new name must be unique within the shop. Answers the shop's whole table list, not the one table.",
         "parameters": [
@@ -2097,6 +2253,13 @@
         "tags": [
           "Tables"
         ],
+        "x-ability": [
+          "tables.edit"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
+        ],
         "summary": "Delete a table",
         "description": "Moved to the shop's deleted tables rather than dropped: it takes no orders and diners don't see it, but the manager can still open its recent carts to refund them. Refused while it has an open cart (close it first) or a payment or refund awaiting its provider. Deleting it twice is a 204 both times.",
         "parameters": [
@@ -2148,6 +2311,13 @@
         "operationId": "getSales",
         "tags": [
           "Manager: sales"
+        ],
+        "x-ability": [
+          "sales.read"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
         ],
         "summary": "The shop's sales over a range of days",
         "description": "Everything the sales page shows, in one answer: totals, a zero-filled series by day, week or month, sales by weekday and hour, items by revenue, refunds by reason and hour, and the tables. Counted as a till would, in the shop's time zone: gross is completed payments by the day paid; refunds count on the day they were made (completed only), whenever their sale was; net is the difference. Visits are distinct carts, diners distinct payers, and a returning diner had paid at this shop before the range began. Items are net of refunded units under the name and price diners saw last. With `compare=previous`, the range of the same length ending the day before is reported too. At most 366 days.",
@@ -2237,6 +2407,13 @@
         "tags": [
           "Manager: sales"
         ],
+        "x-ability": [
+          "sales.read"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
+        ],
         "summary": "One of the report's tables as a CSV file",
         "description": "Counted as the report counts, in the shop's time zone, as a download. `orders`: a row per payment made in the range, completed or still pending (paid at, table, provider, status, amount, refunded to date, net, items as \"2× Latte, 1× Sea Bass\"); `items`: a row per menu item sold, by revenue; `days`: a row per day of the range, zero-filled, with the category and provider splits. No diner is named or identified in any of them. UTF-8 with a byte-order mark, CRLF line ends; a cell that would start with `=`, `+`, `-`, `@` or a tab gets a leading apostrophe so a spreadsheet can't run it as a formula.",
         "parameters": [
@@ -2321,6 +2498,16 @@
         "tags": [
           "Manager: tables"
         ],
+        "x-ability": [
+          "tables.read"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till",
+          "floor",
+          "kitchen"
+        ],
         "summary": "Every table's state at a glance",
         "description": "One entry per current table, from its open cart(s): what's owed and paid, who's waiting, and what needs attention (a sold-out item ordered, two open carts, a selection held over 15 minutes, a payment the provider hasn't confirmed, a diner to pay back).",
         "parameters": [
@@ -2362,6 +2549,16 @@
         "operationId": "getTableCarts",
         "tags": [
           "Manager: tables"
+        ],
+        "x-ability": [
+          "tables.read"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till",
+          "floor",
+          "kitchen"
         ],
         "summary": "A table's carts, with payments",
         "description": "The open cart(s), those closed in the last 24 hours (or older but still awaiting a provider), and the table's pay-backs. Payment and refund records and the manager log included; diners by first name only. Works for a deleted table too.",
@@ -2411,6 +2608,15 @@
         "operationId": "releaseSelection",
         "tags": [
           "Manager: tables"
+        ],
+        "x-ability": [
+          "carts.fix"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till",
+          "floor"
         ],
         "summary": "Free units diners hold in open selections",
         "description": "Everyone's (empty body), one diner's (`userId`), the selections of diners whose account no longer exists (`userId: null`), or one item's (`menuId`), so others can pay for them. Each diner affected gets a note; the manager log gets a line. No money moves.",
@@ -2493,6 +2699,15 @@
         "tags": [
           "Manager: tables"
         ],
+        "x-ability": [
+          "carts.fix"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till",
+          "floor"
+        ],
         "summary": "Take an item's unpaid units out of the cart",
         "description": "All of them, diners' selections of it included (the diner's own bin leaves others' selections); paid units stay as the record. A cart left with nothing ordered and nothing paid closes, so the table is free again. The table's diners get a note.",
         "parameters": [
@@ -2569,6 +2784,15 @@
         "tags": [
           "Manager: tables"
         ],
+        "x-ability": [
+          "carts.fix"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till",
+          "floor"
+        ],
         "summary": "Close the table's cart",
         "description": "Unpaid units and open selections are dropped (the kitchen only acts on paid orders); paid units stay. A cart where nothing was ever paid is deleted instead. Refused while a payment on it awaits its provider.",
         "parameters": [
@@ -2631,6 +2855,15 @@
         "tags": [
           "Manager: tables"
         ],
+        "x-ability": [
+          "carts.fix"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till",
+          "floor"
+        ],
         "summary": "Merge a duplicate open cart into the newest one",
         "description": "For a table with more than one open cart (data from before the one-open-cart index). Moves this older cart's unpaid units and open selections into the newest cart, the one diners see; its paid units stay on it as the record and it closes (or is deleted if nothing on it was ever paid). Answers the newest cart.",
         "parameters": [
@@ -2685,6 +2918,14 @@
         "operationId": "refundItems",
         "tags": [
           "Manager: refunds and payments"
+        ],
+        "x-ability": [
+          "payments.manage"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till"
         ],
         "summary": "Refund units of one payment",
         "description": "At the prices that payment charged; the units leave the cart (cancelled, not made payable again). Open or closed carts of the shop. A `pending` refund record is saved first (so a double click can't refund twice), the provider is asked with the record's id as its idempotency key, then the record is completed or marked failed. If the provider's answer is unclear the record stays pending: retry it. The payer gets a note; a pay-back is opened if Stripe later fails the refund.",
@@ -2832,6 +3073,14 @@
         "tags": [
           "Manager: refunds and payments"
         ],
+        "x-ability": [
+          "payments.manage"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till"
+        ],
         "summary": "Settle a refund left in progress",
         "description": "Asks the provider whether it has the refund (by the record's id). If so, it's recorded as the provider says (completed, or failed); if not, it's sent again under the same id, which the provider can't apply twice.",
         "parameters": [
@@ -2911,6 +3160,14 @@
         "tags": [
           "Manager: refunds and payments"
         ],
+        "x-ability": [
+          "payments.manage"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till"
+        ],
         "summary": "Ask the provider about a pending payment",
         "description": "For a payment the provider hadn't confirmed at checkout (`status: pending`). Confirmed: it becomes `completed`, and the cart closes if that was all it waited for. Failed: it becomes `failed`, its units are unpaid again and back in the payer's selection (the cart reopens if it had closed). Still pending: nothing changes. The payer is told either way.",
         "parameters": [
@@ -2982,6 +3239,14 @@
         "operationId": "markPaybackDone",
         "tags": [
           "Manager: refunds and payments"
+        ],
+        "x-ability": [
+          "payments.manage"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till"
         ],
         "summary": "Mark a pay-back done",
         "description": "`as` must be what the sheet showed: `paidBack` (staff gave the diner the money another way), `handled` (a disputed payment: the bank returns it), or `checked` (a hand-over whose payment a cart now shows as paid). One already done answers as it was marked, whatever was asked. One that changed since the sheet showed it is refused, so what's stored is what the manager confirmed. The cart gets a log line without touching its `updatedAt`.",
@@ -3068,6 +3333,13 @@
         "operationId": "createMenuItem",
         "tags": [
           "Menu"
+        ],
+        "x-ability": [
+          "menu.edit"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
         ],
         "summary": "Add an item to the shop's menu",
         "parameters": [
@@ -3251,8 +3523,19 @@
         "tags": [
           "Menu"
         ],
+        "x-ability": [
+          "menu.edit",
+          "menu.availability"
+        ],
+        "x-roles": [
+          "owner",
+          "manager",
+          "till",
+          "floor",
+          "kitchen"
+        ],
         "summary": "Edit an item",
-        "description": "Every field optional; only the ones sent change.",
+        "description": "Every field optional; only the ones sent change. Two abilities share the route: a body of `available` and nothing else is the availability switch (`menu.availability`, every member's); any other body, an empty one included, is an edit (`menu.edit`, the owner's and managers'). The body is validated and the item looked up before the role is checked, so a malformed body answers 400 and an item not on this shop's menu 404 whatever the role.",
         "parameters": [
           {
             "$ref": "#/components/parameters/shopId"
@@ -3341,6 +3624,13 @@
         "tags": [
           "Menu"
         ],
+        "x-ability": [
+          "menu.edit"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
+        ],
         "summary": "Take an item off the menu",
         "description": "The item leaves the shop's menu but is kept, unavailable and marked `deletedFrom`, so carts that hold it still name it (as sold out). It goes for good with the shop.",
         "parameters": [
@@ -3382,6 +3672,13 @@
         "operationId": "editMenuItemImage",
         "tags": [
           "Menu"
+        ],
+        "x-ability": [
+          "menu.edit"
+        ],
+        "x-roles": [
+          "owner",
+          "manager"
         ],
         "summary": "Upload an item's image",
         "description": "The permission checks run before the upload, so a refused request never reaches Cloudinary. The replaced image is deleted there if this app uploaded it.",
@@ -4660,7 +4957,7 @@
         }
       },
       "NotThisShopsManager": {
-        "description": "\"Shop Manager Only!\": the account isn't a member of this shop (nor an administrator)",
+        "description": "\"Shop Manager Only!\": the account isn't a member of this shop (nor an administrator); \"Your role on this shop doesn't allow this\": a member whose role isn't among the operation's x-roles",
         "content": {
           "application/json": {
             "schema": {
@@ -4925,7 +5222,10 @@
                   "type": "string",
                   "enum": [
                     "owner",
-                    "manager"
+                    "manager",
+                    "till",
+                    "floor",
+                    "kitchen"
                   ]
                 }
               },
@@ -5024,7 +5324,10 @@
             "type": "string",
             "enum": [
               "owner",
-              "manager"
+              "manager",
+              "till",
+              "floor",
+              "kitchen"
             ]
           },
           "since": {
@@ -5251,9 +5554,12 @@
             "type": "string",
             "enum": [
               "owner",
-              "manager"
+              "manager",
+              "till",
+              "floor",
+              "kitchen"
             ],
-            "description": "owner: one per shop, the only member who deletes it; manager: runs it"
+            "description": "owner: one per shop, the only member who deletes it, adds and removes managers and hands it over; manager: runs it, and adds, re-roles and removes the three below; till: the tables and the money; floor: the tables, no money; kitchen: reads the tables and their orders. Every member may flip a dish's availability. What each may call is each operation's x-roles"
           },
           "since": {
             "type": "string",

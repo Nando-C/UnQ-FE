@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAppSelector } from "../../../redux/app/hooks";
 import { selectSelectedShop } from "../../../redux/slices/shopSlice";
 import { activeSection } from "../../../lib/sections";
+import { can, selectRoleOn } from "../../../lib/roles";
 import "./ShopSectionNav.css";
 
 // The sections of ShopDetails, top to bottom. The ids live on those components.
@@ -26,6 +27,9 @@ interface ShopSectionNavProps {
 // its own, from which the four lead back to their section.
 const ShopSectionNav = ({ shopId, salesPage }: ShopSectionNavProps) => {
   const shop = useAppSelector(selectSelectedShop);
+  // The Sales tab is the owner's and managers' (lib/roles.ts); the four
+  // sections are every member's.
+  const canReadSales = can(useAppSelector((state) => selectRoleOn(state, shopId)), "sales.read");
   const [current, setCurrent] = useState(SECTIONS[0].id);
 
   useEffect(() => {
@@ -82,14 +86,16 @@ const ShopSectionNav = ({ shopId, salesPage }: ShopSectionNavProps) => {
           </a>
         )
       )}
-      <Link
-        className={salesPage ? "nav-link active" : "nav-link"}
-        to={`/shop/${shopId}/sales`}
-        data-label="Sales"
-        aria-current={salesPage ? "page" : undefined}
-      >
-        Sales
-      </Link>
+      {canReadSales && (
+        <Link
+          className={salesPage ? "nav-link active" : "nav-link"}
+          to={`/shop/${shopId}/sales`}
+          data-label="Sales"
+          aria-current={salesPage ? "page" : undefined}
+        >
+          Sales
+        </Link>
+      )}
     </nav>
   );
 };

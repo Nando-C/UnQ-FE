@@ -27,21 +27,39 @@
       "avatar": "https://img.fixtures.test/96x96/40",
       "role": "admin",
       "hasPassword": true
+    },
+    "till": {
+      "_id": "u6",
+      "name": "Kim",
+      "surname": "Demo",
+      "email": "kim.demo@example.com",
+      "avatar": "https://img.fixtures.test/96x96/40",
+      "role": "customer",
+      "hasPassword": false
+    },
+    "kitchen": {
+      "_id": "u7",
+      "name": "Jo",
+      "surname": "Demo",
+      "email": "jo.demo@example.com",
+      "avatar": "https://img.fixtures.test/96x96/40",
+      "role": "customer",
+      "hasPassword": false
     }
   },
   "shops": [
     {
       "_id": "s1",
-      "name": "The Corner Café & Bakery on the High Street",
-      "bio": "Neighbourhood café with sourdough, pastries and good coffee since 2012.",
+      "name": "The Corner Caf\u00e9 & Bakery on the High Street",
+      "bio": "Neighbourhood caf\u00e9 with sourdough, pastries and good coffee since 2012.",
       "cover": "https://img.fixtures.test/1600x900/30.svg",
-      "open_times": "Mon–Sat 8:00–18:00",
+      "open_times": "Mon\u2013Sat 8:00\u201318:00",
       "phone": "+44 7700 900123",
       "web_URL": "https://cornercafe.example.com",
       "menu": [
         {
           "_id": "m0",
-          "name": "Pancake 🥞",
+          "name": "Pancake \ud83e\udd5e",
           "short_description": "House favourite",
           "description": "Made in house every morning with local ingredients.",
           "price": 9.5,
@@ -51,7 +69,7 @@
         },
         {
           "_id": "m1",
-          "name": "Burguer 🍔",
+          "name": "Burguer \ud83c\udf54",
           "short_description": "House favourite",
           "description": "Made in house every morning with local ingredients.",
           "price": 10.5,
@@ -128,22 +146,50 @@
         }
       ],
       "shopMg": [
-        "u1"
+        "u1",
+        "u5",
+        "u6",
+        "u7"
       ],
-      "ownerId": "u1"
+      "ownerId": "u1",
+      "members": [
+        {
+          "userId": "u1",
+          "role": "owner",
+          "since": "2026-03-02T09:00:00.000Z"
+        },
+        {
+          "userId": "u5",
+          "role": "manager",
+          "since": "2026-09-18T14:30:00.000Z",
+          "addedBy": "u1"
+        },
+        {
+          "userId": "u6",
+          "role": "till",
+          "since": "2026-09-20T09:00:00.000Z",
+          "addedBy": "u1"
+        },
+        {
+          "userId": "u7",
+          "role": "kitchen",
+          "since": "2026-09-25T09:00:00.000Z",
+          "addedBy": "u5"
+        }
+      ]
     },
     {
       "_id": "s2",
       "name": "First Shop",
-      "bio": "Neighbourhood café with sourdough, pastries and good coffee since 2012.",
+      "bio": "Neighbourhood caf\u00e9 with sourdough, pastries and good coffee since 2012.",
       "cover": "https://img.fixtures.test/1600x900/170.svg",
-      "open_times": "Mon–Sat 8:00–18:00",
+      "open_times": "Mon\u2013Sat 8:00\u201318:00",
       "phone": "+44 7700 900123",
       "web_URL": "https://cornercafe.example.com",
       "menu": [
         {
           "_id": "m0",
-          "name": "Pancake 🥞",
+          "name": "Pancake \ud83e\udd5e",
           "short_description": "House favourite",
           "description": "Made in house every morning with local ingredients.",
           "price": 9.5,
@@ -153,7 +199,7 @@
         },
         {
           "_id": "m1",
-          "name": "Burguer 🍔",
+          "name": "Burguer \ud83c\udf54",
           "short_description": "House favourite",
           "description": "Made in house every morning with local ingredients.",
           "price": 10.5,
@@ -232,7 +278,14 @@
       "shopMg": [
         "u1"
       ],
-      "ownerId": "u1"
+      "ownerId": "u1",
+      "members": [
+        {
+          "userId": "u1",
+          "role": "owner",
+          "since": "2026-03-02T09:00:00.000Z"
+        }
+      ]
     }
   ],
   "cart": {
@@ -245,7 +298,7 @@
         "_id": "i1",
         "menuId": {
           "_id": "m0",
-          "name": "Pancake 🥞",
+          "name": "Pancake \ud83e\udd5e",
           "short_description": "House favourite",
           "description": "Made in house every morning with local ingredients.",
           "price": 9.5,
@@ -260,7 +313,7 @@
         "_id": "i2",
         "menuId": {
           "_id": "m1",
-          "name": "Burguer 🍔",
+          "name": "Burguer \ud83c\udf54",
           "short_description": "House favourite",
           "description": "Made in house every morning with local ingredients.",
           "price": 10.5,
@@ -308,7 +361,7 @@
         "userId": "u2",
         "menuId": {
           "_id": "m1",
-          "name": "Burguer 🍔",
+          "name": "Burguer \ud83c\udf54",
           "short_description": "House favourite",
           "description": "Made in house every morning with local ingredients.",
           "price": 10.5,
@@ -324,7 +377,7 @@
         "userId": "u1",
         "menuId": {
           "_id": "m0",
-          "name": "Pancake 🥞",
+          "name": "Pancake \ud83e\udd5e",
           "short_description": "House favourite",
           "description": "Made in house every morning with local ingredients.",
           "price": 9.5,
@@ -356,12 +409,12 @@
       {
         "_id": "n2",
         "at": "2026-09-28T12:05:00.000Z",
-        "message": "The staff released your selection of 2× Pancake 🥞, 1× Hand-crafted pesto pasta with toasted pine nuts."
+        "message": "The staff released your selection of 2\u00d7 Pancake \ud83e\udd5e, 1\u00d7 Hand-crafted pesto pasta with toasted pine nuts."
       },
       {
         "_id": "n1",
         "at": "2026-09-28T12:00:00.000Z",
-        "message": "The staff removed 1× Burguer 🍔 from this table's cart."
+        "message": "The staff removed 1\u00d7 Burguer \ud83c\udf54 from this table's cart."
       }
     ]
   },
@@ -424,7 +477,7 @@
             "_id": "i1",
             "menuId": {
               "_id": "m0",
-              "name": "Pancake 🥞",
+              "name": "Pancake \ud83e\udd5e",
               "short_description": "House favourite",
               "description": "Made in house every morning with local ingredients.",
               "price": 9.5,
@@ -439,7 +492,7 @@
             "_id": "i2",
             "menuId": {
               "_id": "m1",
-              "name": "Burguer 🍔",
+              "name": "Burguer \ud83c\udf54",
               "short_description": "House favourite",
               "description": "Made in house every morning with local ingredients.",
               "price": 10.5,
@@ -460,7 +513,7 @@
             },
             "menuId": {
               "_id": "m0",
-              "name": "Pancake 🥞",
+              "name": "Pancake \ud83e\udd5e",
               "short_description": "House favourite",
               "description": "Made in house every morning with local ingredients.",
               "price": 9.5,
@@ -480,7 +533,7 @@
             },
             "menuId": {
               "_id": "m0",
-              "name": "Pancake 🥞",
+              "name": "Pancake \ud83e\udd5e",
               "short_description": "House favourite",
               "description": "Made in house every morning with local ingredients.",
               "price": 9.5,
@@ -500,7 +553,7 @@
             },
             "menuId": {
               "_id": "m0",
-              "name": "Pancake 🥞",
+              "name": "Pancake \ud83e\udd5e",
               "short_description": "House favourite",
               "description": "Made in house every morning with local ingredients.",
               "price": 9.5,
@@ -520,7 +573,7 @@
             },
             "menuId": {
               "_id": "m1",
-              "name": "Burguer 🍔",
+              "name": "Burguer \ud83c\udf54",
               "short_description": "House favourite",
               "description": "Made in house every morning with local ingredients.",
               "price": 10.5,
@@ -548,7 +601,7 @@
             "lines": [
               {
                 "menuId": "m0",
-                "name": "Pancake 🥞",
+                "name": "Pancake \ud83e\udd5e",
                 "qty": 3,
                 "unitPrice": 9.5,
                 "refundedQty": 1
@@ -570,7 +623,7 @@
             "lines": [
               {
                 "menuId": "m0",
-                "name": "Pancake 🥞",
+                "name": "Pancake \ud83e\udd5e",
                 "qty": 1,
                 "unitPrice": 9.5,
                 "refundedQty": 0
@@ -585,7 +638,7 @@
             "lines": [
               {
                 "menuId": "m0",
-                "name": "Pancake 🥞",
+                "name": "Pancake \ud83e\udd5e",
                 "qty": 1
               }
             ],
@@ -602,7 +655,7 @@
             "lines": [
               {
                 "menuId": "m0",
-                "name": "Pancake 🥞",
+                "name": "Pancake \ud83e\udd5e",
                 "qty": 1
               }
             ],
@@ -620,12 +673,12 @@
               "name": "Bartholomew-Fitzgerald"
             },
             "action": "releaseSelection",
-            "details": "Maximiliana-Alexandrina: 2× Pancake 🥞"
+            "details": "Maximiliana-Alexandrina: 2\u00d7 Pancake \ud83e\udd5e"
           },
           {
             "at": "2026-09-28T16:40:00.000Z",
             "action": "stripeRefundFailed",
-            "details": "£28.50 card payment by Maximiliana-Alexandrina: Stripe won't refund it, so they were charged (payment pi_3Fixture0000000000000000). Pay them back another way, unless a cart shows this payment as paid and they didn't pay again, or Stripe's dashboard shows they've disputed it since (their bank returns it then)."
+            "details": "\u00a328.50 card payment by Maximiliana-Alexandrina: Stripe won't refund it, so they were charged (payment pi_3Fixture0000000000000000). Pay them back another way, unless a cart shows this payment as paid and they didn't pay again, or Stripe's dashboard shows they've disputed it since (their bank returns it then)."
           }
         ]
       }
@@ -643,7 +696,7 @@
           {
             "at": "2026-09-28T15:10:00.000Z",
             "action": "stripeRefundFailed",
-            "details": "£28.50 card payment by Maximiliana-Alexandrina: Stripe won't refund it, so they were charged (payment pi_3Fixture0000000000000000). Pay them back another way, unless a cart shows this payment as paid and they didn't pay again, or Stripe's dashboard shows they've disputed it since (their bank returns it then)."
+            "details": "\u00a328.50 card payment by Maximiliana-Alexandrina: Stripe won't refund it, so they were charged (payment pi_3Fixture0000000000000000). Pay them back another way, unless a cart shows this payment as paid and they didn't pay again, or Stripe's dashboard shows they've disputed it since (their bank returns it then)."
           }
         ]
       }
@@ -2571,6 +2624,26 @@
       "role": "manager",
       "since": "2026-09-18T14:30:00.000Z",
       "addedBy": "u1"
+    },
+    {
+      "userId": "u6",
+      "name": "Kim",
+      "surname": "Demo",
+      "email": "kim.demo@example.com",
+      "avatar": "https://img.fixtures.test/96x96/40",
+      "role": "till",
+      "since": "2026-09-20T09:00:00.000Z",
+      "addedBy": "u1"
+    },
+    {
+      "userId": "u7",
+      "name": "Jo",
+      "surname": "Demo",
+      "email": "jo.demo@example.com",
+      "avatar": "https://img.fixtures.test/96x96/40",
+      "role": "kitchen",
+      "since": "2026-09-25T09:00:00.000Z",
+      "addedBy": "u5"
     }
   ],
   "accounts": [
@@ -2587,7 +2660,7 @@
       "shops": [
         {
           "_id": "s1",
-          "name": "The Corner Café & Bakery on the High Street",
+          "name": "The Corner Caf\u00e9 & Bakery on the High Street",
           "role": "manager"
         }
       ]
@@ -2604,7 +2677,7 @@
       "shops": [
         {
           "_id": "s1",
-          "name": "The Corner Café & Bakery on the High Street",
+          "name": "The Corner Caf\u00e9 & Bakery on the High Street",
           "role": "owner"
         },
         {

@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { setMenuItemAvailability } from "../../../redux/slices/shopSlice";
 import ItemModal from "../ItemModal/ItemModal";
 import { formatPrice } from "../../../lib/price";
+import { can, selectRoleOn } from "../../../lib/roles";
 import "./Item.css";
 
 interface ItemProps {
@@ -19,6 +20,8 @@ const Item = ({ itemId, shopId }: ItemProps) => {
     state.shops.data.find((shop) => shop._id === shopId)
   );
   const menuItem = shop?.menu.find((item) => item._id === itemId);
+  // The pencil opens the editor: the owner's and managers' (lib/roles.ts).
+  const canEdit = can(useAppSelector((state) => selectRoleOn(state, shopId)), "menu.edit");
 
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
@@ -78,14 +81,16 @@ const Item = ({ itemId, shopId }: ItemProps) => {
                 <Card.Title as="h3" className="item-name">
                   {menuItem.name}
                 </Card.Title>
-                <Button
-                  variant="link"
-                  className="item-edit"
-                  onClick={handleShow}
-                  aria-label={`Edit ${menuItem.name}`}
-                >
-                  <GrEdit size={18} />
-                </Button>
+                {canEdit && (
+                  <Button
+                    variant="link"
+                    className="item-edit"
+                    onClick={handleShow}
+                    aria-label={`Edit ${menuItem.name}`}
+                  >
+                    <GrEdit size={18} />
+                  </Button>
+                )}
               </div>
               <div className="item-sub">
                 <div className="item-body">
@@ -152,12 +157,14 @@ const Item = ({ itemId, shopId }: ItemProps) => {
             </>
           )}
         </Card>
-        <ItemModal
-          shopId={shopId}
-          show={show}
-          handleClose={handleClose}
-          itemId={menuItem._id}
-        />
+        {canEdit && (
+          <ItemModal
+            shopId={shopId}
+            show={show}
+            handleClose={handleClose}
+            itemId={menuItem._id}
+          />
+        )}
       </div>
     </>
   );

@@ -2,6 +2,7 @@ import QRCodeStyling from "qr-code-styling";
 import { useEffect, useRef, useState } from "react";
 import { Card, Button } from "react-bootstrap";
 import { GrEdit } from "react-icons/gr";
+import { can, selectRoleOn } from "../../../lib/roles";
 import { useAppSelector } from "../../../redux/app/hooks";
 import TableModal from "../TableModal/TableModal";
 import TableStatus from "../TableStatus/TableStatus";
@@ -91,6 +92,8 @@ const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
   const handleShow = () => setShow(true);
 
   const [showSheet, setShowSheet] = useState(false);
+  // Renaming a table is the owner's and managers' (lib/roles.ts).
+  const canEdit = can(useAppSelector((state) => selectRoleOn(state, shopId)), "tables.edit");
 
   return (
     <>
@@ -107,22 +110,26 @@ const SingleTable = ({ tableId, shopId, status, onChanged }: TableProps) => {
           >
             View table
           </Button>
-          <Button
-            variant="link"
-            size="lg"
-            className="table-edit d-print-none"
-            onClick={handleShow}
-            aria-label={`Edit table ${table?.name ?? ""}`.trim()}
-          >
-            <GrEdit />
-          </Button>
+          {canEdit && (
+            <Button
+              variant="link"
+              size="lg"
+              className="table-edit d-print-none"
+              onClick={handleShow}
+              aria-label={`Edit table ${table?.name ?? ""}`.trim()}
+            >
+              <GrEdit />
+            </Button>
+          )}
         </Card>
-        <TableModal
-          shopId={shopId}
-          show={show}
-          handleClose={handleClose}
-          tableId={tableId}
-        />
+        {canEdit && (
+          <TableModal
+            shopId={shopId}
+            show={show}
+            handleClose={handleClose}
+            tableId={tableId}
+          />
+        )}
         <TableSheet
           shopId={shopId}
           tableId={tableId}

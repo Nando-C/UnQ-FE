@@ -10,6 +10,7 @@ import { IDeletedTable } from "../../../typings/shop";
 import SingleTable from "../SingleTable/SingleTable";
 import TableSheet from "../TableSheet/TableSheet";
 import TableModal from "../TableModal/TableModal";
+import { can, selectRoleOn } from "../../../lib/roles";
 import "./TableList.css";
 
 interface ShopMenuProps {
@@ -22,6 +23,11 @@ const TableList = ({ shopId }: ShopMenuProps) => {
   );
 
   const tableCount = shop?.tables.length ?? 0;
+  // Adding and renaming tables is the owner's and managers'; the money lines
+  // show to roles that handle it (lib/roles.ts).
+  const role = useAppSelector((state) => selectRoleOn(state, shopId));
+  const canEdit = can(role, "tables.edit");
+  const canPay = can(role, "payments.manage");
 
   // Each table's state for its card, refreshed every 30 s while the page is in
   // view. A failed refresh keeps the last one; with none yet, the cards simply
@@ -81,7 +87,7 @@ const TableList = ({ shopId }: ShopMenuProps) => {
             <FaPrint className="me-sm-2" />
             <span className="d-none d-sm-inline">Print QR codes</span>
           </Button>
-          <Button onClick={handleShow}>Add table</Button>
+          {canEdit && <Button onClick={handleShow}>Add table</Button>}
         </div>
       </div>
 
@@ -107,7 +113,7 @@ const TableList = ({ shopId }: ShopMenuProps) => {
             Deleted tables
           </h3>
           <p className="small text-body-secondary">
-            Their recent carts, to refund or check if needed.
+            {canPay ? "Their recent carts, to refund or check if needed." : "Their recent carts."}
           </p>
           <div className="d-flex flex-wrap gap-2">
             {recentlyDeleted.map((table) => (
@@ -121,12 +127,14 @@ const TableList = ({ shopId }: ShopMenuProps) => {
           </div>
         </section>
       )}
-      <TableModal
-        shopId={shopId}
-        show={show}
-        handleClose={handleClose}
-        tableId={"new"}
-      />
+      {canEdit && (
+        <TableModal
+          shopId={shopId}
+          show={show}
+          handleClose={handleClose}
+          tableId={"new"}
+        />
+      )}
     </section>
   );
 };

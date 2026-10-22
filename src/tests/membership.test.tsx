@@ -212,7 +212,9 @@ describe("the account page's line", () => {
     expect(roleLine(root, [cafe, deli])).toBe("Administrator")
     expect(roleLine(sam, [])).toBe("Shop manager")
     expect(roleLine(sam, [cafe])).toBe("Owner of Cafe")
-    expect(roleLine(ada, [cafe])).toBe("Staff at Cafe")
+    expect(roleLine(ada, [cafe])).toBe("Manager at Cafe")
+    expect(roleLine(ada, [{ ...cafe, members: [{ userId: "u2", role: "owner", since }, { userId: "u1", role: "till", since, addedBy: "u2" }] }])).toBe("Till at Cafe")
+    expect(roleLine(ada, [{ ...cafe, members: [{ userId: "u2", role: "owner", since }, { userId: "u1", role: "kitchen", since, addedBy: "u2" }] }, deli])).toBe("Staff at 2 shops")
     expect(roleLine(ada, [deli])).toBe("Owner of Deli")
     expect(roleLine(ada, [cafe, deli])).toBe("Manages 2 shops")
     expect(roleLine(ada, [])).toBeNull()
@@ -221,7 +223,7 @@ describe("the account page's line", () => {
   it("shows under the email", async () => {
     renderWithProviders(<Account />, { preloadedState: signedIn(ada, { data: [cafe], dataStatus: "ready" }) })
 
-    expect(await screen.findByText("Staff at Cafe")).toBeInTheDocument()
+    expect(await screen.findByText("Manager at Cafe")).toBeInTheDocument()
   })
 })
 

@@ -3,6 +3,8 @@ import { Alert, Badge, Button, Form, Modal, Spinner } from "react-bootstrap";
 import { FiAlertTriangle } from "react-icons/fi";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
 import backend from "../../../backend/backend";
+import { useAppSelector } from "../../../redux/app/hooks";
+import { can, selectRoleOn } from "../../../lib/roles";
 import { useVisiblePolling } from "../../../lib/useVisiblePolling";
 import { formatPrice, fromPence, toPence } from "../../../lib/price";
 import { apiErrorBody, apiErrorMessage, apiStatus } from "../../../lib/errors";
@@ -66,6 +68,13 @@ const units = (qty: number, name: string | undefined) => `${qty}× ${name ?? "it
 // carts, refund payments and check payments their provider hadn't confirmed, each after
 // a confirmation that says what will happen.
 const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onChanged, deleted }: TableSheetProps) => {
+  // What the signed-in account may do here (lib/roles.ts): fix carts (release,
+  // remove, close, merge) and handle money (refunds, checks, pay-backs). A role
+  // without either reads the sheet; what it can't press isn't drawn, nor the
+  // lines that tell the reader to do it.
+  const role = useAppSelector((state) => selectRoleOn(state, shopId));
+  const canFix = can(role, "carts.fix");
+  const canPay = can(role, "payments.manage");
   const [carts, setCarts] = useState<ITableCarts | null>(null);
   const [error, setError] = useState(false);
   const [pending, setPending] = useState<PendingAction | null>(null);
@@ -193,7 +202,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
             </Spinner>
           </div>
         )}
-        <Paybacks paybacks={carts?.paybacks ?? []} ask={ask} markDone={markDone} disabled={locked} />
+        {canPay && <Paybacks paybacks={carts?.paybacks ?? []} ask={ask} markDone={markDone} disabled={locked} />}
         {carts && open.length === 0 && (
           <p className="text-body-secondary">
             {deleted ? "This table was deleted: it takes no more orders." : "No open cart: this table is free."}
@@ -207,9 +216,9 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 {i === 0 ? " (the one diners see)" : " (not shown to diners)"}
               </h3>
             )}
-            <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={locked} />
+            <CartDetails cart={cart} ask={ask} post={post} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={locked} canFix={canFix} canPay={canPay} />
             <CartLog cart={cart} />
-            <div className="d-flex flex-wrap gap-2 mt-3">
+            {canFix && <div className="d-flex flex-wrap gap-2 mt-3">
               {i > 0 && (
                 <Button
                   variant="outline-primary"
@@ -235,7 +244,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
               >
                 Close table
               </Button>
-            </div>
+            </div>}
           </section>
         ))}
         {closed.length > 0 && (
@@ -254,7 +263,7 @@ const TableSheet = ({ shopId, tableId, tableName, status, show, handleClose, onC
                 <h3 className="h6">
                   Closed {cart.updatedAt ? clockTime(cart.updatedAt) : ""}
                 </h3>
-                <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={locked} />
+                <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={locked} canPay={canPay} />
                 <CartLog cart={cart} />
               </section>
             ))}
@@ -452,9 +461,11 @@ interface CartDetailsProps {
   retryRefund: RetryRefund;
   checkPayment: CheckPayment;
   disabled: boolean;
+  canFix: boolean;
+  canPay: boolean;
 }
 
-const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, disabled }: CartDetailsProps) => {
+const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, disabled, canFix, canPay }: CartDetailsProps) => {
   const selections = cart.split.filter((s) => s.splitStatus === "open");
   const selectedOf = (menuId: string | undefined) =>
     selections
@@ -529,7 +540,7 @@ const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, d
                   <span className="small text-body-secondary">
                     Ordered {item.qty} · Paid {item.qtyPayed ?? 0} · Selected {selectedOf(menuId)}
                   </span>
-                  {unpaid > 0 && (
+                  {canFix && unpaid > 0 && (
                     <Button variant="outline-danger" disabled={disabled} onClick={() => remove(item)}>
                       Remove {unpaid} unpaid
                     </Button>
@@ -543,7 +554,7 @@ const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, d
 
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3">
         <h4 className="h6 mb-0">Selected to pay</h4>
-        {selections.length > 1 && (
+        {canFix && selections.length > 1 && (
           <Button variant="outline-primary" disabled={disabled} onClick={releaseAll}>
             Release all
           </Button>
@@ -566,21 +577,23 @@ const CartDetails = ({ cart, ask, post, sendRefund, retryRefund, checkPayment, d
                     </span>
                   )}
                 </span>
-                <Button
-                  variant="outline-primary"
-                  disabled={disabled}
-                  onClick={() => release(s)}
-                  aria-label={`Release ${s.userId?.name ?? "a diner"}'s selection of ${units(s.qty, s.menuId?.name)}`}
-                >
-                  Release
-                </Button>
+                {canFix && (
+                  <Button
+                    variant="outline-primary"
+                    disabled={disabled}
+                    onClick={() => release(s)}
+                    aria-label={`Release ${s.userId?.name ?? "a diner"}'s selection of ${units(s.qty, s.menuId?.name)}`}
+                  >
+                    Release
+                  </Button>
+                )}
               </li>
             );
           })}
         </ul>
       )}
 
-      <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={disabled} />
+      <Payments cart={cart} ask={ask} sendRefund={sendRefund} retryRefund={retryRefund} checkPayment={checkPayment} disabled={disabled} canPay={canPay} />
     </>
   );
 };
@@ -597,6 +610,7 @@ interface PaymentsProps {
   retryRefund: RetryRefund;
   checkPayment: CheckPayment;
   disabled: boolean;
+  canPay: boolean;
 }
 
 // A payment's refunds as the sheet shows them, and whether another can be
@@ -623,7 +637,7 @@ const refundStateOf = (p: IPayment, refunds: IRefund[]) => {
   return { refunded: mine.filter((r) => r.status === "completed"), underWay, leftOf, canRefund };
 };
 
-const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }: PaymentsProps) => {
+const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled, canPay }: PaymentsProps) => {
   const payments = cart.payments ?? [];
   const refunds = cart.refunds ?? [];
   const legacy = cart.split.filter((s) => s.splitStatus === "closed" && s.unitPrice === undefined);
@@ -659,8 +673,8 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                 {p.status === "pending" && (
                   <div className="small text-danger-emphasis">
                     <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
-                    Awaiting {provider}: it took this payment but hasn't confirmed it. The items are held as paid until then.
-                    <Button
+                    Awaiting {provider}: it took this payment but hasn't confirmed it.{canPay && " The items are held as paid until then."}
+                    {canPay && <Button
                       variant="outline-primary"
                       className="d-block mt-2"
                       disabled={disabled}
@@ -682,7 +696,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                       }
                     >
                       Check payment
-                    </Button>
+                    </Button>}
                   </div>
                 )}
                 {p.status === "failed" && (
@@ -713,7 +727,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                       <FiAlertTriangle aria-hidden className="me-1 align-text-bottom" />
                       Refund of {formatPrice(r.amount)} in progress: {provider} hasn't confirmed it.
                       {why && ` Reason: ${why}.`}
-                      <Button
+                      {canPay && <Button
                         variant="outline-primary"
                         className="d-block mt-2"
                         disabled={disabled}
@@ -731,11 +745,11 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
                         }
                       >
                         Retry refund
-                      </Button>
+                      </Button>}
                     </div>
                   );
                 })}
-                {p.status === "pending" || p.status === "failed" ? null : !p.providerPaymentId ? (
+                {p.status === "pending" || p.status === "failed" || !canPay ? null : !p.providerPaymentId ? (
                   <div className="small text-body-secondary">Refund this payment from {provider}.</div>
                 ) : refunding === p._id ? (
                   // Stays open (locked) while the refund is asked about, so Cancel
@@ -791,7 +805,7 @@ const Payments = ({ cart, ask, sendRefund, retryRefund, checkPayment, disabled }
               <div className="small text-body-secondary">
                 {legacy.map((s) => units(s.qty, s.menuId?.name)).join(", ")}
               </div>
-              <div className="small text-body-secondary">Refund these from PayPal.</div>
+              {canPay && <div className="small text-body-secondary">Refund these from PayPal.</div>}
             </li>
           )}
         </ul>

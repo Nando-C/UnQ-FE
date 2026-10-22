@@ -11,6 +11,9 @@ const ROOT = path.join(import.meta.dirname, "..")
 const SRC = path.join(ROOT, "src")
 const spec = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "openapi.json"), "utf8"))
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"))
+// The client's copy of the API's ability table (what each member role may
+// call), checked below against what the document says of each operation.
+import { ABILITIES, MEMBER_ROLES, can } from "../src/lib/roles"
 
 // Every call the client makes, as the document names it. A new call site is
 // added here (the sweep below insists) and must exist in the document.
@@ -128,6 +131,26 @@ describe("the API contract", () => {
   it("documents every operation the client calls", () => {
     const missing = CLIENT_CALLS.map(([m, p]) => `${m} ${p}`).filter((op) => !operations.has(op))
     expect(missing).toEqual([])
+  })
+
+  // The API publishes on every guarded operation the abilities its guard checks
+  // (x-ability) and the roles holding them (x-roles); the client's lib/roles.ts
+  // must say the same, or a control is shown that the API refuses, or hidden
+  // that it allows. The menu edit carries two abilities (the switch, the edit).
+  it("agrees with the document on which roles may call each operation the client calls", () => {
+    const guarded = Object.entries(spec.paths).flatMap(([p, methods]) =>
+      Object.entries(methods).filter(([, op]) => op["x-ability"]).map(([m, op]) => [`${m.toUpperCase()} ${p}`, op])
+    )
+    // Every ability the document names is one the client knows, and the reverse.
+    const named = new Set(guarded.flatMap(([, op]) => op["x-ability"]))
+    expect([...named].sort()).toEqual(Object.keys(ABILITIES).sort())
+    expect(guarded.length).toBe(24)
+    const called = guarded.filter(([route]) => CLIENT_CALLS.some(([m, p]) => `${m} ${p}` === route))
+    expect(called.length).toBeGreaterThanOrEqual(22)
+    for (const [route, op] of called) {
+      const mirror = MEMBER_ROLES.filter((role) => op["x-ability"].some((a) => can(role, a)))
+      expect({ route, roles: [...op["x-roles"]].sort() }).toEqual({ route, roles: [...mirror].sort() })
+    }
   })
 
   it("covers every API path the source names, and the list above names each of them", () => {

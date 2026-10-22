@@ -23,6 +23,7 @@ import {
 } from "../../../redux/slices/shopSlice";
 import { HeadingPlaceholder, Loading, LoadFailed } from "../../Common/ScreenStates";
 import { usePageTitle } from "../../../lib/usePageTitle";
+import { can, selectRoleOn } from "../../../lib/roles";
 
 // The manager's page for one shop: its details, menu and tables, one after
 // the other (ShopSectionNav in the header jumps between them).
@@ -60,6 +61,11 @@ const ShopDetails = () => {
     if (!inMyShops) dispatch(fetchShopList());
   }, [inMyShops, dispatch]);
 
+  // What the signed-in account may do here, from its row on the shop
+  // (lib/roles.ts): the controls a role lacks aren't drawn; the API refuses too.
+  const role = useAppSelector((state) => selectRoleOn(state, shopId));
+  const canEdit = can(role, "shop.edit");
+
   const [show, setShow] = useState(false);
   const handleClose = () => setShow(false);
   const handleShow = () => setShow(true);
@@ -78,8 +84,10 @@ const ShopDetails = () => {
           </div>
           <div className="page-head">
             <h2 className="h5">Details</h2>
+            {/* The slot keeps a button's height whether or not one is drawn
+                (index.css), so the heading doesn't move when the role arrives. */}
             <div className="actions">
-              <Button onClick={handleShow}>Edit details</Button>
+              {canEdit && <Button onClick={handleShow}>Edit details</Button>}
             </div>
           </div>
           <Card>
@@ -177,7 +185,7 @@ const ShopDetails = () => {
           )}
         </div>
       )}
-      <ShopModal show={show} handleClose={handleClose} shopId={shopId} />
+      {canEdit && <ShopModal show={show} handleClose={handleClose} shopId={shopId} />}
     </Container>
   );
 };

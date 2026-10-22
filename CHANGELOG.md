@@ -6,6 +6,10 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ## [Unreleased]
 
+### Added
+
+- **Staff roles on the shop page.** A shop's members hold one of five roles: owner, manager, and below manager till, floor and kitchen. The page shows each member the controls their role may press, from the account's own row on the shop (`lib/roles.ts`, the client's copy of the API's ability table, checked against the document by the contract test): the editors and Add buttons for owners and managers; the table sheet's cart fixes for the till and the floor, its money for the till alone; the Sales tab, the glance's figures and the report for owners and managers; the availability switch and the staff list for everyone. The account page names the role ("Till at Cafe"). Needs the API at 2.4.0 with staff roles (its pull requests #51 and #52).
+
 ## [2.4.0] - 2026-10-18
 
 Staff on a shop. Whoever runs a shop gets the manager side: a shop manager or an administrator by role, or a member of a shop, which the account's shops say. The shop page gains a Staff section, where the owner adds managers by email, removes them and hands the shop over, and any member leaves; an administrator sees every shop, names a new shop's owner, and has an Accounts page. Needs the API at 2.4.0. Nothing changes on the host.

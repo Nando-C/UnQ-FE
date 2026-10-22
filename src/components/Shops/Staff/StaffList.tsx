@@ -6,7 +6,8 @@ import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchShopList } from "../../../redux/slices/shopSlice";
 import { selectUserData } from "../../../redux/slices/userSlice";
 import { IStaffMember } from "../../../typings/shop";
-import { addedByName, addedMessage, callerRoleOn, dayOf, manageLabel, memberName, roleLabel, runsStaff } from "../../../lib/staff";
+import { addedByName, addedMessage, dayOf, labelOf, manageLabel, memberName, runsStaff } from "../../../lib/staff";
+import { selectRoleOn } from "../../../lib/roles";
 import { Loading, LoadFailed } from "../../Common/ScreenStates";
 import AddStaffModal from "./AddStaffModal";
 import MemberModal from "./MemberModal";
@@ -27,6 +28,8 @@ const keyOf = (member: IStaffMember) => member.userId ?? `gone-${member.since}`;
 const StaffList = ({ shopId }: StaffListProps) => {
   const shop = useAppSelector((state) => state.shops.data.find((shop) => shop._id === shopId));
   const user = useAppSelector(selectUserData);
+  // Who the account is to this shop (lib/roles.ts): what it may do about each row.
+  const caller = useAppSelector((state) => selectRoleOn(state, shopId));
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
@@ -68,7 +71,6 @@ const StaffList = ({ shopId }: StaffListProps) => {
 
   // Shown once the account's shops have loaded, like the tables above.
   if (!shop) return null;
-  const caller = callerRoleOn(user, shop);
 
   return (
     <section id="staffList" className="shop-section" aria-labelledby="staff-list-heading">
@@ -116,7 +118,7 @@ const StaffList = ({ shopId }: StaffListProps) => {
                   </div>
                   <div className="small text-body-secondary text-break">
                     {member.email && <>{member.email} · </>}
-                    {roleLabel[member.role]} · since {dayOf(member.since)}
+                    {labelOf(member.role)} · since {dayOf(member.since)}
                     {addedBy && <>, added by {addedBy}</>}
                   </div>
                 </div>
