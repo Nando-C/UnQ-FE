@@ -14,7 +14,25 @@ Under each shop's name, the shop at a glance (`ShopGlance`, `lib/glance.ts`): tw
 
 `ShopDetails` loads the shop (`GET /shops/:shopId`) and shows, one after the other: the details card (cover in a 16:9 box kept from the start, bio, opening times, phone, web address), the **menu** with a search box and one row per item, the **tables** as cards, and the **staff**, one row per member.
 
-**What each role sees.** A member's role on the shop (`owner`, `manager`, or below manager `till`, `floor` and `kitchen`) decides which controls the page draws, from the account's own row on the shop (`lib/roles.ts`, the client's copy of the API's ability table, checked against the API's document by the contract test; the API refuses on its own too). The owner and managers get every editor. The till, the floor and the kitchen read the shop: the details card without Edit details, the menu with its availability switch but no Add menu item and no pencil, the tables with their status, View table and Print QR codes but no Add table or Edit, the deleted tables; the Sales tab, the glance's figures on My Shops and the report are the owner's and managers' (a role without them opening the report's address is told "The sales report isn't part of your role on this shop"). On the table sheet, the till and the floor keep the cart fixes (release, remove unpaid units, close, merge); the money (refunds, retries, payment checks, pay-backs, and the lines that say to refund) is the till's; the kitchen reads the sheet. Delete shop, in the shop editor, is the owner's. While the account's shops load, no role-dependent control is drawn, and the heading rows keep a button's height so nothing moves when they arrive; if the shops can't be loaded every control shows and the API answers. The account page names the role: "Owner of Cafe", "Manager at Cafe", "Till at Cafe"; on several shops "Manages 2 shops" (owner or manager of each) or "Staff at 2 shops". Content is capped at 60rem so menu rows don't stretch across a desktop. While the shop loads, only its heading and placeholders show, and the page is swapped whole when it arrives, so nothing on screen is pushed down.
+**What each role sees.** A member's role on the shop (`owner`, `manager`, or below manager `till`, `floor` and `kitchen`) decides which controls the page draws, from the account's own row on the shop (`lib/roles.ts`, the client's copy of the API's ability table, checked against the API's document by the contract test; the API refuses on its own too). ● drawn · ○ not drawn; an administrator sees the owner's column everywhere.
+
+| Screen | Owner | Manager | Till | Floor | Kitchen |
+|---|---|---|---|---|---|
+| Details: Edit details; Delete shop in the editor | ● (both) | ● (no Delete) | ○ | ○ | ○ |
+| Menu: Add menu item, the pencil (the editor) | ● | ● | ○ | ○ | ○ |
+| Menu: the availability switch | ● | ● | ● | ● | ● |
+| Tables: Add table, Edit table | ● | ● | ○ | ○ | ○ |
+| Tables: the cards' status, View table, Print QR codes, the deleted tables | ● | ● | ● | ● | ● |
+| The table sheet: Release, Release all, Remove unpaid units, Close table, Merge | ● | ● | ● | ● | ○ |
+| The table sheet: Refund, Retry refund, Check payment, the pay-backs block, the lines that say to refund; the deleted tables' "to refund or check" | ● | ● | ● | ○ | ○ |
+| Staff: the list | ● | ● | ● | ● | ● |
+| Staff: Add staff, Remove, Change role | ● (any role but owner) | ● (till, floor, kitchen) | ○ | ○ | ○ |
+| Staff: Make owner, on a manager's row | ● | ○ | ○ | ○ | ○ |
+| Sales: the tab, the report, the glance's figures on My Shops | ● | ● | ○ | ○ | ○ |
+
+A role without the report opening its address is told "The sales report isn't part of your role on this shop", with a link back to the shop, and the glance on My Shops shows the tables' line alone. The kitchen reads the whole table sheet, payments and log included, since the sheet is one answer ([known-gaps.md](./known-gaps.md#accepted-residuals)). While the account's shops load, no role-dependent control is drawn, and the heading rows keep a button's height so nothing moves when they arrive; if the shops can't be loaded every control shows and the API answers. The account page names the role: "Owner of Cafe", "Manager at Cafe", "Till at Cafe"; on several shops "Manages 2 shops" (owner or manager of each) or "Staff at 2 shops".
+
+Content is capped at 60rem so menu rows don't stretch across a desktop. While the shop loads, only its heading and placeholders show, and the page is swapped whole when it arrives, so nothing on screen is pushed down.
 
 ### The three editors
 
@@ -107,7 +125,7 @@ Each cart's `managerLog`, newest first: what managers did ("Refunded", "Released
 
 ## Staff
 
-<img src="./images/staff.png" alt="The Staff section on a desktop: two rows, the owner and a manager added by them, each with their picture, email, role and since when, and a Manage button; Add staff in the header" width="720">
+<img src="./images/staff.png" alt="The Staff section on a desktop: four rows, the owner, a manager added by them, a till and a kitchen, each with their picture, email, role and since when, and a Manage button; Add staff in the header" width="720">
 
 The shop's members, under the tables (`StaffList`, `lib/staff.ts`): `GET /shops/:shopId/staff`, one row per member, the owner first, each with their picture, name ("(you)" on the signed-in account's own row), email, role (Owner, Manager, Till, Floor or Kitchen), "since 12 Oct 2026" and, when the member who added them is still on the staff, "added by Sam" (an administrator who did isn't a member, so nothing is said). An account that was deleted keeps its row, named "An account that was deleted". A failed load says "Couldn't load the staff." with Try again. The list is the API's answer, reloaded after every change together with the account's shops, since who owns the shop and who belongs to it decide what the page shows.
 

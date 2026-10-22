@@ -12,6 +12,8 @@ What the client knowingly doesn't do yet, what it accepts, and what is on the li
 - **Each menu card subscribes to the whole shop**, and each menu row and table card mounts its own hidden editor or sheet; fine at a menu's size.
 - **Managers see one open cart as "the one diners see"**; a duplicate is flagged and can be merged, not prevented here.
 - **A member whose account was deleted can't be removed from the staff list in the app.** The staff list names them "An account that was deleted" and their row stays: the API gives such a member no id to name in a removal. Removing them is a database step until the API answers with the id.
+- **The kitchen reads the whole table sheet**, payments, refunds and the log included, with nothing to press: the sheet is one answer (`GET …/tables/:tableId/carts`) and the ability that opens it is every member's. A kitchen needs the orders, not the money; a view of a table for the kitchen alone is the kitchen step's screen, not a second shape of this sheet.
+- **The client keeps its own copy of the ability table** (`lib/roles.ts`, what each member role may call): it decides what to draw before any request, so it cannot ask the server. The API publishes each operation's `x-ability` and `x-roles`, and the contract test checks the copy against them, so a change on the API that isn't mirrored here fails that test rather than showing a control the API refuses; the API refuses on its own too.
 - **An administrator's My Shops lists every shop, unpaged**, each card reading its figures and its tables' status twice a minute: fine for the handful of shops the app has, and paging comes when a deployment needs it.
 - **The audit can time out under heavy machine load** on screens a change didn't touch; rerun those before believing a failure.
 
@@ -34,4 +36,4 @@ Each changes behaviour, a contract or several layers at once, so each is a step 
 
 ## Roadmap
 
-In the order decided with the product roadmap, now that staff on a shop is in (the owner adds managers and hands the shop over, members leave, an administrator runs every shop and the accounts): **staff roles**, narrowing what each member sees and can press (a till, floor and kitchen role beside owner and manager, with the availability switch as the one thing floor and kitchen staff may change); then **kitchen** screens (queue, prep states, live push, which also brings live updates to diners).
+In the order decided with the product roadmap, now that staff on a shop and staff roles are in (the owner adds managers and hands the shop over, members leave, an administrator runs every shop and the accounts; till, floor and kitchen see and press what their role holds): **kitchen** screens (queue, prep states, live push, which also brings live updates to diners), for the kitchen role that now exists.

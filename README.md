@@ -44,7 +44,7 @@ Each with its reason and what it costs; the dated log is [docs/ux-decisions.md](
 - **The latest request wins.** Every fetch that can overlap is numbered and its answer applied only if nothing newer was asked for since, so a slow answer never overwrites a newer screen and a failed probe never signs a manager out. Cost: five small implementations of one idea, listed in [known-gaps.md](./docs/known-gaps.md) to unify. [architecture.md](./docs/architecture.md#state-four-slices-one-store)
 - **Honest outcomes that stay.** A refusal before money moved says nothing was charged; a lost answer after a capture never claims either way; a card payment the API couldn't confirm is "being confirmed", not failed, and the cart is looked at again. Every outcome stays until the diner closes it. [checkout.md](./docs/checkout.md#outcomes)
 - **Sold-out items are shown, not hidden.** A diner sees why an item can't be added, and one that sold out after it was added stays in the cart flagged, never charged, until it is removed. [ux-decisions.md](./docs/ux-decisions.md)
-- **Who runs a shop is the shop's answer, not the token's.** Every signed-in account loads the shops it belongs to, and the manager side shows to whoever has one, or holds the shop manager or administrator role; the client shows the owner's controls and lets the API refuse, so a change of staff takes effect on the next request without a new sign-in. Cost: the manager pages wait for that answer before sending anyone home. [manager-tools.md](./docs/manager-tools.md#staff)
+- **Who runs a shop is the shop's answer, not the token's.** Every signed-in account loads the shops it belongs to, and the manager side shows to whoever has one, or holds the shop manager or administrator role; a member's role on the shop (owner, manager, till, floor, kitchen) decides which controls the page draws, from the client's copy of the API's ability table, and the API refuses on its own, so a change of staff or role takes effect on the next request without a new sign-in. Cost: the manager pages wait for that answer before sending anyone home. [manager-tools.md](./docs/manager-tools.md#staff)
 - **Layout is tested, not eyeballed.** A headless-Chrome audit renders the main screens from 320px to 1440px and at 200% text against a mocked API and fails on overflow, content spilling out of its card or sheet, controls under 24px, and content hidden under a fixed bar. [responsive-and-a11y.md](./docs/responsive-and-a11y.md)
 
 ## Architecture
@@ -147,7 +147,7 @@ CI runs the lint, the suite and the build, which type-checks first, on Node 24 f
 
 ## Roadmap
 
-Staff on a shop is in; next are staff roles, and kitchen screens with live updates; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
+Staff on a shop and staff roles are in; next are kitchen screens with live updates; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
 
 ## About
 
