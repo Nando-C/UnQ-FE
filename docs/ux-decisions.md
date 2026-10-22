@@ -79,7 +79,7 @@ A full layout and UX review on 2026-09-29 (26 findings at 375, 768 and 1280px, w
 | Q5 | Cart row counter wording (it counts units still free to pick and pay for). | "{n} left to pick", "All picked" at zero, "All claimed by others" when other diners hold them all. "Left to pay" was ambiguous: units I've selected and not paid are also unpaid. | `CartItem.tsx` |
 | Q6 | Should the checkout bar stay pinned on phones? | Yes, below 768px, above the tab bar; its measured height joins the scroll padding. | `CartListItems.css` |
 | Q7 | Copy style. | Sentence case everywhere: "Log in", "Sign up", "Check out", "Log out", "Total paid" (was "Total Payed"). | throughout |
-| Q8 | Should Account show the role? | Hidden for diners; whoever runs shops sees what they are: "Administrator", or by their shops "Owner of Cafe", "Staff at Cafe", "Manages 2 shops", or "Shop manager" with no shop yet (2026-10-17, with membership). | `Account.tsx`, `lib/membership.ts` |
+| Q8 | Should Account show the role? | Hidden for diners; whoever runs shops sees what they are: "Administrator", or by their role on their shop "Owner of Cafe", "Manager at Cafe", "Till at Cafe", on several "Manages 2 shops" (owner or manager of each) or "Staff at 2 shops", or "Shop manager" with no shop yet (2026-10-17, with membership; the roles 2026-10-22). | `Account.tsx`, `lib/membership.ts` |
 | Q9 | Delete confirmations: name the consequences, or require typing the name? | Name the consequences in the dialog; typing the name is more than this scale needs. | `ShopModal.tsx` `deleteShopMessage` |
 | Q10 | "UnQ" or "Un-Q"? | "UnQ", as the logo; the tab title followed, with a title per page. | `lib/usePageTitle.ts` |
 

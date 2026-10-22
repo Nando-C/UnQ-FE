@@ -6,6 +6,8 @@ import { Needs, glanceOf, glanceRange, needsOf } from "../../lib/glance";
 import { arrowOf, buildSalesSearch, DEFAULT_METRIC, formatCount, formatPrice, todayIn } from "../../lib/sales";
 import { apiErrorMessage } from "../../lib/errors";
 import { useVisiblePolling } from "../../lib/useVisiblePolling";
+import { useAppSelector } from "../../redux/app/hooks";
+import { can, selectRoleOn } from "../../lib/roles";
 import type { IShop } from "../../typings/shop";
 import type { ISalesReport } from "../../typings/sales";
 import type { ITableStatus } from "../../typings/tables";
@@ -31,6 +33,9 @@ interface Loaded<T> {
 const timeOf = (at: Date) => at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
 const ShopGlance = ({ shop }: { shop: IShop }) => {
+  // The figures are the sales report, the owner's and managers' (lib/roles.ts);
+  // a role without it gets the tables' line alone, and that read isn't made.
+  const withFigures = can(useAppSelector((state) => selectRoleOn(state, shop._id)), "sales.read");
   const today = todayIn(shop.timeZone);
   const range = glanceRange(today);
   const [report, setReport] = useState<Loaded<ISalesReport>>({});
@@ -52,35 +57,38 @@ const ShopGlance = ({ shop }: { shop: IShop }) => {
     const failed = <T,>(set: (f: (held: Loaded<T>) => Loaded<T>) => void) => (err: unknown) => {
       if (fresh()) set((held) => ({ ...held, error: apiErrorMessage(err) }));
     };
-    backend
-      .get<ISalesReport>(`/shops/${shop._id}/sales`, { params: { from, to, by: "day", compare: "previous" } })
-      .then(({ data }) => answered(setReport)(data), failed(setReport));
+    if (withFigures) {
+      backend
+        .get<ISalesReport>(`/shops/${shop._id}/sales`, { params: { from, to, by: "day", compare: "previous" } })
+        .then(({ data }) => answered(setReport)(data), failed(setReport));
+    }
     backend.get<ITableStatus[]>(`/shops/${shop._id}/tables/status`).then(({ data }) => answered(setStatuses)(data), failed(setStatuses));
-  }, [shop._id, from, to]);
+  }, [shop._id, from, to, withFigures]);
   useVisiblePolling(load, REFRESH_MS);
 
   const salesHref = `/shop/${shop._id}/sales?${buildSalesSearch({ from, to, metric: DEFAULT_METRIC })}`;
   const tablesHref = `/shop/${shop._id}#tableList`;
   const awaited = (held: Loaded<unknown>) => !held.data && !held.error;
-  const loading = awaited(report) || awaited(statuses);
+  // Over the reads made: a report never asked for is not awaited.
+  const loading = (withFigures && awaited(report)) || awaited(statuses);
   // A refresh that failed after figures were shown: said under them, with the figures kept.
-  const stale = (report.data && report.error) || (statuses.data && statuses.error);
+  const stale = (withFigures && report.data && report.error) || (statuses.data && statuses.error);
 
   return (
     <div className="glance" aria-busy={loading || undefined}>
       {loading && (
         <span className="visually-hidden" role="status">
-          Loading {shop.name}'s figures
+          Loading {shop.name}'s {withFigures ? "figures" : "tables"}
         </span>
       )}
-      {report.data ? (
+      {!withFigures ? null : report.data ? (
         <Figures report={report.data} today={today} salesHref={salesHref} shopName={shop.name} />
       ) : report.error ? (
         <Failed what="the figures" onRetry={load} />
       ) : (
         <FiguresPlaceholder />
       )}
-      <div className="glance-footer">
+      <div className={withFigures ? "glance-footer" : "glance-footer glance-footer-alone"}>
         {statuses.data ? (
           <Tables needs={needsOf(statuses.data, shop.deletedTables)} tablesHref={tablesHref} shopName={shop.name} />
         ) : statuses.error ? (

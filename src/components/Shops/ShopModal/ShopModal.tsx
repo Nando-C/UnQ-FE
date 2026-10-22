@@ -15,6 +15,7 @@ import { uploadImage } from "../../../lib/upload";
 import { useObjectURL } from "../../../lib/useObjectURL";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
 import { useConfirmDelete } from "../../../lib/useConfirmDelete";
+import { can, selectRoleOn } from "../../../lib/roles";
 import { DEFAULT_TIME_ZONE } from "../../../lib/sales";
 
 const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
@@ -80,6 +81,7 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
   // An administrator is never a member of a shop, so one they create needs
   // its owner named (the API refuses otherwise): the Owner field below.
   const isAdmin = useAppSelector(selectUserData).role === "admin";
+  const canDelete = can(useAppSelector((state) => selectRoleOn(state, shopId)), "shop.own");
   const namesOwner = isAdmin && shopId === "new";
 
   const [editShop, setEditShop] = useState<IShop>(EMPTY_SHOP);
@@ -446,13 +448,19 @@ const ShopModal = ({ show, handleClose, shopId }: ShopModalProps) => {
           >
             {shopId !== "new" ? (
               <>
-                <Button
-                  ref={confirmDelete.buttonRef}
-                  variant="outline-danger"
-                  onClick={confirmDelete.ask}
-                >
-                  Delete shop
-                </Button>
+                {/* The owner's alone (or an administrator's); a manager's
+                    editor has no Delete (lib/roles.ts). */}
+                {canDelete ? (
+                  <Button
+                    ref={confirmDelete.buttonRef}
+                    variant="outline-danger"
+                    onClick={confirmDelete.ask}
+                  >
+                    Delete shop
+                  </Button>
+                ) : (
+                  <span />
+                )}
                 <Button variant="primary" type="submit" form={formId}>
                   Save Changes
                 </Button>

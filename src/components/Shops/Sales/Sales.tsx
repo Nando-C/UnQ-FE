@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Container } from "react-bootstrap";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
-import { fetchSingleShop, selectShopFailed, selectShopFor } from "../../../redux/slices/shopSlice";
+import { fetchSingleShop, loadShopList, selectShopFailed, selectShopFor, selectShopsDataStatus } from "../../../redux/slices/shopSlice";
+import { selectUserStatus } from "../../../redux/slices/userSlice";
 import backend from "../../../backend/backend";
 import { apiErrorMessage } from "../../../lib/errors";
 import { usePageTitle } from "../../../lib/usePageTitle";
@@ -19,6 +20,8 @@ import {
   todayIn,
 } from "../../../lib/sales";
 import { LoadFailed } from "../../Common/ScreenStates";
+import { Link } from "react-router-dom";
+import { can, selectRoleOn } from "../../../lib/roles";
 import SalesControls from "./SalesControls";
 import SalesTools from "./SalesTools";
 import KpiCards from "./KpiCards";
@@ -93,16 +96,32 @@ const Sales = () => {
   // the shop). Whether the shop is known, not which object: the store hands
   // out a new one on every reload of the same shop, and that is no reason to
   // ask again.
+  // And once the account's shops have answered who it is here (lib/roles.ts):
+  // a member whose role lacks the report is told so below and asks nothing;
+  // anyone else (an owner, a manager, an account not on the shop, shops that
+  // couldn't load) asks the API, which answers or refuses as it does today.
+  const role = useAppSelector((state) => selectRoleOn(state, shopId));
+  const shopsStatus = useAppSelector(selectShopsDataStatus);
+  const userStatus = useAppSelector(selectUserStatus);
+  useEffect(() => {
+    if (userStatus === "authenticated") dispatch(loadShopList());
+  }, [userStatus, dispatch]);
+  const notTheirs = role !== undefined && !can(role, "sales.read");
+  // A signed-in account whose shops haven't answered who it is here waits, and
+  // so does one still being told apart from a guest (the shell asks at start);
+  // a guest asks and gets the 401 as today.
+  const waiting = (userStatus === "authenticated" || userStatus === "loading") && role === undefined && shopsStatus !== "ready" && shopsStatus !== "failed";
+  const mayRead = !notTheirs && !waiting;
   const shopKnown = !!shop;
   useEffect(() => {
-    if (shopKnown) load();
-  }, [shopKnown, load]);
+    if (shopKnown && mayRead) load();
+  }, [shopKnown, mayRead, load]);
   // While the period includes today, asked again every minute the tab is
   // visible, and as soon as it becomes visible again. Not the shared polling
   // hook: that asks on starting, which the effect above already did.
   const includesToday = to >= today;
   useEffect(() => {
-    if (!shopKnown || !includesToday) return;
+    if (!shopKnown || !includesToday || !mayRead) return;
     let timer = setInterval(load, REFRESH_MS);
     const onVisibility = () => {
       clearInterval(timer);
@@ -116,7 +135,7 @@ const Sales = () => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [shopKnown, includesToday, load]);
+  }, [shopKnown, includesToday, load, mayRead]);
 
   // The figures shown are this shop's last answer, which stands in while a
   // newer one loads ("Updating…" says so); another shop's never shows.
@@ -132,7 +151,12 @@ const Sales = () => {
       <div className="page-head">
         <h1>Sales</h1>
       </div>
-      {shopFailed && !shop ? (
+      {notTheirs ? (
+        <p className="mt-3">
+          The sales report isn't part of your role on this shop.{" "}
+          <Link to={`/shop/${shopId}`}>Back to the shop</Link>
+        </p>
+      ) : shopFailed && !shop ? (
         <LoadFailed message="Couldn't load this shop." onRetry={() => dispatch(fetchSingleShop(shopId))} />
       ) : (
         <>

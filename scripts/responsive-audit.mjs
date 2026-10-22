@@ -74,6 +74,12 @@ const SCREENS = [
   ["a-account", "admin", "/admin/accounts", "manageAccount"],
   // The administrator's header on a shop page: the tabs, Accounts and the icon.
   ["a-shop", "admin", "/shop/s1", null],
+  // A till's and a kitchen's shop page (no editors, no Sales tab) and the sheet
+  // as the kitchen reads it (no actions), and their My Shops without figures.
+  ["t-shops", "till", "/", null],
+  ["t-shop", "till", "/shop/s1", null],
+  ["k-shop", "kitchen", "/shop/s1", null],
+  ["k-table-sheet", "kitchen", "/shop/s1", "viewTable"],
 ]
 
 const VIEWPORTS = [

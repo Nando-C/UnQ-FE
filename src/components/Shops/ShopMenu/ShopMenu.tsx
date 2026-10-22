@@ -13,6 +13,7 @@ import Item from "../Item/Item";
 import ItemPlaceholder from "../Item/ItemPlaceholder";
 import { Loading, LoadFailed, NoMatch } from "../../Common/ScreenStates";
 import ItemModal from "../ItemModal/ItemModal";
+import { can, selectRoleOn } from "../../../lib/roles";
 
 interface ShopMenuProps {
   shopId: string;
@@ -24,6 +25,9 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
 
   const dispatch = useAppDispatch();
   const status = useAppSelector(selectShopsDataStatus);
+  // Editing the menu is the owner's and managers' (lib/roles.ts); every member
+  // keeps the availability switch on each row.
+  const canEdit = can(useAppSelector((state) => selectRoleOn(state, shopId)), "menu.edit");
 
   const [query, setQuery] = useState("");
   const q = query.toLowerCase();
@@ -46,7 +50,7 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
           Menu
         </h2>
         <div className="actions">
-          <Button onClick={handleShow}>Add menu item</Button>
+          {canEdit && <Button onClick={handleShow}>Add menu item</Button>}
         </div>
       </div>
       <Row>
@@ -96,12 +100,14 @@ const ShopMenu = ({ shopId }: ShopMenuProps) => {
           </ListGroup>
         </Loading>
       ) : null}
-      <ItemModal
-        shopId={shopId}
-        show={show}
-        handleClose={handleClose}
-        itemId={"new"}
-      />
+      {canEdit && (
+        <ItemModal
+          shopId={shopId}
+          show={show}
+          handleClose={handleClose}
+          itemId={"new"}
+        />
+      )}
     </section>
   );
 };

@@ -3,7 +3,6 @@ import { Alert, Button, Image, Modal } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { apiErrorMessage } from "../../../lib/errors";
 import {
-  CallerRole,
   addedByName,
   dayOf,
   firstName,
@@ -12,8 +11,9 @@ import {
   mayRemove,
   memberName,
   removeMessage,
-  roleLabel,
+  labelOf,
 } from "../../../lib/staff";
+import type { RoleOn } from "../../../lib/roles";
 import { IStaffMember } from "../../../typings/shop";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
 
@@ -23,7 +23,7 @@ interface MemberModalProps {
   // The member opened; undefined once they are gone from the list.
   member: IStaffMember | undefined;
   members: IStaffMember[];
-  caller: CallerRole;
+  caller: RoleOn;
   selfId: string;
   show: boolean;
   handleClose: () => void;
@@ -92,8 +92,10 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
       ? "The owner can't be removed: the shop is handed over first."
       : !member.userId
         ? "This account was deleted; its row stays."
-        : !canRemove
-          ? "Only the owner removes a manager."
+        : !canRemove && caller !== undefined
+          ? caller === "manager" || member.role === "manager"
+            ? "Only the owner removes a manager."
+            : "Only a manager changes staff."
           : null;
   const addedBy = addedByName(member, members);
 
@@ -112,7 +114,7 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
         </div>
         <dl className="row mb-0">
           <dt className="col-4">Role</dt>
-          <dd className="col-8">{roleLabel[member.role]}</dd>
+          <dd className="col-8">{labelOf(member.role)}</dd>
           <dt className="col-4">Since</dt>
           <dd className="col-8">{dayOf(member.since)}</dd>
           {addedBy && (

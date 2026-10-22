@@ -3,7 +3,8 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { Route, Routes } from "react-router-dom"
 import { http, HttpResponse } from "msw"
 import StaffList from "../components/Shops/Staff/StaffList"
-import { callerRoleOn, handOverMessage, mayMakeOwner, mayRemove, removeMessage } from "../lib/staff"
+import { handOverMessage, mayMakeOwner, mayRemove, removeMessage } from "../lib/staff"
+import { roleOnShop } from "../lib/roles"
 import { renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
 import type { RootState } from "../redux/app/store"
@@ -19,7 +20,8 @@ const root: IUser = { ...ada, _id: "u9", name: "Root", surname: "", email: "root
 const since = "2026-10-01T09:00:00.000Z"
 const cafe = {
   _id: "s1", name: "Cafe", cover: "", bio: "", open_times: "", phone: "", web_URL: "", timeZone: "Europe/London",
-  shopMg: ["u2", "u1", "u3"], ownerId: "u2", members: [], menu: [], tables: [],
+  shopMg: ["u2", "u1", "u3"], ownerId: "u2", menu: [], tables: [],
+  members: [{ userId: "u2", role: "owner", since }, { userId: "u1", role: "manager", since, addedBy: "u2" }, { userId: "u3", role: "manager", since, addedBy: "u9" }],
 } as IShop
 const owner: IStaffMember = { userId: "u2", name: "Sam", surname: "Demo", email: "sam@example.com", avatar: "", role: "owner", since }
 const adaRow: IStaffMember = { userId: "u1", name: "Ada", surname: "L", email: "ada@example.com", avatar: "", role: "manager", since: "2026-10-12T09:00:00.000Z", addedBy: "u2" }
@@ -68,9 +70,9 @@ const dialog = () => screen.getByRole("dialog")
 
 describe("the rules", () => {
   it("know who the caller is to the shop, and what they may do", () => {
-    expect(callerRoleOn(root, cafe)).toBe("admin")
-    expect(callerRoleOn(sam, cafe)).toBe("owner")
-    expect(callerRoleOn(ada, cafe)).toBe("manager")
+    expect(roleOnShop(root, cafe)).toBe("admin")
+    expect(roleOnShop(sam, cafe)).toBe("owner")
+    expect(roleOnShop(ada, cafe)).toBe("manager")
     expect(mayRemove("owner", owner, "u2")).toBe(false)
     expect(mayRemove("owner", adaRow, "u2")).toBe(true)
     expect(mayRemove("manager", bob, "u1")).toBe(false)
@@ -224,7 +226,7 @@ describe("the owner", () => {
 })
 
 describe("a manager", () => {
-  it("has no Add staff, may leave, and can't touch another manager", async () => {
+  it("has no Add staff (until the role select), may leave, and can't touch another manager", async () => {
     const { user } = renderStaff(ada)
 
     expect(await screen.findByText("Sam Demo")).toBeInTheDocument()

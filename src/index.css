@@ -225,6 +225,10 @@ a:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  /* A button's height, kept when a role has no button to show here, so a
+   * heading row stands where it is whoever is reading and whenever the role
+   * arrives. */
+  min-height: 2.375rem;
 }
 
 /* Shop cards (customer home, manager's My Shops): one column on phones, two

@@ -131,6 +131,13 @@
   margin-top: auto;
 }
 
+/* Alone on the card (a role without the sales report): no figures above it to
+ * rule off from. Still pinned to the bottom, so the cards in a row line up. */
+.glance-footer.glance-footer-alone {
+  padding-top: 0;
+  border-top: 0;
+}
+
 /* The badges wrap within their own column; the time keeps its place at the
  * top right whatever the number of badges, so every card's footer reads
  * the same. */
