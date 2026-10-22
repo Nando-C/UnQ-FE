@@ -118,8 +118,13 @@ const dataUrl = (buffer) => `data:image/png;base64,${buffer.toString("base64")}`
 
 // ---------------------------------------------------------------- the browser
 
+// The network goes quiet for at most this long: a page that keeps a connection
+// open (a long poll, a toolbar) would otherwise never count as loaded.
+const quiet = (page) => page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {})
+
 const signIn = async (page, email, password) => {
-  await page.goto(`${BASE}/login`, { waitUntil: "networkidle" })
+  await page.goto(`${BASE}/login`, { waitUntil: "load", timeout: 60000 })
+  await quiet(page)
   await page.locator("#login-email").fill(email)
   await page.locator("#login-password").fill(password)
   await Promise.all([
@@ -127,14 +132,15 @@ const signIn = async (page, email, password) => {
     page.getByRole("button", { name: "Log in", exact: true }).click(),
   ])
   await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 30000 })
-  await page.waitForLoadState("networkidle")
+  await quiet(page)
 }
 
 // Every <img> on the page decoded, so a capture never shows a half-loaded photo.
 const imagesSettled = (page) => page.evaluate(() => Promise.all([...document.images].filter((i) => !i.complete).map((i) => new Promise((r) => { i.onload = i.onerror = r }))))
 
 const goto = async (page, url, settle = 800) => {
-  await page.goto(`${BASE}${url}`, { waitUntil: "networkidle", timeout: 60000 })
+  await page.goto(`${BASE}${url}`, { waitUntil: "load", timeout: 60000 })
+  await quiet(page)
   await imagesSettled(page)
   await sleep(settle)
 }
@@ -231,7 +237,7 @@ if (wanted("tables") || wanted("qr") || wanted("table-sheet") || wanted("refund"
   if (wanted("table-sheet") || wanted("refund")) {
     await d.getByRole("button", { name: "View table Window" }).click()
     await d.locator(".modal.show").waitFor()
-    await d.waitForLoadState("networkidle")
+    await quiet(d)
     await sleep(1000)
     if (wanted("table-sheet")) await save("table-sheet", "browser", d, `un-q.vercel.app/shop/${DEMO_SHOP}`)
     if (wanted("refund")) {
@@ -247,7 +253,7 @@ if (wanted("tables") || wanted("qr") || wanted("table-sheet") || wanted("refund"
   if (wanted("pay-back")) {
     await d.getByRole("button", { name: "View table Garden 2" }).click()
     await d.locator(".modal.show").waitFor()
-    await d.waitForLoadState("networkidle")
+    await quiet(d)
     await sleep(800)
     await d.getByRole("button", { name: "Mark paid back" }).click()
     await sleep(600)
@@ -289,7 +295,7 @@ if (wanted("notice")) {
   await goto(d, `/shop/${marlowId}`, 1200)
   await d.getByRole("button", { name: "View table Table 3" }).click()
   await d.locator(".modal.show").waitFor()
-  await d.waitForLoadState("networkidle")
+  await quiet(d)
   const release = d.getByRole("button", { name: /^Release Frank's selection/ }).first()
   await release.waitFor({ timeout: 15000 }).catch(() => {})
   if (await release.count()) {
@@ -320,7 +326,7 @@ if (wanted("cart") || wanted("checkout") || wanted("paid")) {
   await p.getByRole("checkbox", { name: "Select Shakshuka to pay" }).click({ force: true })
   await sleep(600)
   await p.getByRole("checkbox", { name: "Select Fresh Orange Juice to pay" }).click({ force: true })
-  await p.waitForLoadState("networkidle")
+  await quiet(p)
   await sleep(1200)
   if (wanted("cart")) await save("cart", "phone", p)
   if (wanted("checkout") || wanted("paid")) {
