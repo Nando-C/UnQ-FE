@@ -22,8 +22,8 @@ interface StaffListProps {
 const keyOf = (member: IStaffMember) => member.userId ?? `gone-${member.since}`;
 
 // The shop's staff: one row per member, the owner first, each opening a dialog
-// with what can be done about them (MemberModal); Add staff for the owner (or
-// an administrator). The list is the staff route's answer, reloaded after each
+// with what can be done about them (MemberModal); Add staff for whoever may
+// give a role (the owner, an administrator, a manager for the three below). The list is the staff route's answer, reloaded after each
 // change, as the account's shops are, since who owns and who belongs changed.
 const StaffList = ({ shopId }: StaffListProps) => {
   const shop = useAppSelector((state) => state.shops.data.find((shop) => shop._id === shopId));
@@ -140,6 +140,7 @@ const StaffList = ({ shopId }: StaffListProps) => {
       )}
       <AddStaffModal
         shopId={shopId}
+        caller={caller}
         show={adding}
         handleClose={() => setAdding(false)}
         onAdded={(member, created) => {

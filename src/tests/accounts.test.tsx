@@ -63,6 +63,7 @@ describe("the wording", () => {
     expect(shopsLine([])).toBe("no shops")
     expect(shopsLine(sam.shops)).toBe("Owner of Cafe, manager at Deli")
     expect(shopsLine(ada.shops)).toBe("Manager at Cafe")
+    expect(shopsLine([{ _id: "s1", name: "Cafe", role: "till" }, { _id: "s2", name: "Deli", role: "kitchen" }])).toBe("Till at Cafe, kitchen at Deli")
   })
   it("says what deleting does, and what the API will refuse", () => {
     expect(deleteAccountMessage(ada)).toBe("Delete Ada's account? Their sign-ins end and they leave the shops they work at.")

@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react"
 import { Route, Routes } from "react-router-dom"
 import { http, HttpResponse } from "msw"
 import StaffList from "../components/Shops/Staff/StaffList"
-import { handOverMessage, mayMakeOwner, mayRemove, removeMessage } from "../lib/staff"
+import { handOverMessage, mayMakeOwner, mayReRole, mayRemove, reRoleMessage, removeMessage, rolesFor } from "../lib/staff"
 import { roleOnShop } from "../lib/roles"
 import { renderWithProviders } from "./helpers"
 import { server, BASE } from "./server"
@@ -20,13 +20,14 @@ const root: IUser = { ...ada, _id: "u9", name: "Root", surname: "", email: "root
 const since = "2026-10-01T09:00:00.000Z"
 const cafe = {
   _id: "s1", name: "Cafe", cover: "", bio: "", open_times: "", phone: "", web_URL: "", timeZone: "Europe/London",
-  shopMg: ["u2", "u1", "u3"], ownerId: "u2", menu: [], tables: [],
-  members: [{ userId: "u2", role: "owner", since }, { userId: "u1", role: "manager", since, addedBy: "u2" }, { userId: "u3", role: "manager", since, addedBy: "u9" }],
+  shopMg: ["u2", "u1", "u3", "u6"], ownerId: "u2", menu: [], tables: [],
+  members: [{ userId: "u2", role: "owner", since }, { userId: "u1", role: "manager", since, addedBy: "u2" }, { userId: "u3", role: "manager", since, addedBy: "u9" }, { userId: "u6", role: "till", since, addedBy: "u2" }],
 } as IShop
 const owner: IStaffMember = { userId: "u2", name: "Sam", surname: "Demo", email: "sam@example.com", avatar: "", role: "owner", since }
 const adaRow: IStaffMember = { userId: "u1", name: "Ada", surname: "L", email: "ada@example.com", avatar: "", role: "manager", since: "2026-10-12T09:00:00.000Z", addedBy: "u2" }
 const bob: IStaffMember = { userId: "u3", name: "Bob", surname: "K", email: "bob@example.com", avatar: "", role: "manager", since, addedBy: "u9" }
-const staff = [owner, adaRow, bob]
+const kim: IStaffMember = { userId: "u6", name: "Kim", surname: "Demo", email: "kim@example.com", avatar: "", role: "till", since, addedBy: "u2" }
+const staff = [owner, adaRow, bob, kim]
 
 const state = (user: IUser): Partial<RootState> => ({
   user: { data: user, status: "authenticated" },
@@ -45,6 +46,12 @@ beforeEach(() => {
       requests.push({ method: "DELETE", path: `/shops/s1/staff/${params.userId}` })
       members = members.filter((m) => m.userId !== params.userId)
       return new HttpResponse(null, { status: 204 })
+    }),
+    http.put(`${BASE}/shops/s1/staff/:userId`, async ({ request, params }) => {
+      const body = (await request.json()) as { role: IStaffMember["role"] }
+      requests.push({ method: "PUT", path: `/shops/s1/staff/${params.userId}`, body })
+      members = members.map((m) => (m.userId === params.userId ? { ...m, role: body.role } : m))
+      return HttpResponse.json({ members })
     }),
     http.put(`${BASE}/shops/s1/owner`, async ({ request }) => {
       const body = (await request.json()) as { userId: string }
@@ -83,12 +90,23 @@ describe("the rules", () => {
     expect(mayMakeOwner("manager", bob)).toBe(false)
     expect(mayMakeOwner("admin", owner)).toBe(false)
     expect(mayMakeOwner("owner", { ...adaRow, userId: null })).toBe(false)
+    // Changing a role: the owner anyone's but the owner's, a manager the three below's.
+    expect(mayReRole("owner", adaRow)).toBe(true)
+    expect(rolesFor("owner", adaRow)).toEqual(["till", "floor", "kitchen"])
+    expect(mayReRole("owner", owner)).toBe(false)
+    expect(mayReRole("manager", bob)).toBe(false)
+    expect(mayReRole("manager", kim)).toBe(true)
+    expect(rolesFor("manager", kim)).toEqual(["floor", "kitchen"])
+    expect(mayReRole("till", kim)).toBe(false)
+    expect(mayReRole("owner", { ...kim, userId: null })).toBe(false)
   })
   it("say what follows a change", () => {
     expect(removeMessage(adaRow, "Cafe", false)).toBe("Remove Ada from Cafe? They keep their account and lose access to this shop on their next request.")
     expect(removeMessage(adaRow, "Cafe", true)).toBe("Leave Cafe? You keep your account and lose access to this shop on your next request.")
     expect(handOverMessage(adaRow, "Cafe", "owner", owner)).toBe("Make Ada the owner of Cafe? You become a manager and can no longer delete the shop or remove managers.")
     expect(handOverMessage(adaRow, "Cafe", "admin", owner)).toBe("Make Ada the owner of Cafe? Sam becomes a manager.")
+    expect(reRoleMessage(adaRow, "till", "Cafe")).toBe("Put Ada on the till at Cafe? The tables and the money: table sheets, cart fixes, refunds, payment checks, pay-backs. It takes effect on their next request.")
+    expect(reRoleMessage(kim, "manager", "Cafe")).toMatch(/^Make Kim a manager at Cafe\? Runs the shop/)
   })
 })
 
@@ -97,13 +115,14 @@ describe("the staff list", () => {
     renderStaff(sam)
 
     const rows = within(await screen.findByRole("list")).getAllByRole("listitem")
-    expect(rows).toHaveLength(3)
+    expect(rows).toHaveLength(4)
     expect(rows[0]).toHaveTextContent("Sam Demo (you)")
     expect(rows[0]).toHaveTextContent("sam@example.com · Owner · since 1 Oct 2026")
     expect(rows[1]).toHaveTextContent("ada@example.com · Manager · since 12 Oct 2026, added by Sam")
     // Added by an administrator, who isn't on the staff: nothing said.
     expect(rows[2]).toHaveTextContent("bob@example.com · Manager · since 1 Oct 2026")
     expect(rows[2]).not.toHaveTextContent("added by")
+    expect(rows[3]).toHaveTextContent("kim@example.com · Till · since 1 Oct 2026, added by Sam")
     expect(screen.getByRole("button", { name: "Add staff" })).toBeInTheDocument()
   })
 
@@ -152,6 +171,20 @@ describe("the owner", () => {
     await waitFor(() => expect(requests).toEqual([{ method: "DELETE", path: "/shops/s1/staff/u1" }]))
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     await waitFor(() => expect(screen.queryByText("Ada L")).not.toBeInTheDocument())
+  })
+
+  it("changes a member's role, after being told what follows, and the list follows", async () => {
+    const { user } = renderStaff(sam)
+    await user.click(await screen.findByRole("button", { name: "Manage Ada L" }))
+    const d = within(dialog())
+    expect(within(d.getByLabelText("Change role to")).getAllByRole("option").map((o) => o.textContent)).toEqual(["Till", "Floor", "Kitchen"])
+    await user.selectOptions(d.getByLabelText("Change role to"), "floor")
+    await user.click(d.getByRole("button", { name: "Change role" }))
+    expect(d.getByText(/Put Ada on the floor at Cafe\? The tables, no money/)).toBeInTheDocument()
+    await user.click(d.getByRole("button", { name: "Change role" }))
+    await waitFor(() => expect(requests).toEqual([{ method: "PUT", path: "/shops/s1/staff/u1", body: { role: "floor" } }]))
+    const rows = within(await screen.findByRole("list")).getAllByRole("listitem")
+    await waitFor(() => expect(rows[1]).toHaveTextContent("Floor"))
   })
 
   it("hands the shop over to a manager", async () => {
@@ -226,11 +259,14 @@ describe("the owner", () => {
 })
 
 describe("a manager", () => {
-  it("has no Add staff (until the role select), may leave, and can't touch another manager", async () => {
+  it("adds the three roles below manager, may leave, and can't touch another manager", async () => {
     const { user } = renderStaff(ada)
 
     expect(await screen.findByText("Sam Demo")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Add staff" })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Add staff" }))
+    const add = within(dialog())
+    expect(within(add.getByLabelText("Role")).getAllByRole("option").map((o) => o.textContent)).toEqual(["Till", "Floor", "Kitchen"])
+    await user.click(add.getByRole("button", { name: "Close" }))
     await user.click(screen.getByRole("button", { name: "Manage Bob K" }))
     let d = within(dialog())
     expect(d.getByText("Only the owner removes a manager.")).toBeInTheDocument()
@@ -272,7 +308,7 @@ describe("Add staff", () => {
       http.post(`${BASE}/shops/s1/staff`, async ({ request }) => {
         const body = (await request.json()) as Record<string, unknown>
         posted.push(body)
-        const member: IStaffMember = { userId: "u4", name: (body.name as string) ?? "Alex", surname: "", email: body.email as string, avatar: "", role: "manager", since, addedBy: "u2" }
+        const member: IStaffMember = { userId: "u4", name: (body.name as string) ?? "Alex", surname: "", email: body.email as string, avatar: "", role: body.role as IStaffMember["role"], since, addedBy: "u2" }
         members = [...members, member]
         return HttpResponse.json({ member, created }, { status: created ? 201 : 200 })
       })
@@ -306,6 +342,19 @@ describe("Add staff", () => {
 
     await waitFor(() => expect(posted).toEqual([{ email: "alex@example.com", role: "manager" }]))
     expect(await screen.findByText("Alex already had an account and is now a manager at Cafe.")).toBeInTheDocument()
+  })
+
+  it("offers the owner four roles and a manager three, each with a line on what it does, and sends the one picked", async () => {
+    answer(false)
+    const { user } = renderStaff(ada)
+    await user.click(await screen.findByRole("button", { name: "Add staff" }))
+    const d = within(dialog())
+    await user.selectOptions(d.getByLabelText("Role"), "kitchen")
+    expect(d.getByText("Reads the tables and their orders; says when a dish has run out.")).toBeInTheDocument()
+    await user.type(d.getByLabelText("Email"), "alex@example.com")
+    await user.click(d.getByRole("button", { name: "Add to staff" }))
+    await waitFor(() => expect(posted).toEqual([{ email: "alex@example.com", role: "kitchen" }]))
+    expect(await screen.findByText("Alex already had an account and is now in the kitchen at Cafe.")).toBeInTheDocument()
   })
 
   it("shows what the API refused", async () => {

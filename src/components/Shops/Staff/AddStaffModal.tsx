@@ -2,10 +2,13 @@ import { useEffect, useId, useState } from "react";
 import { Alert, Button, FloatingLabel, Form, Modal } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { apiErrorMessage } from "../../../lib/errors";
-import { IStaffMember } from "../../../typings/shop";
+import { IStaffMember, MemberRole } from "../../../typings/shop";
+import { RoleOn, givable, roleLabel, roleMeaning } from "../../../lib/roles";
 
 interface AddStaffModalProps {
   shopId: string;
+  // Who the signed-in account is to the shop: it decides the roles offered.
+  caller: RoleOn;
   show: boolean;
   handleClose: () => void;
   // The member added, and whether an account was created for them (201)
@@ -15,21 +18,27 @@ interface AddStaffModalProps {
 
 const EMPTY = { email: "", name: "", surname: "", password: "" };
 
-// Adds a manager to the shop by email (POST /shops/:shopId/staff). An address
-// with an account attaches it as it is; one without gets an account made from
-// the name, surname and first password, which appear once the email is typed
-// and which the API ignores for an address it knows. Only the owner (or an
-// administrator) opens this dialog; the API checks too.
-const AddStaffModal = ({ shopId, show, handleClose, onAdded }: AddStaffModalProps) => {
+// Adds someone to the shop by email (POST /shops/:shopId/staff), in a role the
+// caller may give (lib/roles.ts givable: the owner any but owner, a manager the
+// three below). An address with an account attaches it as it is; one without
+// gets an account made from the name, surname and first password, which appear
+// once the email is typed and which the API ignores for an address it knows.
+// The API checks the role too.
+const AddStaffModal = ({ shopId, caller, show, handleClose, onAdded }: AddStaffModalProps) => {
   const formId = useId();
+  const roles = givable(caller);
   const [fields, setFields] = useState(EMPTY);
+  const [role, setRole] = useState<MemberRole | undefined>(roles[0]);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   // Each opening starts from an empty form, not from what was typed last time.
   useEffect(() => {
     if (!show) return;
     setFields(EMPTY);
+    setRole(roles[0]);
     setError(null);
+    // The roles follow the caller, which doesn't change while the dialog is open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
 
   const set = (field: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -45,7 +54,7 @@ const AddStaffModal = ({ shopId, show, handleClose, onAdded }: AddStaffModalProp
     }
     // The account fields go only when filled: the API asks for them when the
     // address is new, and says which are missing.
-    const body: Record<string, string> = { email: fields.email.trim(), role: "manager" };
+    const body: Record<string, string> = { email: fields.email.trim(), role: role ?? roles[0] };
     for (const field of ["name", "surname", "password"] as const) {
       if (fields[field].trim()) body[field] = field === "password" ? fields[field] : fields[field].trim();
     }
@@ -74,7 +83,19 @@ const AddStaffModal = ({ shopId, show, handleClose, onAdded }: AddStaffModalProp
             <FloatingLabel controlId={`${formId}-email`} label="Email">
               <Form.Control type="email" placeholder="Email" autoComplete="off" value={fields.email} onChange={set("email")} />
             </FloatingLabel>
-            <Form.Text>They join as a manager. An address that already has an account is added as it is.</Form.Text>
+            <Form.Text>An address that already has an account is added as it is.</Form.Text>
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <FloatingLabel controlId={`${formId}-role`} label="Role">
+              <Form.Select value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
+                {roles.map((r) => (
+                  <option key={r} value={r}>
+                    {roleLabel[r]}
+                  </option>
+                ))}
+              </Form.Select>
+            </FloatingLabel>
+            {role && <Form.Text>{roleMeaning[role]}.</Form.Text>}
           </Form.Group>
           {typed && (
             <fieldset className="mb-3">

@@ -1,4 +1,5 @@
 import { IListedUser } from "../typings/user";
+import { labelOf } from "./roles";
 
 // The administrator's Accounts page: wording and the two rules the client
 // shows before the API does (its refusals show as they are).
@@ -14,13 +15,13 @@ export const isAccountRole = (role: string): role is AccountRole => (ACCOUNT_ROL
 
 export const accountName = (account: Pick<IListedUser, "name" | "surname">) => [account.name, account.surname].filter(Boolean).join(" ");
 
-// "Owner of Cafe, manager at Deli", or "no shops".
+// "Owner of Cafe, till at Deli", or "no shops".
 export const shopsLine = (shops: IListedUser["shops"]) =>
   shops.length === 0
     ? "no shops"
     : shops
         .map(({ name, role }, i) => {
-          const part = role === "owner" ? `owner of ${name}` : `manager at ${name}`;
+          const part = role === "owner" ? `owner of ${name}` : `${labelOf(role).toLowerCase()} at ${name}`;
           return i === 0 ? part[0].toUpperCase() + part.slice(1) : part;
         })
         .join(", ");
