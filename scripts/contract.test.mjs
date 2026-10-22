@@ -13,7 +13,7 @@ const spec = JSON.parse(fs.readFileSync(path.join(import.meta.dirname, "openapi.
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"))
 // The client's copy of the API's ability table (what each member role may
 // call), checked below against what the document says of each operation.
-import { ABILITIES, MEMBER_ROLES, can } from "../src/lib/roles"
+import { ABILITIES, holdersOf } from "../src/lib/roles"
 
 // Every call the client makes, as the document names it. A new call site is
 // added here (the sweep below insists) and must exist in the document.
@@ -149,7 +149,7 @@ describe("the API contract", () => {
     const called = guarded.filter(([route]) => CLIENT_CALLS.some(([m, p]) => `${m} ${p}` === route))
     expect(called.length).toBeGreaterThanOrEqual(22)
     for (const [route, op] of called) {
-      const mirror = MEMBER_ROLES.filter((role) => op["x-ability"].some((a) => can(role, a)))
+      const mirror = holdersOf(op["x-ability"])
       expect({ route, roles: [...op["x-roles"]].sort() }).toEqual({ route, roles: [...mirror].sort() })
     }
   })

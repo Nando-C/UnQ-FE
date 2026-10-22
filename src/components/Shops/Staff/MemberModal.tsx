@@ -14,9 +14,8 @@ import {
   reRoleMessage,
   removeMessage,
   rolesFor,
-  labelOf,
 } from "../../../lib/staff";
-import { roleLabel, type RoleOn } from "../../../lib/roles";
+import { labelOf, roleLabel, type RoleOn } from "../../../lib/roles";
 import { IStaffMember, MemberRole } from "../../../typings/shop";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
 
@@ -113,7 +112,7 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
       : !member.userId
         ? "This account was deleted; its row stays."
         : !canRemove && caller !== undefined
-          ? caller === "manager"
+          ? member.role === "manager"
             ? "Only the owner removes a manager."
             : "Only a manager changes staff."
           : null;

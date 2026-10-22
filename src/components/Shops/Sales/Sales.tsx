@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Container } from "react-bootstrap";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../redux/app/hooks";
 import { fetchSingleShop, loadShopList, selectShopFailed, selectShopFor, selectShopsDataStatus } from "../../../redux/slices/shopSlice";
 import { selectUserStatus } from "../../../redux/slices/userSlice";
@@ -20,7 +20,6 @@ import {
   todayIn,
 } from "../../../lib/sales";
 import { LoadFailed } from "../../Common/ScreenStates";
-import { Link } from "react-router-dom";
 import { can, selectRoleOn } from "../../../lib/roles";
 import SalesControls from "./SalesControls";
 import SalesTools from "./SalesTools";
