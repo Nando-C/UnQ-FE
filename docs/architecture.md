@@ -4,7 +4,7 @@ How the client is put together: what lives where, how data moves, and the rules 
 
 ## One app, two interfaces
 
-The same bundle serves two people. A **diner** arrives from a table's QR code on a phone, orders into the table's shared cart and pays for the units they picked. A **manager** signs in on a laptop and runs their shops, menus and tables, and watches each table's carts and money. `App.tsx` decides which shell to draw from who is signed in: whoever runs a shop gets the fixed manager header, everyone else the fixed bottom tab bar. Running a shop is the account's role (`shopMg`, a shop manager who may create shops, or `admin`, an administrator who may do everything on every shop) or being a member of one, which only the account's shops say: every signed-in account loads them (`GET /shops/me`, `[]` for a diner) and one selector, `selectIsManager`, reads both. The routes below are open to both:
+The same bundle serves two people. A **diner** arrives from a table's QR code on a phone, orders into the table's shared cart and pays for the units they picked. A **manager** signs in on a laptop and runs their shops, menus and tables, and watches each table's carts and money. `App.tsx` decides which shell to draw from who is signed in: whoever runs a shop gets the fixed manager header, everyone else the fixed bottom tab bar. Running a shop is the account's role (`shopMg`, a shop manager who may create shops, or `admin`, an administrator who may do everything on every shop) or being a member of one, which only the account's shops say: every signed-in account loads them (`GET /shops/me`, `[]` for a diner) and one selector, `selectIsManager`, reads both. What a member may do on a shop is their role on it (`owner`, `manager`, `till`, `floor`, `kitchen`): `lib/roles.ts` holds the client's copy of the API's ability table and a selector, `selectRoleOn(state, shopId)`, that reads the account's row from its own shops, and every role-dependent control is one `can(role, ability)` where it is drawn ([manager-tools.md](./manager-tools.md#the-shop-page)). The routes below are open to both:
 
 | Route | Page | Who |
 |---|---|---|
@@ -47,7 +47,8 @@ src/
 ├── typings/                  cart, menu, sales, shop, tables, user
 └── tests/                    the Vitest suite, its msw server and helpers
 scripts/                      repository checks and tools, outside the app's type check: the responsive audit
-                              (+ fixtures), the API contract fixture (openapi.json) with its test and refresh
+                              (+ fixtures), the API contract fixture (openapi.json) with its test (every call, and
+                              the ability table against the document's x-ability and x-roles) and refresh
                               script, the docs test, the Sass import test, the screenshot tool (shots.mjs)
 docs/images/                  the screenshots, from the live demo
 ```
@@ -81,6 +82,7 @@ component ──dispatch(thunk)──▶ slice ──▶ backend (axios) ──�
 - **Errors** are read in one place, `lib/errors.ts`: the API's `{ message, details?, reason? }` body, its status, and `apiErrorMessage`, which prefers the zod `details` of a 400 to its message. Only an object body counts; a proxy's HTML error page is ignored.
 - **Cart requests** go through `cartThunk`, which rejects with the API's `{ status, message, reason }` (`CartRejection`) so the UI can tell refusals apart; the checkout's mapping of those is in [checkout.md](./checkout.md).
 - **Who is signed in** gates every change. `lib/useSignIn.ts` says whether it's known yet (`/users/me` answered), whether someone is signed in, and sends a guest to `/login` with the current page remembered. A tap made before it is known waits for the answer rather than guessing (`MenuItem`).
+- **What a role may do** is one table, `lib/roles.ts`: the API's abilities by member role, mirrored and checked against the API's document by the contract test; `can(role, ability)`, and `selectRoleOn(state, shopId)`, the account's row on one of its own shops (a row decides whatever the load status; no row once the shops failed shows everything and lets the API refuse; no row otherwise draws nothing role-dependent). Every role-dependent control is one `can()` where it is drawn.
 - **Coming back after signing in**: `lib/returnTo.ts` keeps the table's path in `sessionStorage` for 30 minutes, because sign-up reloads the page and Google sign-in leaves the site and returns to `/`. `Login`, `Register` and `Dashboard` take it; the guards and `Login` set it.
 
 ## Styling layers
