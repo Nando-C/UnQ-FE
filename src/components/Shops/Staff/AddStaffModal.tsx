@@ -35,11 +35,9 @@ const AddStaffModal = ({ shopId, caller, show, handleClose, onAdded }: AddStaffM
   useEffect(() => {
     if (!show) return;
     setFields(EMPTY);
-    setRole(roles[0]);
+    setRole(givable(caller)[0]);
     setError(null);
-    // The roles follow the caller, which doesn't change while the dialog is open.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show]);
+  }, [show, caller]);
 
   const set = (field: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setFields({ ...fields, [field]: e.target.value });

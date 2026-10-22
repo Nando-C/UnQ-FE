@@ -9,7 +9,6 @@ import { RoleOn, givable, labelOf, mayHandle, roleMeaning } from "./roles";
 // role but owner, a manager the three below, the three below none (lib/roles.ts
 // givable, which also fills the dialog's role select).
 export const runsStaff = (caller: RoleOn) => givable(caller).length > 0;
-export { givable };
 
 // Whether the caller may change a member's role: not the owner's (a hand-over
 // does that), the member has an account, the caller handles the member's role,
@@ -42,7 +41,6 @@ export const firstName = (member: Pick<IStaffMember, "name" | "email">) => membe
 export const manageLabel = (member: Pick<IStaffMember, "name" | "surname" | "email">) =>
   member.name || member.email ? `Manage ${memberName(member)}` : "Manage a deleted account";
 
-export { roleLabel, labelOf } from "./roles";
 
 // "12 Oct 2026": memberships last for years, so the year is kept.
 export const dayOf = (iso: string) =>
