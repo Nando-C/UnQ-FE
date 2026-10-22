@@ -1,17 +1,23 @@
 import { IStaffMember, MemberRole } from "../typings/shop";
-import { RoleOn, givable, labelOf, mayHandle } from "./roles";
+import { RoleOn, givable, labelOf, mayHandle, roleMeaning } from "./roles";
 
 // The Staff section's rules, as the API has them: the client shows the controls
 // the caller's role allows and the API answers (its refusals show as they are).
 // Who the caller is to the shop comes from lib/roles.ts (selectRoleOn).
 
-// Whether the caller sees Add staff. The API lets a manager add the three
-// roles below manager, but the dialog gives one role, manager, until it has a
-// role select (the next step), so for now only the owner (or an administrator)
-// adds; a role that couldn't be read is shown everything, as everywhere.
-export const runsStaff = (caller: RoleOn) => caller === "owner" || caller === "admin" || caller === "unknown";
-// The roles the caller may give, for that select (lib/roles.ts givable).
+// Whether the caller sees Add staff: the owner (or an administrator) gives any
+// role but owner, a manager the three below, the three below none (lib/roles.ts
+// givable, which also fills the dialog's role select).
+export const runsStaff = (caller: RoleOn) => givable(caller).length > 0;
 export { givable };
+
+// Whether the caller may change a member's role: not the owner's (a hand-over
+// does that), the member has an account, the caller handles the member's role,
+// and there is a role to change to that the caller may give.
+export const mayReRole = (caller: RoleOn, member: IStaffMember) =>
+  member.role !== "owner" && !!member.userId && mayHandle(caller, member.role) && givable(caller).some((role) => role !== member.role);
+// The roles a member can be changed to by the caller: what the caller gives, less the one they hold.
+export const rolesFor = (caller: RoleOn, member: IStaffMember): MemberRole[] => givable(caller).filter((role) => role !== member.role);
 
 // The owner is never removed (the shop is handed over first); anyone may leave;
 // otherwise the caller must be allowed to handle the member's role (the API's
@@ -60,6 +66,10 @@ export const handOverMessage = (member: IStaffMember, shopName: string, caller: 
   (caller === "admin"
     ? `${owner ? firstName(owner) : "The current owner"} becomes a manager.`
     : "You become a manager and can no longer delete the shop or remove managers.");
+
+// "Make Ada a manager at Cafe?", "Put Ada on the till at Cafe?".
+export const reRoleMessage = (member: IStaffMember, role: MemberRole, shopName: string) =>
+  `${role === "manager" ? "Make" : "Put"} ${firstName(member)} ${roleIn(role)} at ${shopName}? ${roleMeaning[role]}. It takes effect on their next request.`;
 
 // What Add staff did, from the API's answer: created an account (201), or
 // attached one that existed (200).

@@ -42,6 +42,7 @@ const CLIENT_CALLS = [
   ["GET", "/shops/{shopId}/staff"],
   ["POST", "/shops/{shopId}/staff"],
   ["DELETE", "/shops/{shopId}/staff/{userId}"],
+  ["PUT", "/shops/{shopId}/staff/{userId}"],
   ["PUT", "/shops/{shopId}/owner"],
   ["GET", "/shops/{shopId}/menu/{itemId}"],
   ["POST", "/shops/{shopId}/menu"],

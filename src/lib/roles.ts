@@ -93,6 +93,14 @@ export const roleLabel: Record<MemberRole, string> = {
   floor: "Floor",
   kitchen: "Kitchen",
 };
+// What each role does, in a line, under the role select (the API's description says the same).
+export const roleMeaning: Record<MemberRole, string> = {
+  owner: "Everything, and alone deletes the shop, adds and removes managers and hands it over",
+  manager: "Runs the shop: menu, tables, sales report, and adds till, floor and kitchen staff",
+  till: "The tables and the money: table sheets, cart fixes, refunds, payment checks, pay-backs",
+  floor: "The tables, no money: table sheets and cart fixes",
+  kitchen: "Reads the tables and their orders; says when a dish has run out",
+};
 // A role the client doesn't know (a newer API's) shows as it is, not as nothing.
 export const labelOf = (role: string): string => (role in roleLabel ? roleLabel[role as MemberRole] : role);
 

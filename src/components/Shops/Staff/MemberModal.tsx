@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Alert, Button, Image, Modal } from "react-bootstrap";
+import { Alert, Button, FloatingLabel, Form, Image, Modal } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { apiErrorMessage } from "../../../lib/errors";
 import {
@@ -8,13 +8,16 @@ import {
   firstName,
   handOverMessage,
   mayMakeOwner,
+  mayReRole,
   mayRemove,
   memberName,
+  reRoleMessage,
   removeMessage,
+  rolesFor,
   labelOf,
 } from "../../../lib/staff";
-import type { RoleOn } from "../../../lib/roles";
-import { IStaffMember } from "../../../typings/shop";
+import { roleLabel, type RoleOn } from "../../../lib/roles";
+import { IStaffMember, MemberRole } from "../../../typings/shop";
 import { ConfirmFooter } from "../../Common/ConfirmFooter";
 
 interface MemberModalProps {
@@ -33,7 +36,7 @@ interface MemberModalProps {
   onLeft: () => void;
 }
 
-type Step = "remove" | "handOver";
+type Step = "remove" | "handOver" | "reRole";
 
 // One member of the shop: who they are and, for whoever may, what can be done
 // about them. Each step asks first in the dialog's own footer (ConfirmFooter),
@@ -44,11 +47,15 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
   const [error, setError] = useState<string | null>(null);
   const removeRef = useRef<HTMLButtonElement>(null);
   const handOverRef = useRef<HTMLButtonElement>(null);
-  // Each opening starts afresh: no question pending, no old error.
+  const reRoleRef = useRef<HTMLButtonElement>(null);
+  // The role picked to change to; the member's own is left out of the list.
+  const [newRole, setNewRole] = useState<MemberRole | null>(null);
+  // Each opening starts afresh: no question pending, no old error, no pick.
   useEffect(() => {
     if (!show) return;
     setAsking(null);
     setError(null);
+    setNewRole(null);
   }, [show]);
 
   if (!member) return null;
@@ -56,6 +63,11 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
   const owner = members.find((m) => m.role === "owner");
   const canRemove = mayRemove(caller, member, selfId);
   const canHandOver = mayMakeOwner(caller, member);
+  const canReRole = mayReRole(caller, member);
+  const roles = rolesFor(caller, member);
+  // A pick that the member's own role has since become (the list reloaded under
+  // the dialog) falls back to the first on offer.
+  const picked = newRole && roles.includes(newRole) ? newRole : roles[0];
 
   const run = async (step: () => Promise<void>) => {
     setBusy(true);
@@ -85,6 +97,14 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
       handleClose();
       onChanged();
     });
+  // PUT /shops/:shopId/staff/:userId: the API checks the caller may handle
+  // both the role held and the one asked for, and refuses the same role again.
+  const reRole = () =>
+    run(async () => {
+      await backend.put(`/shops/${shopId}/staff/${member.userId}`, { role: picked });
+      handleClose();
+      onChanged();
+    });
 
   // Why a row has nothing to press, when there is a reason worth saying.
   const why =
@@ -93,7 +113,7 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
       : !member.userId
         ? "This account was deleted; its row stays."
         : !canRemove && caller !== undefined
-          ? caller === "manager" || member.role === "manager"
+          ? caller === "manager"
             ? "Only the owner removes a manager."
             : "Only a manager changes staff."
           : null;
@@ -124,6 +144,19 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
             </>
           )}
         </dl>
+        {canReRole && (
+          <Form.Group className="mt-3">
+            <FloatingLabel controlId="member-new-role" label="Change role to">
+              <Form.Select value={picked} onChange={(e) => setNewRole(e.target.value as MemberRole)} disabled={busy || asking !== null}>
+                {roles.map((r) => (
+                  <option key={r} value={r}>
+                    {roleLabel[r]}
+                  </option>
+                ))}
+              </Form.Select>
+            </FloatingLabel>
+          </Form.Group>
+        )}
         {why && <p className="text-body-secondary mb-0">{why}</p>}
         {error && (
           <Alert className="my-2" variant="danger">
@@ -150,8 +183,17 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
           onCancel={() => setAsking(null)}
           returnFocus={() => handOverRef.current}
         />
+      ) : asking === "reRole" && picked ? (
+        <ConfirmFooter
+          message={reRoleMessage(member, picked, shopName)}
+          confirmLabel="Change role"
+          busy={busy}
+          onConfirm={reRole}
+          onCancel={() => setAsking(null)}
+          returnFocus={() => reRoleRef.current}
+        />
       ) : (
-        (canRemove || canHandOver) && (
+        (canRemove || canHandOver || canReRole) && (
           <Modal.Footer className="justify-content-between">
             {canRemove ? (
               <Button ref={removeRef} variant="outline-danger" onClick={() => setAsking("remove")}>
@@ -160,11 +202,18 @@ const MemberModal = ({ shopId, shopName, member, members, caller, selfId, show, 
             ) : (
               <span />
             )}
-            {canHandOver && (
-              <Button ref={handOverRef} variant="primary" onClick={() => setAsking("handOver")}>
-                Make owner
-              </Button>
-            )}
+            <span className="d-flex flex-wrap gap-2">
+              {canReRole && (
+                <Button ref={reRoleRef} variant="outline-primary" onClick={() => setAsking("reRole")}>
+                  Change role
+                </Button>
+              )}
+              {canHandOver && (
+                <Button ref={handOverRef} variant="primary" onClick={() => setAsking("handOver")}>
+                  Make owner
+                </Button>
+              )}
+            </span>
           </Modal.Footer>
         )
       )}
