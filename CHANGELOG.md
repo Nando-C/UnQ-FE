@@ -6,9 +6,13 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-10-29
+
+Staff roles: a shop's members hold one of five roles, and the shop page shows each member the controls their role may press, asks for the role when adding staff and changes a member's role. On My Shops, each shop's week is the seven full days to yesterday, so the change on the week before reads like for like at any hour. Needs the API at 2.5.0. Nothing changes on the host.
+
 ### Added
 
-- **Staff roles on the shop page.** A shop's members hold one of five roles: owner, manager, and below manager till, floor and kitchen. The page shows each member the controls their role may press, from the account's own row on the shop (`lib/roles.ts`, the client's copy of the API's ability table, checked against the document by the contract test): the editors and Add buttons for owners and managers; the table sheet's cart fixes for the till and the floor, its money for the till alone; the Sales tab, the glance's figures and the report for owners and managers; the availability switch and the staff list for everyone. The account page names the role ("Till at Cafe"). In the Staff section, Add staff asks for the role (the owner gives manager, till, floor or kitchen; a manager the three below), and a member's dialog changes their role (`PUT /shops/:shopId/staff/:userId`); the administrator's Accounts page names each role ("Till at Cafe, kitchen at Deli"). [docs/manager-tools.md](./docs/manager-tools.md#the-shop-page) has what each role sees. Needs the API at 2.4.0 with staff roles (its pull requests #51 and #52).
+- **Staff roles on the shop page.** A shop's members hold one of five roles: owner, manager, and below manager till, floor and kitchen. The page shows each member the controls their role may press, from the account's own row on the shop (`lib/roles.ts`, the client's copy of the API's ability table, checked against the document by the contract test): the editors and Add buttons for owners and managers; the table sheet's cart fixes for the till and the floor, its money for the till alone; the Sales tab, the glance's figures and the report for owners and managers; the availability switch and the staff list for everyone. The account page names the role ("Till at Cafe"). In the Staff section, Add staff asks for the role (the owner gives manager, till, floor or kitchen; a manager the three below), and a member's dialog changes their role (`PUT /shops/:shopId/staff/:userId`); the administrator's Accounts page names each role ("Till at Cafe, kitchen at Deli"). [docs/manager-tools.md](./docs/manager-tools.md#the-shop-page) has what each role sees. Needs the API at 2.5.0.
 
 ### Changed
 

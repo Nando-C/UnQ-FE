@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "UnQ API",
-    "version": "2.4.0",
+    "version": "2.5.0",
     "summary": "Order and pay at the table, split the bill, run the shop.",
     "description": "The API behind UnQ, a food and drinks ordering app: diners at a venue scan their table's QR code, order from their phones, pick what each of them pays for, and pay by PayPal or card (Stripe); managers run their shops, menus and tables from the same app.\n\n## Conventions\n\n- **Sign-in** is two HttpOnly cookies, `accessToken` (15 minutes) and `refreshToken` (4 weeks), set by the auth routes. Each sign-in is a session of its own, so an account can be signed in on several devices (up to 10) and sign one out (`DELETE /auth/sessions/{sessionId}`). A 401 means refresh (`POST /auth/refreshToken`) and retry; a refresh that fails ends the session. Operations marked with the lock need the cookie; the rest are public, and some show more to a signed-in caller.\n- **Roles.** Every account is a `customer`; a `shopMg` (shop manager) can create shops, and an `admin` can do everything on every shop. Never from the account's own request (register, profile edit): an administrator gives them (the Accounts operations), and the first administrator is set in the database. A shop's staff are its `members`, each with a role: `owner` (one per shop), `manager`, and below manager `till`, `floor` and `kitchen` (the Staff operations). The owner, or an administrator, alone adds managers, removes them, changes a manager's role and hands the shop over; a manager adds, re-roles and removes the three below; any member may leave. A shop's operations check that the caller is a member of the shop in the URL, or an administrator (403 \"Shop Manager Only!\" otherwise), then that their role may do this: each such operation carries `x-ability`, what it asks of the role (the fact the server checks), and `x-roles`, the roles that hold it today (403 \"Your role on this shop doesn't allow this\" for the others).\n- **Ids** are MongoDB ObjectIds (24 hex characters). A table's id is its `_id` in the shop's `tables`.\n- **Money** is in pounds (GBP) to the penny everywhere a cart, a payment or a refund says an amount, and the `price` a manager sets is the same. The one exception is `createStripeCheckout`'s `amount`, in pence, as Stripe counts. The client never names an amount to pay: every total comes from database prices.\n- **Errors** are `{ message, details?, reason? }`. `400 Validation failed` carries `details`, one `{ path, message }` per problem; a few errors carry a machine-readable `reason`. A 5xx says only \"Generic Server Error\" unless its message was written for the user.\n- **Rate limits**, per account, not per IP: wrong passwords (10 in 15 minutes, wherever tried), a diner's cart changes (120 a minute, starting a card payment included; capturing a payment is never limited) and people added (20 an hour, an account created or attached by an administrator or a shop's staff). All configurable (`PASSWORD_FAILS_PER_ACCOUNT`, `CART_EDITS_PER_MINUTE`, `PEOPLE_ADDED_PER_HOUR`).\n- **Soft deletes.** A deleted menu item stays, unavailable, for the carts that hold it; a deleted table stays under the shop's `deletedTables` so its carts and money stay reachable; a shop is deleted for good, with everything in it, once no money is moving.\n- **Concurrency.** A cart is saved under optimistic concurrency: a write that meets a newer version retries or answers 409 \"The cart changed, please retry\".\n\n## Checkout\n\nA diner selects units to pay for (`addSplitItem`), then pays in two calls around the provider's UI: PayPal `createCheckoutOrder` → popup → `captureCheckout`; card `createStripeCheckout` → Payment Element → `captureStripeCheckout`. The second call re-checks everything before money moves, and a payment that can't be recorded afterwards is refunded automatically. A card payment the diner abandons after authorising is still finished by Stripe's webhook or the server's 2-minute sweep, and the diner is told the outcome in their cart's `notices` on their next visit.",
     "contact": {
@@ -1830,8 +1830,8 @@
         "x-roles": [
           "owner"
         ],
-        "summary": "Make another member the owner",
-        "description": "The owner (or an administrator) names a member, who becomes the owner; the previous owner becomes a manager. One update, matched on the current owner.",
+        "summary": "Make a manager the owner",
+        "description": "The owner (or an administrator) names a manager, who becomes the owner; the previous owner becomes a manager. A till, floor or kitchen member is made a manager first. One update, matched on the current owner.",
         "parameters": [
           {
             "$ref": "#/components/parameters/shopId"
@@ -1886,7 +1886,14 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "403": {
-            "$ref": "#/components/responses/NotThisShopsOwner"
+            "description": "\"Only the owner can do this\": not this shop's owner (nor an administrator); \"Make them a manager first\": the member is till, floor or kitchen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           },
           "404": {
             "description": "\"Shop Not Found!\"; \"Not a member of this shop\"; \"User not found!\"",

@@ -6,7 +6,7 @@ React 19 · TypeScript 6 · Vite 8 · Redux Toolkit · React Router 7 · React-B
 
 [![CI](https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml/badge.svg)](https://github.com/Nando-C/UnQ-FE/actions/workflows/ci.yml)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-635bff)](./LICENSE)
-[![Version 2.4.0](https://img.shields.io/badge/version-2.4.0-0F6E66)](./CHANGELOG.md)
+[![Version 2.5.0](https://img.shields.io/badge/version-2.5.0-0F6E66)](./CHANGELOG.md)
 
 <p>
   <img src="docs/images/menu.png" alt="A table's menu on a phone: Rocketlit's dishes with photos, descriptions, prices and Add buttons, one item marked sold out" height="520">
@@ -23,7 +23,7 @@ The demo runs at [un-q.vercel.app](https://un-q.vercel.app). Its API sleeps on a
 
 Adding an item asks you to sign in. Create an account, sign in with Google, or use the demo diner, `frank@mail.com` with the password `UnqTester1`. Pay by card with Stripe's test card `4242 4242 4242 4242`, any future expiry and any CVC (`4000 0025 0000 3155` asks for a bank check first, `4000 0000 0000 0002` is declined). PayPal runs against its sandbox and needs a sandbox buyer account.
 
-**As the venue, on a laptop.** Sign in as `manager@mail.com` with the password `UnqManager1`. Three venues are yours, with ninety days of payments behind them. Each card shows the venue at a glance: today so far, the seven days to yesterday against the seven before, the week's best seller, a highlight, and what its tables need right now. The café has a second manager, Alex, whom the demo manager added: the Staff section on its page shows both, and lets the owner add, remove or hand the shop over. Open a venue's Sales tab for the trend, the busy hours, what the menu earns, refunds by cause and the highlights written from those figures. Rocketlit's tables show every state at once: one being ordered at, a selection held too long, a sold-out item in a cart, a payment the provider is still holding, a diner still to be paid back, and a deleted table whose last cart can still be refunded.
+**As the venue, on a laptop.** Sign in as `manager@mail.com` with the password `UnqManager1`. Three venues are yours, with ninety days of payments behind them, each with a story of its own: a café doing well, a restaurant struggling, a pop-up just opened. Each card shows the venue at a glance: today so far, the seven days to yesterday against the seven before, the week's best seller, a highlight, and what its tables need right now. The café has staff: a second manager, Alex, a till, Kim, and a kitchen, Jo, each with a role. The Staff section on its page shows them all, and lets the owner add someone with a role, change a role, remove a member or hand the shop over. Open a venue's Sales tab for the trend, the busy hours, what the menu earns, refunds by cause and the highlights written from those figures. Rocketlit's tables show every state at once: one being ordered at, a selection held too long, a sold-out item in a cart, a payment the provider is still holding, a diner still to be paid back, and a deleted table whose last cart can still be refunded.
 
 <img src="docs/images/my-shops.png" alt="My Shops on a desktop: three venue cards, each with its photo and name, net sales today and over the seven days to yesterday with the change on the week before, the best seller, a highlight, and a footer with what its tables need and when the card was updated" width="720">
 
