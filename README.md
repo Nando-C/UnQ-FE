@@ -147,7 +147,7 @@ CI runs the lint, the suite and the build, which type-checks first, on Node 24 f
 
 ## Roadmap
 
-Staff on a shop and staff roles are in; next are kitchen screens with live updates; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
+Staff on a shop and staff roles are in; next are kitchen screens with live updates, then a map of the venues on the home page; the list and its order are in [known-gaps.md](./docs/known-gaps.md#roadmap).
 
 ## About
 

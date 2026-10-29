@@ -36,4 +36,4 @@ Each changes behaviour, a contract or several layers at once, so each is a step 
 
 ## Roadmap
 
-In the order decided with the product roadmap, now that staff on a shop and staff roles are in (the owner adds managers and hands the shop over, members leave, an administrator runs every shop and the accounts; till, floor and kitchen see and press what their role holds): **kitchen** screens (queue, prep states, live push, which also brings live updates to diners), for the kitchen role that now exists.
+In the order decided with the product roadmap, now that staff on a shop and staff roles are in (the owner adds managers and hands the shop over, members leave, an administrator runs every shop and the accounts; till, floor and kitchen see and press what their role holds): **kitchen** screens (queue, prep states, live push, which also brings live updates to diners), for the kitchen role that now exists; **a map of the venues** on the home page, in a chunk loaded only there, with the list kept beside it and a pin on each shop set in its editor.
