@@ -203,6 +203,8 @@ describe("the shell", () => {
     expect(await screen.findByRole("link", { name: "Cafe" })).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Deli" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Add Shop" })).toBeInTheDocument()
+    // The cards' glances have answered before the test ends, so no request outlives its handlers.
+    await waitFor(() => expect(screen.getAllByText("Tables: all clear")).toHaveLength(2))
   })
 })
 
