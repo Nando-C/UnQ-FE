@@ -2,7 +2,7 @@ import { Fragment, useCallback, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import backend from "../../backend/backend";
-import { Needs, glanceOf, glanceRange, needsOf } from "../../lib/glance";
+import { Needs, glanceOf, glanceRange, needsOf, todayRange } from "../../lib/glance";
 import { arrowOf, buildSalesSearch, DEFAULT_METRIC, formatCount, formatPrice, todayIn } from "../../lib/sales";
 import { apiErrorMessage } from "../../lib/errors";
 import { useVisiblePolling } from "../../lib/useVisiblePolling";
@@ -12,15 +12,16 @@ import type { IShop } from "../../typings/shop";
 import type { ISalesReport } from "../../typings/sales";
 import type { ITableStatus } from "../../typings/tables";
 
-// A shop's figures on its My Shops card: today so far, the last seven days
-// against the seven before, the week's best seller, one highlight, and, as
-// the card's footer, what the tables need right now and when the card was
-// last updated. Two reads, the sales report with a fixed range and the
-// tables' status, asked for together every minute while the page is visible;
-// each shows its own failure, so a report that can't load leaves the tables'
-// line standing, and a refresh that fails keeps the figures already shown
-// and says it couldn't refresh. The figures are one link to the Sales tab on
-// the same week; the footer links to the tables.
+// A shop's figures on its My Shops card: today so far, the seven full days to
+// yesterday against the seven before, the week's best seller, one highlight,
+// and, as the card's footer, what the tables need right now and when the
+// card was last updated. Two reads, the figures (the sales report twice, the
+// week and today, answered together) and the tables' status, asked for
+// together every minute while the page is visible; each shows its own
+// failure, so figures that can't load leave the tables' line standing, and a
+// refresh that fails keeps the figures already shown and says it couldn't
+// refresh. The figures are one link to the Sales tab on the same week; the
+// footer links to the tables.
 
 const REFRESH_MS = 60_000;
 
@@ -38,7 +39,7 @@ const ShopGlance = ({ shop }: { shop: IShop }) => {
   const withFigures = can(useAppSelector((state) => selectRoleOn(state, shop._id)), "sales.read");
   const today = todayIn(shop.timeZone);
   const range = glanceRange(today);
-  const [report, setReport] = useState<Loaded<ISalesReport>>({});
+  const [report, setReport] = useState<Loaded<FiguresData>>({});
   const [statuses, setStatuses] = useState<Loaded<ITableStatus[]>>({});
   // When the last answer of either read arrived.
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
@@ -58,12 +59,12 @@ const ShopGlance = ({ shop }: { shop: IShop }) => {
       if (fresh()) set((held) => ({ ...held, error: apiErrorMessage(err) }));
     };
     if (withFigures) {
-      backend
-        .get<ISalesReport>(`/shops/${shop._id}/sales`, { params: { from, to, by: "day", compare: "previous" } })
-        .then(({ data }) => answered(setReport)(data), failed(setReport));
+      const report = (params: Record<string, string>) => backend.get<ISalesReport>(`/shops/${shop._id}/sales`, { params }).then(({ data }) => data);
+      Promise.all([report({ from, to, by: "day", compare: "previous" }), report({ ...todayRange(today), by: "day" })])
+        .then(([week, now]) => answered(setReport)({ week, today: now }), failed(setReport));
     }
     backend.get<ITableStatus[]>(`/shops/${shop._id}/tables/status`).then(({ data }) => answered(setStatuses)(data), failed(setStatuses));
-  }, [shop._id, from, to, withFigures]);
+  }, [shop._id, from, to, today, withFigures]);
   useVisiblePolling(load, REFRESH_MS);
 
   const salesHref = `/shop/${shop._id}/sales?${buildSalesSearch({ from, to, metric: DEFAULT_METRIC })}`;
@@ -82,7 +83,7 @@ const ShopGlance = ({ shop }: { shop: IShop }) => {
         </span>
       )}
       {!withFigures ? null : report.data ? (
-        <Figures report={report.data} today={today} salesHref={salesHref} shopName={shop.name} />
+        <Figures figures={report.data} salesHref={salesHref} shopName={shop.name} />
       ) : report.error ? (
         <Failed what="the figures" onRetry={load} />
       ) : (
@@ -117,8 +118,14 @@ const ShopGlance = ({ shop }: { shop: IShop }) => {
   );
 };
 
-const Figures = ({ report, today, salesHref, shopName }: { report: ISalesReport; today: string; salesHref: string; shopName: string }) => {
-  const glance = glanceOf(report, today);
+// The two reports the figures are read from.
+interface FiguresData {
+  week: ISalesReport;
+  today: ISalesReport;
+}
+
+const Figures = ({ figures, salesHref, shopName }: { figures: FiguresData; salesHref: string; shopName: string }) => {
+  const glance = glanceOf(figures.week, figures.today);
   const { change } = glance.week;
   const tone = !change ? "same" : change.direction === "same" ? "same" : change.direction === "up" ? "good" : "bad";
   return (

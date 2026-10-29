@@ -11,19 +11,21 @@ import type { ISalesReport } from "../typings/sales"
 import type { ITableStatus } from "../typings/tables"
 
 // My Shops for a manager: each shop's card carries its figures (today, the
-// last seven days, the best seller, a highlight) and what its tables need,
-// from the sales report with a fixed range and the tables' status.
+// seven full days to yesterday, the best seller, a highlight) and what its
+// tables need, from the sales report over two fixed ranges and the tables'
+// status.
 
 const manager = { _id: "u1", name: "Sam", surname: "Demo", email: "manager@mail.com", role: "shopMg", hasPassword: true }
 const today = todayIn("Europe/London")
-const from = addDays(today, -6)
+const yesterday = addDays(today, -1)
+const from = addDays(today, -7)
 const days = Array.from({ length: 7 }, (_, i) => addDays(from, i))
 const deli: IShop = { ...cafe, _id: "s2", name: "Deli", deletedTables: [{ _id: "d1", name: "Old", deletedAt: "2026-10-01T10:00:00.000Z", needsAttention: true }] }
 
 const sold: ISalesReport = {
-  range: range(from, today, 7),
+  range: range(from, yesterday, 7),
   totals: totals({ gross: 1300, refunds: 60, net: 1240, orders: 150, visits: 90, diners: 40, returningDiners: 30 }),
-  series: days.map((d) => bucket(d, d === today ? { net: 184.5, orders: 23 } : { net: 175.92, orders: 21 })),
+  series: days.map((d) => bucket(d, { net: 177.14, orders: 21 })),
   heatmap: [],
   items: [
     { menuId: "m1", name: "Latte", category: "drinks", unitPrice: 2.5, units: 88, refundedUnits: 0, revenue: 220 },
@@ -34,6 +36,9 @@ const sold: ISalesReport = {
   previous: { range: range(addDays(from, -7), addDays(from, -1), 7), totals: totals({ net: 1000, orders: 100 }), series: [] },
 }
 const quiet: ISalesReport = { ...sold, totals: totals(), series: days.map((d) => bucket(d)), items: [], previous: { ...sold.previous!, totals: totals() } }
+// Today so far, on its own: the café has sold, the deli hasn't started.
+const todaySold: ISalesReport = { ...quiet, range: range(today, today, 1), totals: totals({ net: 184.5, orders: 23 }), series: [bucket(today, { net: 184.5, orders: 23 })], previous: undefined }
+const todayQuiet: ISalesReport = { ...todaySold, totals: totals(), series: [bucket(today)] }
 
 const statuses: ITableStatus[] = [
   { tableId: "t1", name: "Window", state: "ordering", owed: 30, paid: 0, attention: ["soldOut", "payBack"] },
@@ -50,8 +55,10 @@ describe("My Shops", () => {
       http.get(`${BASE}/users/me`, () => HttpResponse.json(manager)),
       http.get(`${BASE}/shops/me`, () => HttpResponse.json([cafe, deli])),
       http.get(`${BASE}/shops/:shopId/sales`, ({ request, params }) => {
-        requests.push(new URL(request.url).search)
-        return HttpResponse.json(params.shopId === "s1" ? sold : quiet)
+        const search = new URL(request.url).search
+        requests.push(search)
+        const isToday = new URL(request.url).searchParams.get("from") === today
+        return HttpResponse.json(params.shopId === "s1" ? (isToday ? todaySold : sold) : isToday ? todayQuiet : quiet)
       }),
       http.get(`${BASE}/shops/:shopId/tables/status`, ({ params }) => HttpResponse.json(params.shopId === "s1" ? statuses : []))
     )
@@ -75,13 +82,14 @@ describe("My Shops", () => {
     expect(c.getByText("Orders are up 50.0% on the week before.")).toBeInTheDocument()
     // The figures are the link to the Sales tab on the same week.
     const sales = c.getByRole("link", { name: /^Sales report for Cafe:/ })
-    expect(sales).toHaveAttribute("href", `/shop/s1/sales?from=${from}&to=${today}`)
+    expect(sales).toHaveAttribute("href", `/shop/s1/sales?from=${from}&to=${yesterday}`)
     expect(sales).toHaveTextContent("Sales report ›")
     expect(sales).toContainElement(c.getByText("Latte"))
     expect(c.getByRole("link", { name: "Cafe" })).toHaveAttribute("href", "/shop/s1")
-    // Asked for today and the six days before, by day, against the week before.
+    // Asked for the seven full days to yesterday, by day, against the week before, and for today on its own.
     expect(requests.filter((q) => q.includes("compare=previous"))).toHaveLength(2)
-    expect(requests[0]).toBe(`?from=${from}&to=${today}&by=day&compare=previous`)
+    expect(requests).toContain(`?from=${from}&to=${yesterday}&by=day&compare=previous`)
+    expect(requests).toContain(`?from=${today}&to=${today}&by=day`)
   })
 
   it("says what the tables need, linking to them, and that nothing does", async () => {
@@ -140,19 +148,23 @@ describe("My Shops", () => {
     expect(c.getByText(/^Updated \d\d:\d\d$/)).toBeInTheDocument()
     // The next refresh (the tab becoming visible again) fails.
     let failing = true
-    server.use(http.get(`${BASE}/shops/s1/sales`, () => (failing ? new HttpResponse(null, { status: 500 }) : HttpResponse.json(sold))))
+    // Today's read alone fails: the figures are one, so both are kept.
+    server.use(http.get(`${BASE}/shops/s1/sales`, ({ request }) => (new URL(request.url).searchParams.get("from") !== today ? HttpResponse.json(sold) : failing ? new HttpResponse(null, { status: 500 }) : HttpResponse.json(todaySold))))
     document.dispatchEvent(new Event("visibilitychange"))
     expect(await c.findByText(/Couldn't refresh\./)).toBeInTheDocument()
     expect(c.getByText("£184.50")).toBeInTheDocument()
+    expect(c.getByText("£1,240.00")).toBeInTheDocument()
     expect(c.queryByText(/Couldn't load/)).not.toBeInTheDocument()
     failing = false
     await user.click(c.getByRole("button", { name: "Try again" }))
     expect(await c.findByText(/^Updated \d\d:\d\d$/)).toBeInTheDocument()
+    expect(c.getByText("£184.50")).toBeInTheDocument()
+    expect(c.getByText("£1,240.00")).toBeInTheDocument()
     expect(c.queryByText(/Couldn't refresh/)).not.toBeInTheDocument()
   })
 
   it("stands in for the figures while they load, saying so", async () => {
-    server.use(http.get(`${BASE}/shops/s1/sales`, async () => { await new Promise((r) => setTimeout(r, 50)); return HttpResponse.json(sold) }))
+    server.use(http.get(`${BASE}/shops/s1/sales`, async ({ request }) => { await new Promise((r) => setTimeout(r, 50)); return HttpResponse.json(new URL(request.url).searchParams.get("from") === today ? todaySold : sold) }))
     render()
     const c = within(await card("Cafe"))
     expect(c.getByRole("status")).toHaveTextContent("Loading Cafe's figures")
