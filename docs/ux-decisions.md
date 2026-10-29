@@ -147,6 +147,14 @@ A full layout and UX review on 2026-09-29 (26 findings at 375, 768 and 1280px, w
 
 **Consequences.** My Shops asks two requests per shop a minute while visible, as the tables page does for one shop; a manager with many shops would want a summary route, which is a later decision. The card's photo and name are its link; the figures under them are a second link, to the Sales tab, and the footer a third, to the tables, so the card is no longer one link; the bio is one line there. A day not started reads "no orders yet" rather than a bold zero, so the eye lands on the week; the highlight skips what the figures already say and names the week. A reading that would need a chart (the busy hours, the refund causes) stays on the Sales tab. `components/Dashboard/ShopGlance.tsx`, `lib/glance.ts`.
 
+## 2026-10-29: the glance's week is seven full days; today stands on its own
+
+**Context.** The card's week was today and the six days before, against the seven before. Today is a day half done at any hour but the last, so the week it closed was always short of a full one: a manager opening the app in the morning saw every shop down on the week before, and the demo, whose history ends yesterday, showed the same drop all day for every venue. The glance already shows today so far as its own figure.
+
+**Decision.** The week is the seven full days to yesterday, against the seven before, so the change is like for like at any hour; today keeps its own figure, read by a second request of the same report over the one day. The link under the figures opens the Sales tab on the same seven days.
+
+**Consequences.** The figures are two requests a minute per shop rather than one, answered together so they load, fail and refresh as one; with the tables' status, three. The week's figure doesn't move during the day; today's does. The Sales tab's own "Last 7 days" preset still ends today, as a range a manager picks by hand should, so the link from the card opens the tab on a custom range with its two dates shown, not on that preset. Nothing changes in the API. `lib/glance.ts`, `components/Dashboard/ShopGlance.tsx`.
+
 ## 2026-10-18: who runs a shop is the shop's answer, not the token's
 
 A shop can now have more than one person running it: an owner and managers, added by the owner by email, and an administrator above every shop. The client doesn't read any of that from the sign-in: every signed-in account loads the shops it belongs to, one selector decides the manager shell from those shops or the account's role, and the manager pages wait for the answer before sending anyone home. A member removed loses the shop on their next request, with no new sign-in, and the client never decides what a caller may do on a shop beyond showing the owner's controls (until the roles of 2026-10-22, below): the API refuses, and its refusals show as they are.

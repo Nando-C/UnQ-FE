@@ -232,7 +232,8 @@ describe("the Sales tab, the glance and the sales page", () => {
   it("draws the glance's figures for a manager, and the tables' line alone, without the sales read, for a till", async () => {
     const { unmount } = renderWithProviders(<ShopGlance shop={cafe} />, { preloadedState: signedIn(alex) })
     await screen.findByText("Net sales today")
-    await waitFor(() => expect(requests).toEqual(["GET /api/shops/s1/sales"]))
+    // The week and today: two reads of the report.
+    await waitFor(() => expect(requests).toEqual(["GET /api/shops/s1/sales", "GET /api/shops/s1/sales"]))
     unmount()
     requests = []
     renderWithProviders(<ShopGlance shop={cafe} />, { preloadedState: signedIn(kim) })

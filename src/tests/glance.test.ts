@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest"
-import { glanceOf, glanceRange, needsOf } from "../lib/glance"
+import { glanceOf, glanceRange, needsOf, todayRange } from "../lib/glance"
 import { findings } from "../lib/findings"
 import { bucket, range, totals } from "./salesFixtures"
 import type { ISalesReport } from "../typings/sales"
 import type { ITableStatus } from "../typings/tables"
 
-// The readings a My Shops card shows, from the week's report and the tables'
-// status (lib/glance.ts).
+// The readings a My Shops card shows, from the week's and today's reports and
+// the tables' status (lib/glance.ts).
 
 const days = ["2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14"]
 const report = (over: Partial<ISalesReport> = {}): ISalesReport => ({
@@ -23,17 +23,22 @@ const report = (over: Partial<ISalesReport> = {}): ISalesReport => ({
   ...over,
 })
 
+// Today's report: one day, no week before.
+const todayReport = (net = 0, orders = 0): ISalesReport => ({ ...report({ range: range("2026-10-15", "2026-10-15", 1), totals: totals({ net, orders }), series: [bucket("2026-10-15", { net, orders })], items: [] }) })
+
 const status = (over: Partial<ITableStatus> = {}): ITableStatus => ({ tableId: "t1", name: "T1", state: "free", owed: 0, paid: 0, attention: [], ...over })
 
 describe("a shop at a glance", () => {
-  it("reads today and the six days before", () => {
-    expect(glanceRange("2026-10-14")).toEqual({ from: "2026-10-08", to: "2026-10-14" })
-    expect(glanceRange("2026-03-02")).toEqual({ from: "2026-02-24", to: "2026-03-02" })
+  it("reads the week as the seven full days to yesterday, and today on its own", () => {
+    // A day half done never pulls the week under a full week before.
+    expect(glanceRange("2026-10-15")).toEqual({ from: "2026-10-08", to: "2026-10-14" })
+    expect(glanceRange("2026-03-02")).toEqual({ from: "2026-02-23", to: "2026-03-01" })
+    expect(todayRange("2026-10-15")).toEqual({ from: "2026-10-15", to: "2026-10-15" })
   })
 
-  it("takes today from the series, the week from the totals, and the change on the week before", () => {
-    const r = report({ series: days.map((d, i) => bucket(d, i === 6 ? { net: 184.5, orders: 23 } : { net: 150, orders: 18 })), previous: { range: range("2026-10-01", "2026-10-07", 7), totals: totals({ net: 1000, orders: 100 }), series: [] } })
-    const g = glanceOf(r, "2026-10-14")
+  it("takes today from its report, the week from the totals, and the change on the week before", () => {
+    const r = report({ previous: { range: range("2026-10-01", "2026-10-07", 7), totals: totals({ net: 1000, orders: 100 }), series: [] } })
+    const g = glanceOf(r, todayReport(184.5, 23))
     expect(g.today).toEqual({ net: 184.5, orders: 23 })
     expect(g.week).toEqual({ net: 1240, orders: 150, change: { direction: "up", text: "24.0%" } })
     // The best seller is the dish with the most revenue, as the sales page ranks them.
@@ -47,18 +52,18 @@ describe("a shop at a glance", () => {
     const r = report({ previous: { range: range("2026-10-01", "2026-10-07", 7), totals: totals({ net: 1000, orders: 140 }), series: [] } })
     const [first, second] = findings(r)
     expect(first.text).toBe("Net sales are up 24.0% on the period before.")
-    expect(glanceOf(r, "2026-10-14").highlight).toBe(second.text.replace("the period before", "the week before"))
-    expect(glanceOf(r, "2026-10-14").highlight).not.toMatch(/^Net sales/)
+    expect(glanceOf(r, todayReport()).highlight).toBe(second.text.replace("the period before", "the week before"))
+    expect(glanceOf(r, todayReport()).highlight).not.toMatch(/^Net sales/)
   })
 
-  it("is zero for a day not yet in the series, and has no change without the week before", () => {
-    const g = glanceOf(report({ series: days.slice(0, 6).map((d) => bucket(d, { net: 10, orders: 1 })) }), "2026-10-14")
+  it("is zero for a day not started, and has no change without the week before", () => {
+    const g = glanceOf(report(), todayReport())
     expect(g.today).toEqual({ net: 0, orders: 0 })
     expect(g.week.change).toBeNull()
   })
 
   it("has no best seller or highlight when nothing was sold", () => {
-    const g = glanceOf(report({ totals: totals(), series: days.map((d) => bucket(d)), items: [], previous: { range: range("2026-10-01", "2026-10-07", 7), totals: totals(), series: [] } }), "2026-10-14")
+    const g = glanceOf(report({ totals: totals(), series: days.map((d) => bucket(d)), items: [], previous: { range: range("2026-10-01", "2026-10-07", 7), totals: totals(), series: [] } }), todayReport())
     expect(g.bestSeller).toBeNull()
     expect(g.highlight).toBeNull()
     expect(g.week.change).toEqual({ direction: "same", text: "no change" })
