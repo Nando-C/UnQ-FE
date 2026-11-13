@@ -1,0 +1,40 @@
+name: Layout
+
+# The layout audit: every main screen in headless Chrome at phone, tablet and
+# desktop sizes and with text at 200%, against a mocked API. It reports what
+# the unit tests can't see: something off the screen's edge or out of its
+# card, a control hidden under a fixed bar, a page that jumps while it loads.
+# It runs on pull requests that change what the screens are built from; the
+# screenshots and the report are kept when it fails.
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "scripts/responsive-*"
+      - "public/**"
+      - "index.html"
+      - "vite.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/layout.yml"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Chrome comes with the runner; nothing is downloaded. No API and no
+      # secrets: the audit answers every request itself.
+      - run: npm run audit:responsive
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: responsive-report
+          path: responsive-report/
+          retention-days: 7

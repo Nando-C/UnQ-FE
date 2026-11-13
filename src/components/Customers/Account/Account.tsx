@@ -11,6 +11,7 @@ import Login from "../../Login/Login";
 import { usePageTitle } from "../../../lib/usePageTitle";
 import { takeReturnTo } from "../../../lib/returnTo";
 import { roleLine } from "../../../lib/membership";
+import { useRunsShops } from "../../../lib/shell";
 import { selectShopsData, selectShopsDataStatus } from "../../../redux/slices/shopSlice";
 
 const Account = () => {
@@ -21,7 +22,12 @@ const Account = () => {
   // What the account is (lib/membership.ts), once its shops have answered (or
   // couldn't), so the line doesn't change under the reader; an administrator's
   // doesn't depend on them.
-  const line = user.role === "admin" || shopsStatus === "ready" || shopsStatus === "failed" ? roleLine(user, shops) : null;
+  const answered = user.role === "admin" || shopsStatus === "ready" || shopsStatus === "failed";
+  const line = answered ? roleLine(user, shops) : null;
+  // Whoever runs shops has a line coming: its space is held while their shops
+  // load, so the devices below don't drop when it lands. A diner has none.
+  const { runsShops } = useRunsShops();
+  const lineComing = !answered && runsShops;
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
@@ -71,6 +77,11 @@ const Account = () => {
               {/* Diners aren't shown a role; whoever runs shops sees which,
                   and as what. */}
               {line && <Card.Text>{line}</Card.Text>}
+              {lineComing && (
+                <Card.Text className="placeholder-glow" aria-hidden="true">
+                  <span className="placeholder col-5" />
+                </Card.Text>
+              )}
             </Card.Body>
             <Button
               className="edit-profile"

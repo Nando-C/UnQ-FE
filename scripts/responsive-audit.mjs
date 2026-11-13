@@ -80,6 +80,14 @@ const SCREENS = [
   ["t-shop", "till", "/shop/s1", null],
   ["k-shop", "kitchen", "/shop/s1", null],
   ["k-table-sheet", "kitchen", "/shop/s1", "viewTable"],
+  // Whoever runs a shop is a diner at a table: the menu and the cart in the
+  // diner's shell (the tab bar, no header over the page), as a shop manager
+  // and as a member without a manager role; and that member's account page,
+  // whose shell and role line are only known once their shops answer.
+  ["m-diner-menu", "shopMg", "/shops/s1/tables/t1", null],
+  ["m-diner-cart", "shopMg", "/shops/s1/tables/t1/cart", null],
+  ["t-diner-cart", "till", "/shops/s1/tables/t1/cart", null],
+  ["t-account", "till", "/myAccount", null],
 ]
 
 const VIEWPORTS = [
@@ -382,6 +390,35 @@ const placeholder = (url) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="hsl(${hue} 45% 62%)"/><circle cx="50%" cy="50%" r="${Math.min(w, h) / 4}" fill="hsl(${hue} 45% 78%)"/></svg>`
 }
 
+// The web font is fetched from Google once and answered from memory after
+// that. Every screen opens in a fresh browser context with an empty cache, so
+// without this each one would wait on the network for it, and the moment the
+// font lands (the text reflows as it replaces the fallback) would depend on
+// the connection rather than on the page.
+const fontCache = new Map()
+const cachedFont = async (route) => {
+  const url = route.request().url()
+  if (!fontCache.has(url)) {
+    // The body comes back decoded, so the headers that describe its encoding
+    // and length on the wire are left out.
+    const answer = route.fetch().then(async (res) => {
+      const { "content-encoding": _e, "content-length": _l, ...headers } = res.headers()
+      return { status: res.status(), headers, body: await res.body() }
+    })
+    fontCache.set(url, answer)
+    // A fetch that failed is asked again by the next screen.
+    answer.catch(() => fontCache.delete(url))
+  }
+  let answer
+  try {
+    answer = await fontCache.get(url)
+  } catch {
+    return route.continue().catch(() => {})
+  }
+  // The page may have closed meanwhile: nothing to answer.
+  await route.fulfill(answer).catch(() => {})
+}
+
 const mockApi = async (route, role) => {
   if (DELAY) await new Promise((r) => setTimeout(r, DELAY))
   const p = new URL(route.request().url()).pathname.replace(/^\/api/, "")
@@ -412,6 +449,9 @@ const mockApi = async (route, role) => {
   // The manager's own shops carry the tables they deleted; one deleted an hour
   // ago (dated at run time), with a recent cart, is listed, so its section is
   // checked too.
+  // A diner is on no shop. Everyone else gets the fixture's two (for an
+  // administrator, every shop).
+  if (p === "/shops/me" && role === "customer") return json([])
   if (p === "/shops/me") {
     const deletedAt = new Date(Date.now() - 3600_000).toISOString()
     return json([{ ...s1, deletedTables: [{ _id: "t-gone", name: "Garden terrace by the fountain", deletedAt, recentCartsUntil: new Date(Date.now() + 20 * 3600_000).toISOString() }] }, s2])
@@ -445,14 +485,35 @@ const run = async ([id, role, url, action], vp) => {
   const r = { screen: id, viewport: vp.name, errors: [], warnings: [], shots: [] }
   page.on("pageerror", (e) => r.warnings.push({ kind: "page error", text: e.message.split("\n")[0].slice(0, 140) }))
   await page.route("**/api/**", (route) => mockApi(route, role))
+  await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, cachedFont)
   await page.route("https://img.fixtures.test/**", (route) =>
     route.fulfill({ contentType: "image/svg+xml", body: placeholder(route.request().url()) })
   )
+  // Whoever runs a shop has opened the app before: the shell it drew then is
+  // remembered (lib/shell.ts), as it is on every reload of a signed-in page.
+  // Their very first load in a browser, which starts from the diner's shell
+  // and swaps (docs/known-gaps.md), is not among the screens.
+  if (role && role !== "customer") await page.addInitScript(() => localStorage.setItem("unq.shell", "staff"))
   // Layout shift (CLS): how much visible content jumps as the page loads.
   await page.addInitScript(() => {
     window.__cls = 0
+    // The largest single shift and what moved in it, to name in the report.
+    window.__clsWorst = { value: 0, moved: "" }
+    const name = (n) => (n?.nodeType === 1 ? n : n?.parentElement)
     new PerformanceObserver((list) => {
-      for (const e of list.getEntries()) if (!e.hadRecentInput) window.__cls += e.value
+      for (const e of list.getEntries()) {
+        if (e.hadRecentInput) continue
+        window.__cls += e.value
+        if (e.value <= window.__clsWorst.value) continue
+        window.__clsWorst = {
+          value: e.value,
+          moved: e.sources.slice(0, 3).map((x) => {
+            const el = name(x.node)
+            const tag = el ? `${el.tagName.toLowerCase()}${el.classList[0] ? "." + el.classList[0] : ""}` : "?"
+            return `${tag} ${Math.round(x.previousRect.y)}→${Math.round(x.currentRect.y)}px`
+          }).join(", "),
+        }
+      }
     }).observe({ type: "layout-shift", buffered: true })
   })
   if (vp.text) {
@@ -478,11 +539,14 @@ const run = async ([id, role, url, action], vp) => {
     }
     await page.goto(BASE + url, { waitUntil: "networkidle", timeout: 30000 })
     await settle(page)
+    // Without the web font every check below would measure the fallback's
+    // letters, and no font would land to shift anything: say so.
+    if (!(await page.evaluate(() => document.fonts.check('1em "Georama"')))) r.errors.push({ kind: "font", text: "the web font didn't load (fonts.googleapis.com unreachable?)" })
     // Layout shift is read here, once the page has loaded: before any action
     // (opening a sheet or dialog is a change the viewer asked for) and before
     // the checks below scroll the page.
-    const cls = await page.evaluate(() => window.__cls)
-    if (cls > 0.1) r.errors.push({ kind: "layout shift", text: `CLS ${cls.toFixed(3)} while loading (over 0.1)` })
+    const { cls, moved } = await page.evaluate(() => ({ cls: window.__cls, moved: window.__clsWorst.moved }))
+    if (cls > 0.1) r.errors.push({ kind: "layout shift", text: `CLS ${cls.toFixed(3)} while loading (over 0.1)${moved ? `; most moved: ${moved}` : ""}` })
     if (action) {
       // An action is one control to click, or several in turn (a dialog
       // opened from inside another); a function step does something else.
@@ -595,7 +659,10 @@ let next = 0
 const worker = async () => {
   while (next < jobs.length) {
     const [s, vp] = jobs[next++]
-    const r = await run(s, vp)
+    let r = await run(s, vp)
+    // A page that never finished loading says nothing about its layout (the
+    // machine was busy): once more before it counts.
+    if (r.errors.some((e) => e.kind === "failed" && /^page\.goto: Timeout/.test(e.text))) r = await run(s, vp)
     results.push(r)
     process.stdout.write(`${r.errors.length ? "✗" : "✓"} ${r.screen} @ ${r.viewport}${r.errors.length ? ` (${group(r.errors).length} errors)` : ""}\n`)
   }
