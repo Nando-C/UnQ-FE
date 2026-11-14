@@ -73,7 +73,7 @@ flowchart LR
 
 ```
 src/
-├── App.tsx                 the routes and the shell: the diner's tab bar or the manager's header, by role
+├── App.tsx                 the routes and the shell: the diner's tab bar or the manager's header, by who runs a shop and by page
 ├── backend/backend.ts      the one axios instance and its refresh interceptor
 ├── redux/                  the store, typed hooks, four slices (user, shops, browse, carts)
 ├── lib/                    shared helpers and hooks: errors, prices, the outcome mapping, sign-in gating

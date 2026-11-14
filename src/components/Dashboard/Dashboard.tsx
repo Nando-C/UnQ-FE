@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { takeReturnTo } from "../../lib/returnTo";
 import { fetchUserData, selectUserData } from "../../redux/slices/userSlice";
 import ShopList from "../Shops/ShopList/ShopList";
-import { fetchShopList, selectIsManager } from "../../redux/slices/shopSlice";
+import { fetchShopList } from "../../redux/slices/shopSlice";
+import { useRunsShops } from "../../lib/shell";
 import { canCreateShops } from "../../lib/membership";
 import ShopModal from "../Shops/ShopModal/ShopModal";
 import AllShopsList from "../Customers/AllShopsList/AllShopsList";
@@ -20,7 +21,9 @@ const Dashboard = () => {
   }, [dispatch]);
 
   const userDataStore = useAppSelector(selectUserData);
-  const isManager = useAppSelector(selectIsManager);
+  // My Shops for whoever runs a shop; on a reloaded page, for whoever did
+  // last time, until the account and its shops have answered (lib/shell.ts).
+  const { runsShops: isManager } = useRunsShops();
   usePageTitle(isManager ? "My Shops" : "Shops");
 
   // Google sign-in comes back here, to the site root: a diner who started it

@@ -6,6 +6,16 @@ UnQ ships as two repositories that release together. This front end at `x.y.*` n
 
 ## [Unreleased]
 
+### Fixed
+
+- **A table's menu and cart for whoever runs a shop.** A shop manager, an administrator or a member of a shop who opened a table got the manager header over the diner's pages: it covered the cart's Back link and the table's name and the top of the shop's photo, and with no tab bar there was no link to the cart. On a table's menu and cart, and a shop's menu before a table is picked, everyone now gets the diner's tab bar, whose Home leads back to My Shops. [docs/ux-decisions.md](./docs/ux-decisions.md)
+- **A reloaded page no longer swaps the tab bar for the header under whoever runs a shop.** The shell drawn last time is kept in the browser (one word about the layout, removed on signing out) and stands until the account and its shops have answered. The account page holds the place of the role line and of the first device while they load, so nothing below them drops.
+- **My Shops with text at 200% on a phone.** A card's two sales figures ran into each other and the updated time sat on the badges. The figures now stack when they don't fit side by side, the time takes the line under the badges, and a long badge breaks onto a second line.
+
+### Changed
+
+- **The layout audit runs on pull requests** (the Layout workflow), and draws each account as itself: its mocked API had been giving every account a shop since staff on a shop, so the diner's screens were checked in the manager's shell and the faults above went unseen. It gains four screens (whoever runs a shop on a table's menu and cart, and a member's account page), names what moved in a layout shift, tries a page that timed out once more, and answers the web font from memory after its first fetch. [docs/responsive-and-a11y.md](./docs/responsive-and-a11y.md#the-audit)
+
 ## [2.5.0] - 2026-10-29
 
 Staff roles: a shop's members hold one of five roles, and the shop page shows each member the controls their role may press, asks for the role when adding staff and changes a member's role. On My Shops, each shop's week is the seven full days to yesterday, so the change on the week before reads like for like at any hour. Needs the API at 2.5.0. Nothing changes on the host.

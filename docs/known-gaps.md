@@ -4,7 +4,7 @@ What the client knowingly doesn't do yet, what it accepts, and what is on the li
 
 ## Accepted residuals
 
-- **Managers briefly see the diner's bottom bar** while "who am I" loads: `App` picks the shell from the role, unknown until `/users/me` answers. Drawing nothing until then would delay the diner's first screen, so it waits for a design.
+- **The shell can be wrong for a moment on a first visit.** Until the account and its shops have answered, `App` draws the shell it drew last time in this browser (`lib/shell.ts`), so a reload shows whoever runs a shop their header at once. A browser that has never seen the account running a shop (a new device, storage cleared or blocked) starts from the diner's bottom bar and swaps when the answers land; one that remembers a header shows it to a session that has since ended until `/users/me` says so. Drawing nothing until then would delay the diner's first screen.
 - **The cart page asks for the table's cart two or three times on opening** (`Cart`, `CartListItems` and the bottom bar each fetch on mount). Skipping a fetch while one is in flight could hand a post-failure refresh a stale answer; the reducers already drop all but the latest, so it costs requests, not correctness.
 - **No live updates.** The cart and menu refresh when the tab regains focus and on each action; a tab left in the foreground sees other diners' changes on its next action, or the "just sold out" message when an add is refused. The focus refetch also fires on every return from PayPal's popup.
 - **Editing a shop, item or table reloads every owned shop** (`GET /shops/me`) though the API answers with the changed record; the availability switch is the one place the store is patched from the click.
@@ -15,7 +15,8 @@ What the client knowingly doesn't do yet, what it accepts, and what is on the li
 - **The kitchen reads the whole table sheet**, payments, refunds and the log included, with nothing to press: the sheet is one answer (`GET …/tables/:tableId/carts`) and the ability that opens it is every member's. A kitchen needs the orders, not the money; a view of a table for the kitchen alone is the kitchen step's screen, not a second shape of this sheet.
 - **The client keeps its own copy of the ability table** (`lib/roles.ts`, what each member role may call): it decides what to draw before any request, so it cannot ask the server. The API publishes each operation's `x-ability` and `x-roles`, and the contract test checks the copy against them, so a change on the API that isn't mirrored here fails that test rather than showing a control the API refuses; the API refuses on its own too.
 - **An administrator's My Shops lists every shop, unpaged**, each card reading its figures and its tables' status twice a minute: fine for the handful of shops the app has, and paging comes when a deployment needs it.
-- **The audit can time out under heavy machine load** on screens a change didn't touch; rerun those before believing a failure.
+- **The audit can time out under heavy machine load** on screens a change didn't touch. It tries such a page once more by itself; rerun what still fails before believing it.
+- **The web font comes from Google Fonts with `display=swap`**, so text drawn before it lands reflows once. On the account page at 320px a long email address can go from two lines to one, moving what is below it. The audit answers the font from memory after its first fetch, so its layout-shift check measures the page rather than the connection; hosting the font with the app and preloading it would remove the reflow.
 
 ## Open bugs
 

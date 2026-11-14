@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, ListGroup, Spinner } from "react-bootstrap";
+import { Alert, Badge, Button, ListGroup } from "react-bootstrap";
 import backend from "../../../backend/backend";
 import { ISession } from "../../../typings/user";
 import { dayOf, describeDevice } from "../../../lib/devices";
 import { apiStatus } from "../../../lib/errors";
+import { Loading } from "../../Common/ScreenStates";
 
 // The devices the account is signed in on, each with a way to sign it out
 // from here. The API keeps a session per sign-in (GET /auth/sessions); the one
@@ -59,11 +60,20 @@ const Devices = () => {
           </Button>
         </Alert>
       ) : sessions === null ? (
-        <div className="text-center py-3">
-          <Spinner animation="border" size="sm" role="status">
-            <span className="visually-hidden">Loading devices</span>
-          </Spinner>
-        </div>
+        // The device asking is always on the list: one row shaped like it
+        // holds its place, so the list grows by the other devices only.
+        <Loading label="Loading devices">
+          <ListGroup as="ul">
+            <ListGroup.Item as="li">
+              <div className="fw-semibold">
+                <span className="placeholder col-6" />
+              </div>
+              <small>
+                <span className="placeholder col-9" />
+              </small>
+            </ListGroup.Item>
+          </ListGroup>
+        </Loading>
       ) : (
         <ListGroup as="ul">
           {sessions.map((s) => (

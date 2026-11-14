@@ -93,5 +93,10 @@ export const userSlice = createSlice({
 
 export const selectUserData = (state: RootState) => state.user.data
 export const selectUserStatus = (state: RootState) => state.user.status
+// Whether the API has said there is no session (a 401 or 404 to "who am I",
+// or a logout), as opposed to a guest only because nothing could be asked
+// (a dropped connection, a server fault, with no one known yet).
+export const selectSignedOut = (state: RootState) =>
+    state.user.status === "guest" && state.user.decidedCheck !== undefined && state.user.decidedCheck === state.user.latestCheck
 
 export default userSlice.reducer
